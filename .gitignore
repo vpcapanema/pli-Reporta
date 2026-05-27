@@ -28,6 +28,7 @@ data/*.geojson
 # IDE
 .vscode/
 .idea/
+.kiro/
 *.swp
 
 # OS
