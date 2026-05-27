@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: pli-reporta
+    env: python
+    plan: starter
+    buildCommand: |
+      pip install -r requirements.txt
+      python scripts/generate_icons.py
+    startCommand: python -m uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: APP_ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: DATABASE_URL
+        value: sqlite:///./pli_reporta.db
+      - key: PHOTO_STORAGE_DIR
+        value: ./backend/storage/photos
+      - key: MODERATOR_API_KEY
+        sync: false
+    autoDeploy: true
+    healthCheckPath: /healthz
+    disk:
+      name: data
+      mountPath: /opt/render/project/src/backend/storage
+      sizeGB: 1

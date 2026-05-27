@@ -1,0 +1,217 @@
+/* PLI Reporta — paleta GOV-SP institucional, mobile-first, sem framework. */
+:root {
+  /* Paleta institucional GOV-SP */
+  --primary:        #C8102E;   /* vermelho institucional */
+  --primary-dark:   #8B0A1F;
+  --primary-soft:   #FBE7EA;
+  --ink:            #1F1F1F;   /* preto institucional */
+  --ink-soft:       #3A3A3A;
+
+  /* Neutros */
+  --bg:             #F5F5F2;
+  --surface:        #FFFFFF;
+  --border:         #D8D8D2;
+  --muted:          #5A5A5A;
+
+  /* Semânticos */
+  --ok:             #2E7D32;
+  --warn:           #B88500;
+  --danger:         #B3261E;
+
+  /* Layout */
+  --radius:         8px;
+  --shadow:         0 1px 3px rgba(0,0,0,0.08);
+  --tap-min:        48px;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+
+header.topbar {
+  background: var(--ink);
+  color: #fff;
+  padding: 12px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 10;
+  border-bottom: 4px solid var(--primary);
+}
+header.topbar h1 {
+  font-size: 17px; margin: 0; font-weight: 700;
+  letter-spacing: 0.02em; text-transform: uppercase;
+}
+header.topbar nav a {
+  color: #fff; text-decoration: none; font-size: 13px;
+  opacity: 0.85; margin-left: 14px; text-transform: uppercase;
+  letter-spacing: 0.04em; font-weight: 600;
+}
+header.topbar nav a:hover { opacity: 1; }
+
+main { padding: 16px; max-width: 720px; margin: 0 auto; }
+
+footer.footer {
+  border-top: 1px solid var(--border);
+  padding: 14px 16px;
+  margin-top: 24px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+  background: var(--surface);
+}
+footer.footer a {
+  color: var(--ink-soft);
+  text-decoration: none;
+  margin: 0 8px;
+  border-bottom: 1px dotted var(--border);
+}
+footer.footer a:hover { color: var(--primary); border-color: var(--primary); }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow);
+}
+
+.label { display: block; font-weight: 700; margin-bottom: 8px; color: var(--ink); }
+.help { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+button, .btn {
+  font: inherit;
+  min-height: var(--tap-min);
+  padding: 12px 18px;
+  border-radius: var(--radius);
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+  width: 100%;
+  letter-spacing: 0.02em;
+  transition: background 0.1s ease, border-color 0.1s ease;
+}
+button:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+button:active { transform: translateY(1px); }
+button.secondary {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--border);
+}
+button.secondary:hover { background: #efefe9; border-color: var(--ink-soft); }
+button.ghost {
+  background: transparent;
+  color: var(--ink);
+  border: 1px dashed var(--ink-soft);
+}
+button[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+.row { display: flex; gap: 8px; }
+.row > * { flex: 1; }
+
+/* Grade de categorias — sem emojis, marcador tipográfico discreto */
+.cat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.cat-grid button {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--border);
+  text-align: left;
+  padding: 14px 14px 14px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex; align-items: center; gap: 12px;
+  border-left: 4px solid var(--border);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.cat-grid button:hover {
+  background: #f7f7f2;
+  border-color: var(--ink-soft);
+  border-left-color: var(--ink-soft);
+}
+.cat-grid button.selected {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  border-left-color: var(--primary);
+  color: var(--primary-dark);
+}
+.cat-grid .ico {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px;
+  background: var(--ink);
+  color: #fff;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 13px;
+  flex: 0 0 28px;
+  letter-spacing: 0;
+}
+.cat-grid button.selected .ico { background: var(--primary); }
+
+.preview {
+  width: 100%;
+  border-radius: var(--radius);
+  background: #000;
+  display: block;
+}
+
+#map, #pickmap { width: 100%; height: 320px; border-radius: var(--radius); overflow: hidden; }
+#viewer-map { width: 100%; height: calc(100vh - 64px); }
+#mod-list { display: grid; gap: 12px; }
+
+.toast {
+  position: fixed; left: 16px; right: 16px; bottom: 16px;
+  background: var(--ink); color: #fff; padding: 12px 16px;
+  border-radius: var(--radius); box-shadow: var(--shadow);
+  text-align: center; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  font-weight: 600;
+}
+.toast.show { opacity: 1; }
+.toast.ok { background: var(--ok); }
+.toast.err { background: var(--danger); }
+.toast.warn { background: var(--warn); }
+
+.badge {
+  display: inline-block; padding: 2px 8px; border-radius: 4px;
+  font-size: 12px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.badge.ok { background: #DEEDDF; color: var(--ok); }
+.badge.warn { background: #FFF1CC; color: var(--warn); }
+.badge.err { background: #FBE0DE; color: var(--danger); }
+
+.field {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 16px;
+  font-family: inherit;
+  background: var(--surface);
+  color: var(--ink);
+}
+.field:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-soft);
+}
+textarea.field { min-height: 80px; resize: vertical; }
+
+.muted { color: var(--muted); font-size: 13px; }
+
+ul.signals { padding-left: 16px; margin: 4px 0; font-size: 13px; color: var(--muted); }
+ul.signals li { margin: 2px 0; font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace; }
+
+.queue-item img { max-width: 220px; border-radius: 6px; border: 1px solid var(--border); }
+.queue-item .meta { font-size: 12px; color: var(--muted); font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace; }
+.queue-item .actions { display: flex; gap: 8px; margin-top: 10px; }
+.queue-item .actions button { flex: 0 0 auto; width: auto; padding: 8px 14px; min-height: 0; }
+
+code { font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace; background: #f0f0e8; padding: 1px 4px; border-radius: 3px; }

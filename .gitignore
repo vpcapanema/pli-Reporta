@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Banco e mídia local
+*.db
+*.sqlite
+*.sqlite3
+backend/storage/photos/*
+!backend/storage/photos/.gitkeep
+data/*.geojson
+!data/.gitkeep
+
+# Ambiente
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build / cache
+dist/
+build/
+.cache/

@@ -1,0 +1,113 @@
+# PLI Reporta
+
+PWA colaborativa de reportes viários georreferenciados, mobile-first, com pipeline de
+veracidade e relevância para alimentar serviços de roteamento e alertas como camada
+operacional de **incidentes verificados**.
+
+Aplicação independente. Pode ser publicada em qualquer host com Python 3.10+ e um disco
+para mídia. Para integração com o roteador OSRM/PLI, expõe um endpoint GeoJSON estável.
+
+## Documentação
+
+- [Metodologia conceitual e hierarquização de rotas](./METODOLOGIA.md) — leia primeiro.
+- [API de integração com o roteador](./docs/API.md)
+- [Modelo de dados](./docs/DATA_MODEL.md)
+- [Operação e moderação](./docs/OPERACAO.md)
+
+## Quickstart (dev)
+
+```bash
+python -m venv venv
+venv\Scripts\activate           # Windows
+pip install -r requirements.txt
+copy .env.example .env
+python -m uvicorn backend.main:app --reload --port 8080
+```
+
+Abra:
+
+- `http://localhost:8080/`            — PWA de reporte (mobile-first)
+- `http://localhost:8080/mapa`        — visualizador público
+- `http://localhost:8080/moderar`     — painel de moderação (faixa cinza)
+- `http://localhost:8080/docs`        — OpenAPI / Swagger
+- `http://localhost:8080/api/v1/incidents.geojson` — feed para o roteador
+
+## Estrutura
+
+```
+pli_reporta/
+├── METODOLOGIA.md          documento conceitual (veracidade, relevância, hierarquização)
+├── backend/                FastAPI + SQLite + Pillow
+│   ├── main.py
+│   ├── config.py
+│   ├── database.py
+│   ├── models.py
+│   ├── schemas.py
+│   ├── routes/             endpoints HTTP
+│   ├── services/           lógica de domínio (scores, exif, snap, dedup)
+│   └── storage/photos/     mídia gerada
+├── frontend/               PWA vanilla + MapLibre GL
+│   ├── index.html          tela de captura
+│   ├── viewer.html         mapa público
+│   ├── moderation.html     painel de moderação
+│   ├── manifest.webmanifest
+│   ├── sw.js               service worker (offline + background sync)
+│   └── js/                 módulos
+├── data/                   dados auxiliares (roads.geojson opcional para snap)
+├── tests/
+├── requirements.txt
+├── Dockerfile
+├── docker-compose.yml
+├── render.yaml
+└── .env.example
+```
+
+## Identidade visual
+
+Paleta institucional GOV-SP usada nos templates:
+
+| Token CSS | Hex | Uso |
+|---|---|---|
+| `--primary` | `#C8102E` | vermelho institucional, ações primárias |
+| `--primary-dark` | `#8B0A1F` | hover/foco |
+| `--primary-soft` | `#FBE7EA` | seleções e badges |
+| `--ink` | `#1F1F1F` | barra superior, textos fortes |
+| `--ink-soft` | `#3A3A3A` | texto auxiliar |
+| `--bg` | `#F5F5F2` | fundo |
+| `--surface` | `#FFFFFF` | cartões |
+| `--border` | `#D8D8D2` | linhas |
+
+Sem emojis em qualquer artefato visual; categorias usam marcadores tipográficos
+(BU, AL, AC, BL, OB, LE, SI, OU). Para trocar pela paleta exata do manual do PLI,
+basta sobrescrever os tokens em `frontend/styles.css`.
+
+## Acesso à moderação
+
+A página `/moderar` está visível no menu superior de todas as telas. Ao abrir, ela
+pede a `MODERATOR_API_KEY` (definida no `.env` do servidor) e a guarda no
+`localStorage` do navegador. Sem chave válida o backend devolve `401`.
+
+Gerar uma chave local:
+
+```cmd
+venv\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+Cole o valor em `MODERATOR_API_KEY` no `.env` e reinicie o `uvicorn`.
+
+
+
+| Tema | Escolha | Por quê |
+|---|---|---|
+| Anônimo | Permitido, com reputação 0 | Reduz atrito; evidência mostra que login obriga afasta contribuintes |
+| Captura | `getUserMedia` + fallback `<input capture>` | Foto na página, não da galeria, é o sinal mais forte de autenticidade |
+| Geometria | Ponto sempre; linha/polígono para usuários verificados | Reduz erro de iniciante e abuso |
+| Veracidade | Score 0..1 com gates (descarta / modera / publica) | Auditável, ajustável, explica decisão ao usuário |
+| Relevância | Categoria × confirmações × persistência × afetação viária | Separa "o que é real" de "o que importa para a rota" |
+| Persistência | SQLite no MVP, com camada SQLAlchemy pronta para PostGIS | Simples no início, sem retrabalho depois |
+
+Detalhes formais e fórmulas em [METODOLOGIA.md](./METODOLOGIA.md).
+
+## Licença
+
+A definir pelo PLI-SP. O código é entregue sem cláusula restritiva por padrão.

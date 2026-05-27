@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <meta name="theme-color" content="#C8102E"/>
+  <title>PLI Reporta</title>
+  <link rel="manifest" href="/manifest.webmanifest"/>
+  <link rel="icon" href="/static/icons/icon-192.png"/>
+  <link rel="apple-touch-icon" href="/static/icons/icon-192.png"/>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.5.0/dist/maplibre-gl.css"/>
+  <link rel="stylesheet" href="/static/styles.css"/>
+</head>
+<body>
+  <header class="topbar">
+    <h1>PLI Reporta</h1>
+    <nav>
+      <a href="/">Reportar</a>
+      <a href="/mapa">Mapa</a>
+      <a href="/moderar">Moderar</a>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Etapa 1: categoria -->
+    <section id="step-1" class="card">
+      <span class="label">O que você quer reportar?</span>
+      <p class="help">Toque na categoria que mais se aproxima.</p>
+      <div id="cat-grid" class="cat-grid"></div>
+      <div style="height:14px"></div>
+      <button id="btn-step1" disabled>Continuar</button>
+    </section>
+
+    <!-- Etapa 2: foto + GPS -->
+    <section id="step-2" class="card" hidden>
+      <span class="label">Tire a foto</span>
+      <p id="status-line" class="help"></p>
+      <p id="gps-line" class="muted"></p>
+      <video id="cam-video" class="preview" autoplay playsinline muted></video>
+      <p id="cam-status" class="muted"></p>
+      <input id="fallback-input" type="file" accept="image/*" capture="environment" hidden/>
+      <div class="row" style="margin-top:10px">
+        <button class="secondary" id="btn-back">Voltar</button>
+        <button id="btn-shoot" disabled>Capturar</button>
+      </div>
+    </section>
+
+    <!-- Etapa 3: ajuste, descrição, envio -->
+    <section id="step-3" class="card" hidden>
+      <span class="label">Confirme o local e envie</span>
+      <img id="preview-img" class="preview" alt="prévia" style="margin-bottom:10px"/>
+      <div id="pickmap"></div>
+      <p id="picked-line" class="muted" style="margin-top:6px"></p>
+
+      <label class="label" for="sel-magnitude" style="margin-top:10px">Gravidade</label>
+      <select id="sel-magnitude" class="field">
+        <option value="leve">Leve</option>
+        <option value="normal" selected>Normal</option>
+        <option value="grave">Grave</option>
+      </select>
+
+      <label class="label" for="txt-desc" style="margin-top:10px">Descrição (opcional)</label>
+      <textarea id="txt-desc" class="field" maxlength="500" placeholder="Detalhe o que está acontecendo"></textarea>
+
+      <button id="btn-submit" style="margin-top:14px">Enviar reporte</button>
+      <p class="help">Sem internet? O reporte é salvo no celular e enviado quando voltar.</p>
+    </section>
+
+    <!-- Etapa 4: resultado -->
+    <section id="step-4" class="card" hidden>
+      <span class="label">Resultado <span id="result-status" class="badge"></span></span>
+      <p class="muted">id <code id="result-id"></code></p>
+      <p>Veracidade <strong id="result-v"></strong> · Relevância <strong id="result-r"></strong> · Prioridade <strong id="result-p"></strong></p>
+      <details>
+        <summary>Detalhamento dos sinais</summary>
+        <ul id="result-explain" class="signals"></ul>
+      </details>
+      <button id="btn-new" style="margin-top:14px">Fazer outro reporte</button>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div>Plano de Logística e Investimentos do Estado de São Paulo</div>
+    <div style="margin-top:4px">
+      <a href="/docs">API</a>
+      <a href="/mapa">Mapa público</a>
+      <a href="/moderar">Moderação</a>
+    </div>
+  </footer>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="https://unpkg.com/maplibre-gl@4.5.0/dist/maplibre-gl.js"></script>
+  <script type="module" src="/static/js/app.js"></script>
+</body>
+</html>
