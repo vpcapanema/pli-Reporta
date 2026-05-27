@@ -3,33 +3,41 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 OUT = Path(__file__).resolve().parent.parent / "frontend" / "icons"
 
+# Paleta institucional PLI
+PLI_AZUL_PROFUNDO = (0, 59, 90, 255)      # #003b5a
+PLI_AZUL_MARINHO = (28, 61, 89, 255)      # #1c3d59
+PLI_VERDE = (62, 194, 110, 255)           # #3ec26e
+BRANCO = (255, 255, 255, 255)
+
 
 def make_icon(size: int, path: Path) -> None:
-    img = Image.new("RGBA", (size, size), (200, 16, 46, 255))  # vermelho institucional GOV-SP
+    img = Image.new("RGBA", (size, size), PLI_AZUL_PROFUNDO)
     draw = ImageDraw.Draw(img)
-    # quadrado preto para a marca
+
+    # cartão azul-marinho com cantos arredondados
     pad = size // 8
     draw.rounded_rectangle(
         (pad, pad, size - pad, size - pad),
         radius=size // 16,
-        fill=(31, 31, 31, 255),
+        fill=PLI_AZUL_MARINHO,
     )
+
     # marcador (gota) simplificado em branco
     cx, cy = size // 2, size // 2
     r = size // 5
-    draw.ellipse((cx - r, cy - r - r // 2, cx + r, cy + r // 2), fill=(255, 255, 255, 255))
+    draw.ellipse((cx - r, cy - r - r // 2, cx + r, cy + r // 2), fill=BRANCO)
     draw.polygon(
         [(cx - r // 2, cy + r // 3), (cx + r // 2, cy + r // 3), (cx, cy + r)],
-        fill=(255, 255, 255, 255),
+        fill=BRANCO,
     )
-    # ponto central vermelho
+    # ponto central no verde PLI
     draw.ellipse(
         (cx - r // 4, cy - r // 4 - r // 4, cx + r // 4, cy + r // 4 - r // 4),
-        fill=(200, 16, 46, 255),
+        fill=PLI_VERDE,
     )
     img.save(path, format="PNG", optimize=True)
 

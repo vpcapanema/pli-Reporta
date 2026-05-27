@@ -1,27 +1,37 @@
-/* PLI Reporta — paleta GOV-SP institucional, mobile-first, sem framework. */
+/* PLI Reporta — paleta institucional PLI, mobile-first, sem framework. */
 :root {
-  /* Paleta institucional GOV-SP */
-  --primary:        #C8102E;   /* vermelho institucional */
-  --primary-dark:   #8B0A1F;
-  --primary-soft:   #FBE7EA;
-  --ink:            #1F1F1F;   /* preto institucional */
-  --ink-soft:       #3A3A3A;
+  /* Paleta institucional PLI */
+  --pli-verde:       #3ec26e;   /* verde PLI (accent) */
+  --pli-verde-dark:  #2fa854;   /* verde PLI escuro (hover) */
+  --pli-verde-soft:  #E5F6EC;   /* verde PLI claro (badges, seleções) */
+
+  --pli-azul:        #1c3d59;   /* azul-marinho PLI */
+  --pli-primary:     #003b5a;   /* azul profundo (topbar, fundo escuro) */
+  --pli-secondary:   #1c3d59;   /* azul-marinho PLI */
+  --pli-accent:      #116593;   /* azul médio PLI (links, secundário) */
+
+  /* Tokens semânticos do app */
+  --primary:         var(--pli-verde);
+  --primary-dark:    var(--pli-verde-dark);
+  --primary-soft:    var(--pli-verde-soft);
+  --ink:             var(--pli-primary);
+  --ink-soft:        var(--pli-secondary);
 
   /* Neutros */
-  --bg:             #F5F5F2;
-  --surface:        #FFFFFF;
-  --border:         #D8D8D2;
-  --muted:          #5A5A5A;
+  --bg:              #F5F7FA;
+  --surface:         #FFFFFF;
+  --border:          #D7DEE6;
+  --muted:           #5A6573;
 
-  /* Semânticos */
-  --ok:             #2E7D32;
-  --warn:           #B88500;
-  --danger:         #B3261E;
+  /* Estados */
+  --ok:              #2aa358;
+  --warn:            #f39c12;
+  --danger:          #c0392b;
 
   /* Layout */
-  --radius:         8px;
-  --shadow:         0 1px 3px rgba(0,0,0,0.08);
-  --tap-min:        48px;
+  --radius:          8px;
+  --shadow:          0 1px 3px rgba(0, 59, 90, 0.08);
+  --tap-min:         48px;
 }
 
 * { box-sizing: border-box; }
@@ -35,23 +45,25 @@ body {
 }
 
 header.topbar {
-  background: var(--ink);
+  background: linear-gradient(135deg, var(--pli-primary) 0%, var(--pli-secondary) 100%);
   color: #fff;
   padding: 12px 16px;
   display: flex; align-items: center; justify-content: space-between;
   position: sticky; top: 0; z-index: 10;
-  border-bottom: 4px solid var(--primary);
+  border-bottom: 4px solid var(--pli-verde);
 }
 header.topbar h1 {
   font-size: 17px; margin: 0; font-weight: 700;
   letter-spacing: 0.02em; text-transform: uppercase;
+  color: #fff;
 }
 header.topbar nav a {
   color: #fff; text-decoration: none; font-size: 13px;
   opacity: 0.85; margin-left: 14px; text-transform: uppercase;
   letter-spacing: 0.04em; font-weight: 600;
+  transition: color 0.15s ease, opacity 0.15s ease;
 }
-header.topbar nav a:hover { opacity: 1; }
+header.topbar nav a:hover { opacity: 1; color: var(--pli-verde); }
 
 main { padding: 16px; max-width: 720px; margin: 0 auto; }
 
@@ -65,12 +77,12 @@ footer.footer {
   background: var(--surface);
 }
 footer.footer a {
-  color: var(--ink-soft);
+  color: var(--pli-accent);
   text-decoration: none;
   margin: 0 8px;
   border-bottom: 1px dotted var(--border);
 }
-footer.footer a:hover { color: var(--primary); border-color: var(--primary); }
+footer.footer a:hover { color: var(--pli-verde-dark); border-color: var(--pli-verde); }
 
 .card {
   background: var(--surface);
@@ -90,28 +102,36 @@ button, .btn {
   padding: 12px 18px;
   border-radius: var(--radius);
   border: 1px solid var(--primary);
-  background: var(--primary);
+  background: linear-gradient(135deg, var(--pli-verde) 0%, var(--pli-verde-dark) 100%);
   color: #fff;
   cursor: pointer;
   font-weight: 700;
   width: 100%;
   letter-spacing: 0.02em;
-  transition: background 0.1s ease, border-color 0.1s ease;
+  transition: filter 0.15s ease, transform 0.05s ease, box-shadow 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 59, 90, 0.12);
 }
-button:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+button:hover { filter: brightness(0.95); box-shadow: 0 4px 10px rgba(62, 194, 110, 0.25); }
 button:active { transform: translateY(1px); }
 button.secondary {
   background: var(--surface);
-  color: var(--ink);
+  color: var(--pli-primary);
   border-color: var(--border);
+  box-shadow: none;
 }
-button.secondary:hover { background: #efefe9; border-color: var(--ink-soft); }
+button.secondary:hover {
+  background: #F0F6FB;
+  border-color: var(--pli-accent);
+  color: var(--pli-accent);
+  filter: none;
+}
 button.ghost {
   background: transparent;
-  color: var(--ink);
-  border: 1px dashed var(--ink-soft);
+  color: var(--pli-primary);
+  border: 1px dashed var(--pli-accent);
+  box-shadow: none;
 }
-button[disabled] { opacity: 0.5; cursor: not-allowed; }
+button[disabled] { opacity: 0.5; cursor: not-allowed; filter: grayscale(0.2); }
 
 .row { display: flex; gap: 8px; }
 .row > * { flex: 1; }
@@ -130,22 +150,24 @@ button[disabled] { opacity: 0.5; cursor: not-allowed; }
   border-left: 4px solid var(--border);
   letter-spacing: 0;
   text-transform: none;
+  box-shadow: none;
 }
 .cat-grid button:hover {
-  background: #f7f7f2;
-  border-color: var(--ink-soft);
-  border-left-color: var(--ink-soft);
+  background: #F0F6FB;
+  border-color: var(--pli-accent);
+  border-left-color: var(--pli-accent);
+  filter: none;
 }
 .cat-grid button.selected {
   background: var(--primary-soft);
-  border-color: var(--primary);
-  border-left-color: var(--primary);
-  color: var(--primary-dark);
+  border-color: var(--pli-verde);
+  border-left-color: var(--pli-verde);
+  color: var(--pli-primary);
 }
 .cat-grid .ico {
   display: inline-flex; align-items: center; justify-content: center;
   width: 28px; height: 28px;
-  background: var(--ink);
+  background: var(--pli-primary);
   color: #fff;
   border-radius: 4px;
   font-weight: 700;
@@ -153,7 +175,7 @@ button[disabled] { opacity: 0.5; cursor: not-allowed; }
   flex: 0 0 28px;
   letter-spacing: 0;
 }
-.cat-grid button.selected .ico { background: var(--primary); }
+.cat-grid button.selected .ico { background: var(--pli-verde); color: #fff; }
 
 .preview {
   width: 100%;
@@ -168,7 +190,7 @@ button[disabled] { opacity: 0.5; cursor: not-allowed; }
 
 .toast {
   position: fixed; left: 16px; right: 16px; bottom: 16px;
-  background: var(--ink); color: #fff; padding: 12px 16px;
+  background: var(--pli-primary); color: #fff; padding: 12px 16px;
   border-radius: var(--radius); box-shadow: var(--shadow);
   text-align: center; opacity: 0; pointer-events: none; transition: opacity 0.2s;
   font-weight: 600;
@@ -176,15 +198,15 @@ button[disabled] { opacity: 0.5; cursor: not-allowed; }
 .toast.show { opacity: 1; }
 .toast.ok { background: var(--ok); }
 .toast.err { background: var(--danger); }
-.toast.warn { background: var(--warn); }
+.toast.warn { background: var(--warn); color: var(--pli-primary); }
 
 .badge {
   display: inline-block; padding: 2px 8px; border-radius: 4px;
   font-size: 12px; font-weight: 700; text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-.badge.ok { background: #DEEDDF; color: var(--ok); }
-.badge.warn { background: #FFF1CC; color: var(--warn); }
+.badge.ok { background: var(--pli-verde-soft); color: var(--pli-verde-dark); }
+.badge.warn { background: #FFF1CC; color: #8C5A00; }
 .badge.err { background: #FBE0DE; color: var(--danger); }
 
 .field {
@@ -196,11 +218,12 @@ button[disabled] { opacity: 0.5; cursor: not-allowed; }
   font-family: inherit;
   background: var(--surface);
   color: var(--ink);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .field:focus {
   outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 2px var(--primary-soft);
+  border-color: var(--pli-verde);
+  box-shadow: 0 0 0 3px rgba(62, 194, 110, 0.18);
 }
 textarea.field { min-height: 80px; resize: vertical; }
 
@@ -214,4 +237,4 @@ ul.signals li { margin: 2px 0; font-family: ui-monospace, "Cascadia Mono", "Cons
 .queue-item .actions { display: flex; gap: 8px; margin-top: 10px; }
 .queue-item .actions button { flex: 0 0 auto; width: auto; padding: 8px 14px; min-height: 0; }
 
-code { font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace; background: #f0f0e8; padding: 1px 4px; border-radius: 3px; }
+code { font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace; background: #EAF1F7; color: var(--pli-primary); padding: 1px 4px; border-radius: 3px; }

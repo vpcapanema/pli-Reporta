@@ -64,22 +64,23 @@ pli_reporta/
 
 ## Identidade visual
 
-Paleta institucional GOV-SP usada nos templates:
+Paleta institucional PLI usada nos templates:
 
 | Token CSS | Hex | Uso |
 |---|---|---|
-| `--primary` | `#C8102E` | vermelho institucional, ações primárias |
-| `--primary-dark` | `#8B0A1F` | hover/foco |
-| `--primary-soft` | `#FBE7EA` | seleções e badges |
-| `--ink` | `#1F1F1F` | barra superior, textos fortes |
-| `--ink-soft` | `#3A3A3A` | texto auxiliar |
-| `--bg` | `#F5F5F2` | fundo |
+| `--pli-verde` | `#3ec26e` | verde PLI, ações primárias |
+| `--pli-verde-dark` | `#2fa854` | hover/foco em ações primárias |
+| `--pli-verde-soft` | `#E5F6EC` | seleções e badges |
+| `--pli-primary` | `#003b5a` | azul profundo, topbar, fundo escuro |
+| `--pli-secondary` | `#1c3d59` | azul-marinho PLI, textos fortes |
+| `--pli-accent` | `#116593` | azul médio PLI, links e secundários |
+| `--bg` | `#F5F7FA` | fundo |
 | `--surface` | `#FFFFFF` | cartões |
-| `--border` | `#D8D8D2` | linhas |
+| `--border` | `#D7DEE6` | linhas |
 
 Sem emojis em qualquer artefato visual; categorias usam marcadores tipográficos
-(BU, AL, AC, BL, OB, LE, SI, OU). Para trocar pela paleta exata do manual do PLI,
-basta sobrescrever os tokens em `frontend/styles.css`.
+(BU, AL, AC, BL, OB, LE, SI, OU). Para ajustes finos basta sobrescrever os tokens em
+`frontend/styles.css`.
 
 ## Acesso à moderação
 

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roterizador PLI - Resiliencia Climatica</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- SIDEBAR ESQUERDA -->
+    <aside class="sidebar sidebar-left">
+        <div class="sidebar-header">
+            <div class="logo-container">
+                <h1 class="logo-text">PLI</h1>
+                <p class="logo-subtitle">Roterizador de Resiliencia Climatica</p>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <!-- SECAO: ENTRADA DE ROTA -->
+            <div class="nav-section">
+                <h3 class="nav-title">Definir Rota</h3>
+
+                <!-- TABS: tres modos de entrada -->
+                <div class="tabs">
+                    <button class="tab-btn active" data-mode="coords">Coordenadas</button>
+                    <button class="tab-btn" data-mode="search">Buscar</button>
+                    <button class="tab-btn" data-mode="click">Clique no Mapa</button>
+                </div>
+
+                <!-- MODO 1: COORDENADAS -->
+                <div class="tab-content active" id="mode-coords">
+                    <div class="form-group">
+                        <label for="origin-lat">Origem - Latitude</label>
+                        <input type="number" id="origin-lat" placeholder="-23.5505" step="0.0001" value="-23.5505">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="origin-lon">Origem - Longitude</label>
+                        <input type="number" id="origin-lon" placeholder="-46.6333" step="0.0001" value="-46.6333">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="dest-lat">Destino - Latitude</label>
+                        <input type="number" id="dest-lat" placeholder="-23.6245" step="0.0001" value="-23.6245">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="dest-lon">Destino - Longitude</label>
+                        <input type="number" id="dest-lon" placeholder="-46.7250" step="0.0001" value="-46.7250">
+                    </div>
+                </div>
+
+                <!-- MODO 2: BUSCA POR TEXTO (cidade, endereco, CEP) -->
+                <div class="tab-content" id="mode-search">
+                    <div class="form-group">
+                        <label>Tipo de busca</label>
+                        <div class="type-selector">
+                            <button class="type-btn active" data-type="city">Cidade</button>
+                            <button class="type-btn" data-type="address">Endereco</button>
+                            <button class="type-btn" data-type="cep">CEP</button>
+                        </div>
+                        <p class="text-muted small" id="type-hint">Origem e destino devem ser do mesmo tipo.</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="origin-search">Origem</label>
+                        <div class="search-wrapper">
+                            <input type="text" id="origin-search" placeholder="Sao Paulo" autocomplete="off">
+                            <div class="search-results" id="origin-results"></div>
+                        </div>
+                        <p class="search-feedback" id="origin-feedback"></p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="dest-search">Destino</label>
+                        <div class="search-wrapper">
+                            <input type="text" id="dest-search" placeholder="Campinas" autocomplete="off">
+                            <div class="search-results" id="dest-results"></div>
+                        </div>
+                        <p class="search-feedback" id="dest-feedback"></p>
+                    </div>
+
+                    <button class="btn btn-secondary" id="resolve-search">Resolver Coordenadas</button>
+                </div>
+
+                <!-- MODO 3: CLIQUE NO MAPA -->
+                <div class="tab-content" id="mode-click">
+                    <p class="info-box">Clique no mapa para definir a origem (verde), depois clique novamente para definir o destino (vermelho).</p>
+                    
+                    <div class="click-status">
+                        <div class="status-item">
+                            <span class="status-label">Origem:</span>
+                            <span class="status-value" id="click-origin">Aguardando clique...</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Destino:</span>
+                            <span class="status-value" id="click-destination">Aguardando clique...</span>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-secondary" id="reset-clicks">Resetar Pontos</button>
+                </div>
+
+                <!-- BOTAO PRINCIPAL: CALCULAR ROTA -->
+                <button class="btn btn-primary btn-main" id="calculate-route">Calcular Rota</button>
+            </div>
+
+            <!-- SECAO: CAMADAS (smart layers) -->
+            <div class="nav-section">
+                <h3 class="nav-title">
+                    Camadas
+                    <button class="layers-refresh" id="layers-refresh"
+                            title="Atualizar todas as camadas ativas">↻</button>
+                </h3>
+                <p class="text-muted small" id="layers-hint">
+                    Ative camadas para sobrepor ao mapa e considera-las na analise da rota.
+                </p>
+
+                <div id="layers-container" class="layers-container">
+                    <!-- preenchido dinamicamente via /api/layers/catalog -->
+                    <div class="layers-loading">Carregando catalogo...</div>
+                </div>
+
+                <div class="divider"></div>
+
+                <label class="checkbox-group">
+                    <input type="checkbox" id="risk-demo">
+                    <span>Zonas Demo (sintetico)</span>
+                </label>
+
+                <label class="checkbox-group">
+                    <input type="checkbox" id="avoid-risk">
+                    <span><strong>Evitar Risco</strong></span>
+                </label>
+                <p class="text-muted small">(Futuro: recalcular rota evitando zonas ativas)</p>
+            </div>
+
+            <!-- SECAO: FERRAMENTAS -->
+            <div class="nav-section">
+                <h3 class="nav-title">Ferramentas</h3>
+                
+                <button class="btn btn-secondary" id="upload-shp">Upload Shapefile</button>
+                <button class="btn btn-secondary" id="export-route">Exportar Rota</button>
+            </div>
+        </nav>
+
+        <div class="sidebar-footer">
+            <p class="text-muted small">v0.3 - PLI Resiliencia Climatica</p>
+            <p class="text-muted small">Dados: OpenStreetMap + OSRM + ViaCEP</p>
+        </div>
+    </aside>
+
+    <!-- CONTEUDO PRINCIPAL -->
+    <main class="main-content">
+        <header class="app-header">
+            <div class="header-left">
+                <button class="toggle-sidebar" id="toggle-left">&laquo;</button>
+                <h2>Mapa de Rotas - Analise de Vulnerabilidade Climatica</h2>
+            </div>
+            <div class="header-right">
+                <span id="mode-indicator" class="mode-indicator">Modo: Coordenadas</span>
+            </div>
+        </header>
+
+        <!-- MAPA LEAFLET -->
+        <div id="map" class="map-container"></div>
+
+        <!-- TOAST DE NOTIFICACAO -->
+        <div id="toast" class="toast hidden"></div>
+
+        <!-- PAINEL DE INFORMACOES -->
+        <div id="info-panel" class="info-panel hidden">
+            <div class="info-header">
+                <h3>Analise de Rota</h3>
+                <button class="btn-close" id="close-info">X</button>
+            </div>
+            <div class="info-content">
+                <div class="info-item">
+                    <label>Distancia</label>
+                    <p id="info-distance">-</p>
+                </div>
+                <div class="info-item">
+                    <label>Tempo Estimado</label>
+                    <p id="info-duration">-</p>
+                </div>
+                <div class="divider"></div>
+                <div class="info-item">
+                    <label>Exposicao a Risco</label>
+                    <div id="risk-meter" class="risk-meter">
+                        <div id="risk-bar" class="risk-bar"></div>
+                    </div>
+                    <p id="info-risk">-</p>
+                </div>
+                <div class="info-item">
+                    <label>Zonas Detectadas</label>
+                    <ul id="risk-zones-list">
+                        <li>-</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- LEAFLET JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- APP JS -->
+    <script src="/static/app.js"></script>
+</body>
+</html>
