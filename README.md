@@ -56,8 +56,6 @@ pli_reporta/
 ├── data/                   dados auxiliares (roads.geojson opcional para snap)
 ├── tests/
 ├── requirements.txt
-├── Dockerfile
-├── docker-compose.yml
 ├── render.yaml
 └── .env.example
 ```
