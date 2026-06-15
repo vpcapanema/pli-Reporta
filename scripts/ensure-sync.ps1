@@ -149,4 +149,5 @@ if (-not $updatedVm) {
 Write-Host ''
 Write-Host 'SINCRONIZADO — laptop, GitHub, VM (git + container testado)' -ForegroundColor Green
 Write-Host ('  commit: ' + $state.Local) -ForegroundColor DarkGray
-Write-Host ('  VM:     ' + $VmBaseUrl + '/api-publica') -ForegroundColor DarkGray
+Write-Host ('  VM:     ' + $VmBaseUrl) -ForegroundColor DarkGray
+Open-AppInBrowser -BaseUrl $VmBaseUrl -Label 'VM'

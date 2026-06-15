@@ -211,3 +211,14 @@ function Test-AppHealth {
 
     throw ($Label + ' falhou no healthcheck: ' + $Url)
 }
+
+function Open-AppInBrowser {
+    param(
+        [string]$BaseUrl,
+        [string]$Label = 'VM'
+    )
+
+    $url = ($BaseUrl.TrimEnd('/') + '/')
+    Write-Host ('  Abrindo pagina inicial no navegador (' + $Label + '): ' + $url) -ForegroundColor Cyan
+    Start-Process $url
+}
