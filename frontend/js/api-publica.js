@@ -1,4 +1,8 @@
 /** Documentação interativa da API pública — preenche URLs a partir do manifesto. */
+import {
+  PUBLIC_DER_POPUP_FIELD_LABELS,
+  PUBLIC_SYSTEM_POPUP_FIELD_LABELS,
+} from './layer-popup-fields.js';
 import { bindSidebarCollapse, mountPublicNavSecondary } from './public-sidebar.js';
 import { mountSidebarBrands } from './sidebar-brand.js';
 
@@ -10,6 +14,80 @@ function setCode(el, text) {
   if (!el) return;
   const code = el.querySelector('code') || el;
   code.textContent = text;
+}
+
+/** Mapeamento rótulo popup → propriedade GeoJSON (documentação para integradores). */
+const POPUP_FIELD_GEOJSON = {
+  'Tipo de interação': 'interaction_type (+ rótulo fixo “Evento de tráfego”)',
+  Categoria: 'category_label ou category',
+  Magnitude: 'magnitude',
+  Descrição: 'description',
+  Status: 'status_label ou status',
+  Bloqueante: 'blocking',
+  'Válido desde': 'valid_from',
+  'Válido até': 'valid_to',
+  'Capturado em': 'captured_at',
+  'Recebido em': 'received_at',
+  'Acurácia GPS (m)': 'accuracy_m',
+  'Classificação viária': 'road_context.scope / road_scope → “Provavelmente municipal” se municipal',
+  Rodovia: 'road_context.rodovia + denominacao',
+  'Tipo rodoviário': 'road_context.tipo_rodoviario',
+  Município: 'road_context.municipio',
+  'Tipo de pista': 'road_context.tipo_pista',
+  'Administrador da via': 'road_context.administra',
+  'Coordenadoria Regional Geral DER': 'road_context.cod_regional',
+  'Sede da coordenadoria': 'road_context.sede_regional',
+  'Residência de conserva DER': 'road_context.residencia',
+  'Sede da residência de conserva': 'road_context.sede_residencia',
+};
+
+const POPUP_STATUS_COPY = [
+  {
+    status: 'publicado',
+    headline: 'Situação ativa',
+    detail:
+      'Evento confirmado e exibido neste mapa. A autoridade responsável foi informada.',
+  },
+  {
+    status: 'resolvido',
+    headline: 'Situação encerrada',
+    detail:
+      'Este registro foi encerrado pela autoridade competente e permanece aqui como histórico.',
+  },
+];
+
+function renderPopupFieldTable(tbodyId, labels) {
+  const tbody = $(tbodyId);
+  if (!tbody) return;
+  tbody.innerHTML = labels
+    .map(
+      (label, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${label}</td>
+          <td><code>${POPUP_FIELD_GEOJSON[label] || 'road_context / road_label'}</code></td>
+        </tr>`,
+    )
+    .join('');
+}
+
+function renderPopupStatusTable() {
+  const tbody = $('#api-popup-status-body');
+  if (!tbody) return;
+  tbody.innerHTML = POPUP_STATUS_COPY.map(
+    (row) => `
+        <tr>
+          <td><code>${row.status}</code></td>
+          <td>${row.headline}</td>
+          <td class="muted">${row.detail}</td>
+        </tr>`,
+  ).join('');
+}
+
+function renderPopupSpec() {
+  renderPopupStatusTable();
+  renderPopupFieldTable('#api-popup-cadastro-body', PUBLIC_SYSTEM_POPUP_FIELD_LABELS);
+  renderPopupFieldTable('#api-popup-rodoviario-body', PUBLIC_DER_POPUP_FIELD_LABELS);
 }
 
 function renderStatusLegend(items) {
@@ -130,5 +208,6 @@ document.addEventListener('DOMContentLoaded', () => {
   mountSidebarBrands();
   bindSidebarCollapse('panel-api-publica', { defaultExpanded: true });
   mountPublicNavSecondary('#public-sidebar-nav', 'api');
+  renderPopupSpec();
   loadManifest();
 });

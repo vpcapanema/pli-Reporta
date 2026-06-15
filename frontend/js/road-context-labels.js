@@ -63,7 +63,7 @@ export function normalizeRoadContext(raw) {
     const scopeLabels = {
       federal: 'Rodovia federal',
       estadual: 'Rodovia estadual',
-      municipal: 'Via municipal',
+      municipal: "Provavelmente municipal",
     };
     ctx.scope_label = scopeLabels[ctx.scope] || ctx.scope;
   }
@@ -94,7 +94,11 @@ export function formatRoadContextValue(key, value) {
   if (key === 'tipo_pista') return formatTipoPista(value);
   if (key === 'administra') return formatAdministra(value);
   if (key === 'snap_dist_m') return formatSnapDistM(value);
-  if (key === 'scope_label') return String(value).trim();
+  if (key === 'scope_label') {
+    const v = String(value).trim();
+    if (v === 'Via municipal' || v === 'Rodovia municipal') return 'Provavelmente municipal';
+    return v;
+  }
   return String(value).trim();
 }
 

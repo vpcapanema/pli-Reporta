@@ -1,25 +1,41 @@
 // Mapa público — camadas publicadas e resolvidas, dos dois grupos.
-import { OSM_STYLE } from './map-style.js';
+import { OSM_STYLE } from "./map-style.js";
 import {
   downloadExportBatch,
   fetchCatalog,
   fetchIncidents,
   fetchManifestations,
-  resolveIncident,
-} from './api.js';
-import { createMarkerElement, legendStatusSwatch, preloadEventIcons, resolveStatusColor, buildLegendSymbolsBlock } from './gestao-markers.js';
-import { buildGestaoPopupHtml } from './gestao-map-popup.js';
-import { bindRelatoriosCollapse, bindSidebarCollapse } from './public-sidebar.js';
-import { mountSidebarBrands } from './sidebar-brand.js';
+} from "./api.js";
+import {
+  createMarkerElement,
+  legendStatusSwatch,
+  preloadEventIcons,
+  resolveStatusColor,
+  buildLegendSymbolsBlock,
+} from "./gestao-markers.js";
+import {
+  bindPopupCloseControl,
+  buildPublicMapPopupHtml,
+} from "./gestao-map-popup.js";
+import {
+  bindRelatoriosCollapse,
+  bindSidebarCollapse,
+} from "./public-sidebar.js";
+import { mountSidebarBrands } from "./sidebar-brand.js";
 
 const map = new maplibregl.Map({
-  container: 'viewer-map',
+  container: "viewer-map",
   style: OSM_STYLE,
   center: [-46.63, -23.55],
   zoom: 6,
 });
-map.addControl(new maplibregl.NavigationControl(), 'top-right');
-map.addControl(new maplibregl.GeolocateControl({ positionOptions: { enableHighAccuracy: true } }), 'top-right');
+map.addControl(new maplibregl.NavigationControl(), "top-right");
+map.addControl(
+  new maplibregl.GeolocateControl({
+    positionOptions: { enableHighAccuracy: true },
+  }),
+  "top-right",
+);
 
 /** @type {Record<string, maplibregl.Marker[]>} */
 const categoryMarkers = {};
@@ -32,15 +48,23 @@ let layerControlsBound = false;
 let exportFormBound = false;
 let sidebarToggleBound = false;
 
-const PUBLIC_MAP_STATUSES = ['publicado', 'resolvido'];
+const PUBLIC_MAP_STATUSES = ["publicado", "resolvido"];
 
 const EXPORT_GROUPS = [
-  { id: 'evento_trafego', title: 'Eventos de tráfego', categoriesKey: 'event_categories' },
-  { id: 'manifestacao', title: 'Manifestação cidadã', categoriesKey: 'manifestation_categories' },
+  {
+    id: "evento_trafego",
+    title: "Eventos de tráfego",
+    categoriesKey: "event_categories",
+  },
+  {
+    id: "manifestacao",
+    title: "Manifestação cidadã",
+    categoriesKey: "manifestation_categories",
+  },
 ];
 
 function layerKey(typeId, catId) {
-  const prefix = typeId === 'evento_trafego' ? 'evento' : 'manifestacao';
+  const prefix = typeId === "evento_trafego" ? "evento" : "manifestacao";
   return `${prefix}:${catId}`;
 }
 
@@ -52,7 +76,7 @@ function mapPublicFeatures(fc) {
 function countsByCategory(fc) {
   const counts = {};
   for (const f of mapPublicFeatures(fc)) {
-    const cat = f.properties?.category || 'outro';
+    const cat = f.properties?.category || "outro";
     counts[cat] = (counts[cat] || 0) + 1;
   }
   return counts;
@@ -62,16 +86,18 @@ function ensureLayerKeys() {
   if (!catalog) return;
   allLayerKeys = [];
   for (const c of catalog.event_categories || []) {
-    allLayerKeys.push(layerKey('evento_trafego', c.id));
+    allLayerKeys.push(layerKey("evento_trafego", c.id));
   }
   for (const c of catalog.manifestation_categories || []) {
-    allLayerKeys.push(layerKey('manifestacao', c.id));
+    allLayerKeys.push(layerKey("manifestacao", c.id));
   }
   for (const k of allLayerKeys) {
     if (layerVisibility[k] === undefined) layerVisibility[k] = true;
   }
-  if (layerVisibility.evento_trafego === undefined) layerVisibility.evento_trafego = true;
-  if (layerVisibility.manifestacao === undefined) layerVisibility.manifestacao = true;
+  if (layerVisibility.evento_trafego === undefined)
+    layerVisibility.evento_trafego = true;
+  if (layerVisibility.manifestacao === undefined)
+    layerVisibility.manifestacao = true;
 }
 
 function totalCount(counts) {
@@ -79,7 +105,7 @@ function totalCount(counts) {
 }
 
 function renderLayerControls(eventCounts, manifCounts) {
-  const layersEl = document.getElementById('viewer-layers');
+  const layersEl = document.getElementById("viewer-layers");
   if (!layersEl || !catalog) return;
 
   ensureLayerKeys();
@@ -91,16 +117,18 @@ function renderLayerControls(eventCounts, manifCounts) {
 
   const groupLayers = (typeId, categories, counts, title) => {
     const total = totalCount(counts);
-    const cats = categories.map((c) => {
-      const key = layerKey(typeId, c.id);
-      const checked = layerVisibility[key] !== false ? 'checked' : '';
-      return `
+    const cats = categories
+      .map((c) => {
+        const key = layerKey(typeId, c.id);
+        const checked = layerVisibility[key] !== false ? "checked" : "";
+        return `
         <label class="public-layer-cat">
           <input type="checkbox" data-layer="${key}" ${checked}/>
           <span>${catLabel(c, counts)}</span>
         </label>`;
-    }).join('');
-    const groupChecked = layerVisibility[typeId] !== false ? 'checked' : '';
+      })
+      .join("");
+    const groupChecked = layerVisibility[typeId] !== false ? "checked" : "";
     return `
       <div class="public-layer-group">
         <label>
@@ -114,24 +142,36 @@ function renderLayerControls(eventCounts, manifCounts) {
   const eventCategories = catalog.event_categories || [];
   const manifCategories = catalog.manifestation_categories || [];
   layersEl.innerHTML =
-    groupLayers('evento_trafego', eventCategories, eventCounts, 'Eventos de tráfego')
-    + groupLayers('manifestacao', manifCategories, manifCounts, 'Manifestação cidadã');
+    groupLayers(
+      "evento_trafego",
+      eventCategories,
+      eventCounts,
+      "Eventos de tráfego",
+    ) +
+    groupLayers(
+      "manifestacao",
+      manifCategories,
+      manifCounts,
+      "Manifestação cidadã",
+    );
 
   if (!layerControlsBound) {
     layerControlsBound = true;
-    layersEl.addEventListener('change', (ev) => {
+    layersEl.addEventListener("change", (ev) => {
       const input = ev.target;
       if (!(input instanceof HTMLInputElement) || !input.dataset.layer) return;
       const key = input.dataset.layer;
       layerVisibility[key] = input.checked;
-      if (key === 'evento_trafego' || key === 'manifestacao') {
-        const prefix = key === 'evento_trafego' ? 'evento' : 'manifestacao';
-        layersEl.querySelectorAll(`input[data-layer^="${prefix}:"]`).forEach((child) => {
-          if (!(child instanceof HTMLInputElement)) return;
-          child.checked = input.checked;
-          layerVisibility[child.dataset.layer] = input.checked;
-          applyLayerVisibility(child.dataset.layer);
-        });
+      if (key === "evento_trafego" || key === "manifestacao") {
+        const prefix = key === "evento_trafego" ? "evento" : "manifestacao";
+        layersEl
+          .querySelectorAll(`input[data-layer^="${prefix}:"]`)
+          .forEach((child) => {
+            if (!(child instanceof HTMLInputElement)) return;
+            child.checked = input.checked;
+            layerVisibility[child.dataset.layer] = input.checked;
+            applyLayerVisibility(child.dataset.layer);
+          });
       }
       applyLayerVisibility(key);
     });
@@ -143,8 +183,12 @@ function exportLayerRef(typeId, catId) {
 }
 
 function syncExportGroupState(exportsEl, groupId) {
-  const boxes = exportsEl.querySelectorAll(`input[data-export-layer^="${groupId}:"]`);
-  const groupBox = exportsEl.querySelector(`input[data-export-all="${groupId}"]`);
+  const boxes = exportsEl.querySelectorAll(
+    `input[data-export-layer^="${groupId}:"]`,
+  );
+  const groupBox = exportsEl.querySelector(
+    `input[data-export-all="${groupId}"]`,
+  );
   if (!(groupBox instanceof HTMLInputElement) || !boxes.length) return;
   const checked = [...boxes].filter((b) => b.checked).length;
   groupBox.checked = checked === boxes.length;
@@ -154,24 +198,27 @@ function syncExportGroupState(exportsEl, groupId) {
 function syncExportGlobalState(exportsEl) {
   const globalBox = exportsEl.querySelector('input[data-export-all="global"]');
   if (!(globalBox instanceof HTMLInputElement)) return;
-  const all = exportsEl.querySelectorAll('input[data-export-layer]');
+  const all = exportsEl.querySelectorAll("input[data-export-layer]");
   const checked = [...all].filter((b) => b.checked).length;
   globalBox.checked = checked === all.length && all.length > 0;
   globalBox.indeterminate = checked > 0 && checked < all.length;
 }
 
 function renderExportForm(eventCounts, manifCounts) {
-  const exportsEl = document.getElementById('viewer-exports');
+  const exportsEl = document.getElementById("viewer-exports");
   if (!exportsEl || !catalog) return;
 
-  const countsFor = (groupId) => (groupId === 'evento_trafego' ? eventCounts : manifCounts);
+  const countsFor = (groupId) =>
+    groupId === "evento_trafego" ? eventCounts : manifCounts;
 
   if (exportFormBound) {
     EXPORT_GROUPS.forEach((g) => {
       const counts = countsFor(g.id);
       for (const c of catalog[g.categoriesKey] || []) {
-        const box = exportsEl.querySelector(`input[data-export-layer="${g.id}:${c.id}"]`);
-        const label = box?.closest('label')?.querySelector('span');
+        const box = exportsEl.querySelector(
+          `input[data-export-layer="${g.id}:${c.id}"]`,
+        );
+        const label = box?.closest("label")?.querySelector("span");
         if (label) {
           const n = counts[c.id] || 0;
           label.innerHTML = `${c.label} <span class="muted">(${n})</span>`;
@@ -184,14 +231,16 @@ function renderExportForm(eventCounts, manifCounts) {
   const groupBlocks = EXPORT_GROUPS.map((g) => {
     const categories = catalog[g.categoriesKey] || [];
     const counts = countsFor(g.id);
-    const catRows = categories.map((c) => {
-      const n = counts[c.id] || 0;
-      return `
+    const catRows = categories
+      .map((c) => {
+        const n = counts[c.id] || 0;
+        return `
         <label class="public-export-cat">
           <input type="checkbox" data-export-layer="${g.id}:${c.id}"/>
           <span>${c.label} <span class="muted">(${n})</span></span>
         </label>`;
-    }).join('');
+      })
+      .join("");
     return `
       <div class="public-export-group-block" data-export-group="${g.id}">
         <label class="public-export-group-all">
@@ -200,7 +249,7 @@ function renderExportForm(eventCounts, manifCounts) {
         </label>
         <div class="public-export-cats">${catRows}</div>
       </div>`;
-  }).join('');
+  }).join("");
 
   exportsEl.innerHTML = `
     <form class="public-export-form" id="viewer-export-form">
@@ -223,15 +272,17 @@ function renderExportForm(eventCounts, manifCounts) {
 
   if (!exportFormBound) {
     exportFormBound = true;
-    exportsEl.addEventListener('change', (ev) => {
+    exportsEl.addEventListener("change", (ev) => {
       const input = ev.target;
       if (!(input instanceof HTMLInputElement)) return;
 
-      if (input.dataset.exportAll === 'global') {
+      if (input.dataset.exportAll === "global") {
         const on = input.checked;
-        exportsEl.querySelectorAll('input[data-export-layer]').forEach((box) => {
-          if (box instanceof HTMLInputElement) box.checked = on;
-        });
+        exportsEl
+          .querySelectorAll("input[data-export-layer]")
+          .forEach((box) => {
+            if (box instanceof HTMLInputElement) box.checked = on;
+          });
         EXPORT_GROUPS.forEach((g) => syncExportGroupState(exportsEl, g.id));
         return;
       }
@@ -239,48 +290,57 @@ function renderExportForm(eventCounts, manifCounts) {
       if (input.dataset.exportAll) {
         const groupId = input.dataset.exportAll;
         const on = input.checked;
-        exportsEl.querySelectorAll(`input[data-export-layer^="${groupId}:"]`).forEach((box) => {
-          if (box instanceof HTMLInputElement) box.checked = on;
-        });
+        exportsEl
+          .querySelectorAll(`input[data-export-layer^="${groupId}:"]`)
+          .forEach((box) => {
+            if (box instanceof HTMLInputElement) box.checked = on;
+          });
         syncExportGlobalState(exportsEl);
         return;
       }
 
       if (input.dataset.exportLayer) {
-        const [groupId] = input.dataset.exportLayer.split(':');
+        const [groupId] = input.dataset.exportLayer.split(":");
         syncExportGroupState(exportsEl, groupId);
         syncExportGlobalState(exportsEl);
       }
     });
 
-    exportsEl.addEventListener('submit', async (ev) => {
+    exportsEl.addEventListener("submit", async (ev) => {
       ev.preventDefault();
       const form = ev.target;
       if (!(form instanceof HTMLFormElement)) return;
-      const statusEl = document.getElementById('export-status');
-      const btn = document.getElementById('export-download-btn');
-      const formatInput = form.querySelector('input[name="export-format"]:checked');
-      const format = formatInput instanceof HTMLInputElement ? formatInput.value : 'pdf';
-      const selected = [...form.querySelectorAll('input[data-export-layer]:checked')]
+      const statusEl = document.getElementById("export-status");
+      const btn = document.getElementById("export-download-btn");
+      const formatInput = form.querySelector(
+        'input[name="export-format"]:checked',
+      );
+      const format =
+        formatInput instanceof HTMLInputElement ? formatInput.value : "pdf";
+      const selected = [
+        ...form.querySelectorAll("input[data-export-layer]:checked"),
+      ]
         .map((el) => {
-          const key = el instanceof HTMLInputElement ? el.dataset.exportLayer : '';
-          const [typeId, catId] = (key || '').split(':');
+          const key =
+            el instanceof HTMLInputElement ? el.dataset.exportLayer : "";
+          const [typeId, catId] = (key || "").split(":");
           return typeId && catId ? exportLayerRef(typeId, catId) : null;
         })
         .filter(Boolean);
 
       if (!selected.length) {
-        if (statusEl) statusEl.textContent = 'Selecione ao menos uma camada.';
+        if (statusEl) statusEl.textContent = "Selecione ao menos uma camada.";
         return;
       }
 
       if (btn instanceof HTMLButtonElement) btn.disabled = true;
-      if (statusEl) statusEl.textContent = 'Gerando arquivo…';
+      if (statusEl) statusEl.textContent = "Gerando arquivo…";
       try {
         await downloadExportBatch({ format, layers: selected });
-        if (statusEl) statusEl.textContent = 'Download iniciado.';
+        if (statusEl) statusEl.textContent = "Download iniciado.";
       } catch (err) {
-        if (statusEl) statusEl.textContent = err.message || 'Falha na exportação.';
+        if (statusEl)
+          statusEl.textContent = err.message || "Falha na exportação.";
       } finally {
         if (btn instanceof HTMLButtonElement) btn.disabled = false;
       }
@@ -290,17 +350,20 @@ function renderExportForm(eventCounts, manifCounts) {
 
 function applyLayerVisibility(key) {
   const visible = layerVisibility[key] !== false;
-  if (key === 'evento_trafego' || key === 'manifestacao') {
-    const prefix = key === 'evento_trafego' ? 'evento' : 'manifestacao';
-    allLayerKeys.filter((k) => k.startsWith(`${prefix}:`)).forEach((k) => {
-      (categoryMarkers[k] || []).forEach((m) => {
-        m.getElement().style.display = visible && layerVisibility[k] !== false ? '' : 'none';
+  if (key === "evento_trafego" || key === "manifestacao") {
+    const prefix = key === "evento_trafego" ? "evento" : "manifestacao";
+    allLayerKeys
+      .filter((k) => k.startsWith(`${prefix}:`))
+      .forEach((k) => {
+        (categoryMarkers[k] || []).forEach((m) => {
+          m.getElement().style.display =
+            visible && layerVisibility[k] !== false ? "" : "none";
+        });
       });
-    });
     return;
   }
   (categoryMarkers[key] || []).forEach((m) => {
-    m.getElement().style.display = visible ? '' : 'none';
+    m.getElement().style.display = visible ? "" : "none";
   });
 }
 
@@ -313,21 +376,29 @@ function clearAllMarkers() {
 
 function addMarkers(fc, interactionType) {
   for (const f of mapPublicFeatures(fc)) {
-    const p = { ...f.properties, interaction_type: f.properties?.interaction_type || interactionType };
+    const p = {
+      ...f.properties,
+      interaction_type: f.properties?.interaction_type || interactionType,
+    };
     const [lon, lat] = f.geometry?.coordinates || [];
     if (lat == null || lon == null) continue;
-    const prefix = interactionType === 'manifestacao' ? 'manifestacao' : 'evento';
-    const key = `${prefix}:${p.category || 'outro'}`;
+    const prefix =
+      interactionType === "manifestacao" ? "manifestacao" : "evento";
+    const key = `${prefix}:${p.category || "outro"}`;
     if (!categoryMarkers[key]) categoryMarkers[key] = [];
 
     const el = createMarkerElement(p, catalog, { wrapForMaplibre: true });
     const popup = new maplibregl.Popup({
       offset: 20,
-      maxWidth: '340px',
-      className: 'viewer-map-popup gestao-map-popup',
-    }).setHTML(buildGestaoPopupHtml(p, catalog, { showResolve: true }));
+      closeButton: false,
+      maxWidth: "none",
+      className: "viewer-map-popup map-feature-popup public-map-popup",
+    }).setHTML(buildPublicMapPopupHtml(p, catalog));
+    popup.on("open", () => {
+      bindPopupCloseControl(popup.getElement(), () => popup.remove());
+    });
 
-    const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+    const marker = new maplibregl.Marker({ element: el, anchor: "center" })
       .setLngLat([lon, lat])
       .setPopup(popup)
       .addTo(map);
@@ -336,12 +407,12 @@ function addMarkers(fc, interactionType) {
 }
 
 function renderPublicLegend() {
-  const el = document.getElementById('viewer-legend');
+  const el = document.getElementById("viewer-legend");
   if (!el || !catalog) return;
 
   const statuses = PUBLIC_MAP_STATUSES.map((id) => {
     const m = catalog.statuses?.[id];
-    if (!m) return '';
+    if (!m) return "";
     const color = resolveStatusColor({ status: id }, catalog);
     return `
       <div class="gestao-legend-row">
@@ -350,7 +421,7 @@ function renderPublicLegend() {
           <strong>${m.label}</strong>
         </div>
       </div>`;
-  }).join('');
+  }).join("");
 
   el.innerHTML = `
     <h3>Legenda</h3>
@@ -361,41 +432,30 @@ function renderPublicLegend() {
 
 function bindSidebarToggle() {
   if (sidebarToggleBound) return;
-  const btn = document.getElementById('toggle-sidebar');
-  const sidebar = document.getElementById('public-sidebar');
+  const btn = document.getElementById("toggle-sidebar");
+  const sidebar = document.getElementById("public-sidebar");
   if (!btn || !sidebar) return;
   sidebarToggleBound = true;
-  btn.addEventListener('click', () => {
-    sidebar.classList.toggle('public-sidebar-collapsed');
-    const collapsed = sidebar.classList.contains('public-sidebar-collapsed');
-    document.body.classList.toggle('viewer-sidebar-collapsed', collapsed);
-    btn.textContent = collapsed ? '»' : '«';
-    btn.setAttribute('aria-label', collapsed ? 'Expandir menu lateral' : 'Recolher menu lateral');
+  btn.addEventListener("click", () => {
+    sidebar.classList.toggle("public-sidebar-collapsed");
+    const collapsed = sidebar.classList.contains("public-sidebar-collapsed");
+    document.body.classList.toggle("viewer-sidebar-collapsed", collapsed);
+    btn.textContent = collapsed ? "»" : "«";
+    btn.setAttribute(
+      "aria-label",
+      collapsed ? "Expandir menu lateral" : "Recolher menu lateral",
+    );
     setTimeout(() => map.resize(), 280);
   });
 }
 
-document.addEventListener('click', async (ev) => {
-  const btn = ev.target.closest('.popup-resolver');
-  if (!btn) return;
-  btn.disabled = true;
-  try {
-    const r = await resolveIncident(btn.dataset.cluster);
-    btn.textContent = r.message || 'Obrigado pelo aviso!';
-    btn.style.background = '#116593';
-  } catch (_) {
-    btn.disabled = false;
-    btn.textContent = 'Não foi possível enviar. Tente de novo.';
-  }
-});
-
 mountSidebarBrands();
 
-map.on('load', async () => {
+map.on("load", async () => {
   try {
     catalog = await fetchCatalog();
     await preloadEventIcons(catalog);
-    bindSidebarCollapse('panel-mapa', { defaultExpanded: true });
+    bindSidebarCollapse("panel-mapa", { defaultExpanded: true });
     bindRelatoriosCollapse();
     bindSidebarToggle();
     renderLayerControls({}, {});
@@ -420,8 +480,8 @@ async function refresh() {
     renderExportForm(eventCounts, manifCounts);
 
     clearAllMarkers();
-    addMarkers(events, 'evento_trafego');
-    addMarkers(manif, 'manifestacao');
+    addMarkers(events, "evento_trafego");
+    addMarkers(manif, "manifestacao");
     allLayerKeys.forEach((k) => applyLayerVisibility(k));
   } catch (e) {
     console.error(e);

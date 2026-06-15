@@ -1,99 +1,141 @@
-/** HTML dos popups Leaflet no mapa de gestão. */
-import { categoryLabel, escHtml, formatDate, statusLabel } from './gestao-common.js';
-import { resolveStatusColor } from './gestao-markers.js';
+/** HTML dos popups do mapa (gestão e público). */
+import { categoryLabel, escHtml, formatDate, statusLabel } from "./gestao-common.js";
+import { resolveStatusColor } from "./gestao-markers.js";
 import {
-  buildMunicipalFallbackRows,
-  buildRoadContextRows,
-  normalizeRoadContext,
-  rodoviaLine,
-} from './road-context-labels.js';
+  splitGestaoLayerRowsForPopup,
+  splitPublicLayerRowsForPopup,
+} from "./layer-popup-fields.js";
 
-function formatScore(value) {
-  if (value == null || value === '') return null;
-  const n = Number(value);
-  if (Number.isNaN(n)) return String(value);
-  return n.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 3 });
-}
-
-function kvRowsHtml(rows, prefix = 'gestao-map-popup') {
-  if (!rows.length) return '';
-  const items = rows.map(({ label, value }) => `
+function kvRowsHtml(rows, prefix = "gestao-map-popup") {
+  const items = rows
+    .map(
+      ({ label, value }) => `
     <div class="${prefix}-kv-row">
       <dt>${escHtml(label)}</dt>
       <dd>${escHtml(value)}</dd>
-    </div>`).join('');
+    </div>`,
+    )
+    .join("");
   return `<dl class="${prefix}-kv">${items}</dl>`;
 }
 
-function roadContextBlock(p) {
-  const isEvent = p.interaction_type !== 'manifestacao';
-  if (!isEvent) return '';
-
-  const ctx = normalizeRoadContext(p.road_context);
-  let rows = buildRoadContextRows(ctx);
-  if (!rows.length) {
-    rows = buildMunicipalFallbackRows(p);
-  }
-  if (!rows.length && p.road_label) {
-    rows = [{ label: 'Referência local', value: String(p.road_label) }];
-  }
-  if (!rows.length) return '';
-  return `<section class="gestao-map-popup-section"><h4>Local viário</h4>${kvRowsHtml(rows)}</section>`;
-}
-
-function scoreRow(label, value) {
-  const formatted = formatScore(value);
-  if (formatted == null) return '';
-  return `<div class="gestao-map-popup-metric"><span>${label}</span><strong>${escHtml(formatted)}</strong></div>`;
-}
-
-/** Conteúdo do popup ao clicar em um ponto do mapa. */
-export function buildGestaoPopupHtml(p, catalog, { showResolve = false } = {}) {
-  const isManif = p.interaction_type === 'manifestacao';
-  const typeLabel = isManif ? 'Manifestação cidadã' : 'Evento de tráfego';
-  const catLabel = categoryLabel(p.category, catalog);
-  const status = statusLabel(p.status, catalog);
-  const statusColor = resolveStatusColor(p, catalog);
-  const desc = p.description ? escHtml(String(p.description).slice(0, 280)) : '';
-  const photo = p.photo_url
-    ? `<img src="${escHtml(p.photo_url)}" alt="" class="gestao-map-popup-photo" loading="lazy"/>`
-    : '';
-  const resolveBtn = showResolve && !isManif && p.cluster_id
-    ? `<button type="button" class="gestao-map-popup-resolve popup-resolver" data-cluster="${escHtml(p.cluster_id)}">Já foi resolvido?</button>`
-    : '';
-
+function layerFieldsSection(title, rows, prefix) {
+  if (!rows.length) return "";
   return `
-    <div class="gestao-map-popup-inner">
-      <header class="gestao-map-popup-head">
-        <div>
-          <strong>${escHtml(typeLabel)}</strong>
-          <span class="gestao-map-popup-cat">${escHtml(catLabel)}</span>
-        </div>
-        <span class="gestao-map-popup-status" style="color:${statusColor}">${escHtml(status)}</span>
-      </header>
-      ${roadContextBlock(p)}
-      ${desc ? `<p class="gestao-map-popup-desc"><strong>Descrição</strong><br/>${desc}</p>` : ''}
-      <div class="gestao-map-popup-metrics">
-        ${scoreRow('Veracidade (V)', p.veracity)}
-        ${scoreRow('Relevância (R)', p.relevance)}
-        ${scoreRow('Prioridade (P)', p.priority)}
-      </div>
-      ${photo}
-      ${resolveBtn}
-      <footer class="gestao-map-popup-foot muted">
-        <span>${formatDate(p.received_at || p.captured_at)}</span>
-        <code title="${escHtml(p.id)}">${escHtml(p.id)}</code>
-      </footer>
+    <section class="gestao-map-popup-section map-popup-fields-section">
+      <h4>${escHtml(title)}</h4>
+      ${kvRowsHtml(rows, prefix)}
+    </section>`;
+}
+
+const PUBLIC_STATUS_INFO = {
+  publicado: {
+    headline: "Situação ativa",
+    detail:
+      "Evento confirmado e exibido neste mapa. A autoridade responsável foi informada.",
+  },
+  resolvido: {
+    headline: "Situação encerrada",
+    detail:
+      "Este registro foi encerrado pela autoridade competente e permanece aqui como histórico.",
+  },
+};
+
+function publicStatusBlock(p, catalog) {
+  const statusId = p.status || "publicado";
+  const meta = catalog?.statuses?.[statusId] || {};
+  const copy = PUBLIC_STATUS_INFO[statusId] || {
+    headline: statusLabel(statusId, catalog),
+    detail: meta.descricao || "Informação publicada pelo PLI Reporta.",
+  };
+  const color = resolveStatusColor(p, catalog);
+  const bg = statusId === "resolvido" ? "#faf5ff" : "#f0fdf4";
+  return `
+    <section class="public-map-popup-status" style="--status-color:${escHtml(color)};background:${bg}">
+      <strong>${escHtml(copy.headline)}</strong>
+      <p>${escHtml(copy.detail)}</p>
+    </section>`;
+}
+
+function photoBlock(p) {
+  if (!p.photo_url) return "";
+  return `<img src="${escHtml(p.photo_url)}" alt="Foto do registro" class="gestao-map-popup-photo" loading="lazy"/>`;
+}
+
+function layerTypeLabel(p) {
+  return p.interaction_type === "manifestacao"
+    ? "Manifestação cidadã"
+    : "Evento de tráfego";
+}
+
+/** Cabeçalho superior: [camada] do tipo [categoria], cor do ícone por status. */
+function popupLocationHeader(p, catalog) {
+  const catLabel = categoryLabel(p.category, catalog);
+  const typeLabel = layerTypeLabel(p);
+  const title = `${typeLabel} do tipo ${catLabel}`;
+  const statusColor = resolveStatusColor(p, catalog);
+  return `
+    <div class="map-popup-location" style="background-color:${escHtml(statusColor)}">
+      <p class="map-popup-location-title">${escHtml(title)}</p>
+      <button type="button" class="map-popup-close" aria-label="Fechar">×</button>
     </div>`;
 }
 
-/** Linhas viárias compactas para mapa público. */
-export function buildPublicRoadContextHtml(p) {
-  const ctx = normalizeRoadContext(p?.road_context);
-  let rows = buildRoadContextRows(ctx);
-  if (!rows.length) rows = buildMunicipalFallbackRows(p);
-  if (!rows.length) return '';
-  return kvRowsHtml(rows, 'map-popup');
+const SECTION_CADASTRO = "Informações de Cadastro";
+const SECTION_RODOVIARIO = "Informações Rodoviários";
+
+/** Liga o botão fechar embutido no cabeçalho (MapLibre ou Leaflet). */
+export function bindPopupCloseControl(root, closeFn) {
+  if (!root || typeof closeFn !== "function") return;
+  root.querySelector(".map-popup-close")?.addEventListener(
+    "click",
+    (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      closeFn();
+    },
+    { once: true },
+  );
 }
 
-export { rodoviaLine };
+/** Popup do mapa público — informativo para o cidadão (sem ações de moderação). */
+export function buildPublicMapPopupHtml(p, catalog) {
+  const isManif = p.interaction_type === "manifestacao";
+  const { system, der } = splitPublicLayerRowsForPopup(p, catalog);
+  const roadTitle = isManif ? "Contexto local" : SECTION_RODOVIARIO;
+
+  return `
+    <div class="gestao-map-popup-inner public-map-popup-inner">
+      ${popupLocationHeader(p, catalog)}
+      <div class="map-popup-body">
+        ${publicStatusBlock(p, catalog)}
+        ${layerFieldsSection(SECTION_CADASTRO, system, "public-map-popup")}
+        ${isManif ? "" : layerFieldsSection(roadTitle, der, "public-map-popup")}
+        ${photoBlock(p)}
+        <footer class="gestao-map-popup-foot muted">
+          <span>Consultado em ${escHtml(formatDate(new Date().toISOString()))}</span>
+        </footer>
+      </div>
+    </div>`;
+}
+
+/** Popup do mapa de gestão — pacote completo (36 campos). */
+export function buildGestaoPopupHtml(p, catalog) {
+  const isManif = p.interaction_type === "manifestacao";
+  const { system, der } = splitGestaoLayerRowsForPopup(p, catalog);
+  const roadTitle = isManif ? "Contexto local" : SECTION_RODOVIARIO;
+
+  return `
+    <div class="gestao-map-popup-inner">
+      ${popupLocationHeader(p, catalog)}
+      <div class="map-popup-body">
+        ${layerFieldsSection(SECTION_CADASTRO, system, "gestao-map-popup")}
+        ${layerFieldsSection(roadTitle, der, "gestao-map-popup")}
+        ${photoBlock(p)}
+        <footer class="gestao-map-popup-foot muted">
+          <span>${formatDate(p.received_at || p.captured_at)}</span>
+          <code title="${escHtml(p.id)}">${escHtml(p.id)}</code>
+        </footer>
+      </div>
+    </div>`;
+}

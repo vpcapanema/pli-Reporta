@@ -11,7 +11,7 @@ import {
   renderSidebar,
   requireAuth,
 } from './gestao-common.js';
-import { buildGestaoPopupHtml } from './gestao-map-popup.js';
+import { bindPopupCloseControl, buildGestaoPopupHtml } from './gestao-map-popup.js';
 import {
   createMarkerElement,
   legendStatusSwatch,
@@ -411,15 +411,16 @@ function addMarkerForFeature(p, lat, lon) {
   });
   const m = L.marker([lat, lon], { icon, interactive: true });
   m.bindPopup(buildGestaoPopupHtml(p, catalog), {
-    className: 'gestao-map-popup',
-    maxWidth: 340,
-    minWidth: 260,
+    className: 'gestao-map-popup map-feature-popup',
+    maxWidth: 9600,
     autoPan: true,
     autoPanPadding: [56, 56],
+    closeButton: false,
   });
   m.on('popupopen', () => {
     const el = m.getPopup()?.getElement();
     if (el) el.style.zIndex = '2001';
+    bindPopupCloseControl(el, () => m.closePopup());
   });
   target.addLayer(m);
   return true;

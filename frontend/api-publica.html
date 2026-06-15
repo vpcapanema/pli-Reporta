@@ -47,6 +47,7 @@
             <a href="#endpoint-principal">Endpoint principal</a>
             <a href="#camadas">Camadas por categoria</a>
             <a href="#simbologia">Simbologia</a>
+            <a href="#popup-camadas">Popup das camadas</a>
             <a href="#parametros">Parâmetros</a>
             <a href="#exemplos">Como utilizar</a>
             <a href="#campos">Campos GeoJSON</a>
@@ -135,6 +136,8 @@
             A API expõe <strong>uma única simbologia</strong>, idêntica à página
             <em>Funcionalidades do sistema</em> na gestão: losango com borda fixa
             <code>#003b5a</code> e ícone interno da categoria tingido pela cor do status.
+            Ao clicar no símbolo, siga a especificação do
+            <a href="#popup-camadas">popup das camadas</a>.
           </p>
           <ul class="api-publica-fields">
             <li><code>GET /api/public/</code> e <code>GET /api/public/catalog</code> — bloco <code>simbologia</code></li>
@@ -178,6 +181,118 @@
                 <tr><td colspan="3" class="muted">Carregando simbologia…</td></tr>
               </tbody>
             </table>
+          </div>
+        </section>
+
+        <section id="popup-camadas" class="gestao-policy-section gestao-policy-full">
+          <h2>Popup ao clicar no símbolo</h2>
+          <p>
+            Integradores que reproduzem o mapa público devem exibir um <strong>popup informativo</strong>
+            ao clicar em cada ponto — sem ações de moderação, sem botão “Já foi resolvido?” e sem
+            scores internos. A referência visual está em
+            <a href="/mapa" target="_blank" rel="noopener">/mapa</a> (implementação oficial do PLI Reporta).
+          </p>
+
+          <h3>Estrutura (de cima para baixo)</h3>
+          <ol class="api-publica-steps">
+            <li><strong>Cabeçalho colorido</strong> — título + botão fechar (×) à direita, fixo no cabeçalho.</li>
+            <li><strong>Faixa de situação</strong> — texto orientado ao cidadão conforme <code>status</code>.</li>
+            <li><strong>Informações de Cadastro</strong> — campos do registro (subset público).</li>
+            <li><strong>Informações Rodoviários</strong> — malha DER / contexto viário (sempre listada em eventos de tráfego; vazios como <code>—</code>).</li>
+            <li><strong>Foto</strong> — se <code>photo_url</code> estiver preenchido.</li>
+            <li><strong>Rodapé</strong> — data/hora da consulta (<em>Consultado em …</em>).</li>
+          </ol>
+
+          <h3>Cabeçalho</h3>
+          <dl class="api-publica-dl">
+            <dt>Título</dt>
+            <dd>
+              <code>{tipo da camada} do tipo {rótulo da categoria}</code> —
+              ex.: <em>Evento de tráfego do tipo Buraco</em>.
+              Use <code>category_label</code> da feature e o rótulo fixo
+              <strong>Evento de tráfego</strong> (esta API não expõe manifestações).
+            </dd>
+            <dt>Tipografia</dt>
+            <dd>Caixa alta, cor branca, centralizado, uma linha (reticências se necessário).</dd>
+            <dt>Fundo</dt>
+            <dd>
+              Cor do ícone interno do losango: propriedade <code>symbol_color</code> da feature
+              (mesma regra da simbologia / legenda de status).
+            </dd>
+            <dt>Fechar</dt>
+            <dd>Botão × no canto superior direito <em>dentro</em> do cabeçalho, sobre o fundo colorido.</dd>
+          </dl>
+
+          <h3>Faixa de situação (<code>status</code>)</h3>
+          <div class="api-publica-table-wrap">
+            <table class="api-publica-table">
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Título</th>
+                  <th>Texto</th>
+                </tr>
+              </thead>
+              <tbody id="api-popup-status-body">
+                <tr><td colspan="3" class="muted">Carregando…</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Informações de Cadastro</h3>
+          <p class="muted">
+            Campos exibidos nesta ordem. Omitir linhas cujo valor seja vazio (exceto na seção rodoviária).
+            Rótulo alinhado à esquerda; valor à direita; blocos com a mesma largura da foto.
+          </p>
+          <div class="api-publica-table-wrap">
+            <table class="api-publica-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Campo no popup</th>
+                  <th>Origem GeoJSON</th>
+                </tr>
+              </thead>
+              <tbody id="api-popup-cadastro-body">
+                <tr><td colspan="3" class="muted">Carregando…</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Informações Rodoviários</h3>
+          <p class="muted">
+            Sempre exibir a seção em eventos de tráfego. Campos vazios aparecem como
+            <code>—</code>. Não exibir <strong>Distância snap utilizada</strong> no mapa público.
+            Quando <code>road_scope</code> ou o contexto indicarem via municipal, usar o rótulo
+            <strong>Provavelmente municipal</strong> em <em>Classificação viária</em> (inferência, não confirmação).
+          </p>
+          <div class="api-publica-table-wrap">
+            <table class="api-publica-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Campo no popup</th>
+                  <th>Origem GeoJSON</th>
+                </tr>
+              </thead>
+              <tbody id="api-popup-rodoviario-body">
+                <tr><td colspan="3" class="muted">Carregando…</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Campos da API que <em>não</em> entram no popup público</h3>
+          <ul class="api-publica-fields">
+            <li><code>id</code>, <code>cluster_id</code>, scores <code>veracity</code>, <code>relevance</code>, <code>priority</code></li>
+            <li>Flags internas: <code>visivel_mapa_*</code>, <code>export_*</code>, <code>capture_nonce_valid</code></li>
+            <li><code>photo_url</code> como texto (apenas a imagem é exibida)</li>
+            <li><code>trechos afetados</code> / <code>affected_edges</code>, URL da foto como campo de lista</li>
+            <li>Propriedades de simbologia (<code>marker_*</code>, <code>icon_*</code>, <code>symbol_color</code>) — usadas no marcador e no cabeçalho, não como linhas de cadastro</li>
+          </ul>
+
+          <div class="api-publica-callout">
+            <strong>Layout:</strong> largura dinâmica conforme o conteúdo (até 96% da viewport);
+            seções de cadastro, rodoviário e foto com a mesma largura; valores em uma linha por campo.
           </div>
         </section>
 

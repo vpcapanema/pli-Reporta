@@ -1,4 +1,5 @@
 """Pipeline de submissão de reportes — orquestra veracidade, clusterização e relevância."""
+
 from __future__ import annotations
 
 import json
@@ -22,11 +23,23 @@ from .relevance import BLOCKING_CATEGORIES, compute_relevance, is_blocking, ttl_
 from .veracity import compute_veracity, signals_to_payload
 
 MANIFESTATION_CATEGORIES = frozenset({"elogio", "sugestao", "reclamacao"})
-EVENT_CATEGORIES = frozenset({
-    "bloqueio_total", "acidente", "incendio", "animal_na_pista",
-    "objeto_na_pista", "queda_arvore", "veiculo_quebrado", "alagamento",
-    "obra_grande", "lentidao_corredor", "sinalizacao_quebrada", "buraco", "outro",
-})
+EVENT_CATEGORIES = frozenset(
+    {
+        "bloqueio_total",
+        "acidente",
+        "incendio",
+        "animal_na_pista",
+        "objeto_na_pista",
+        "queda_arvore",
+        "veiculo_quebrado",
+        "alagamento",
+        "obra_grande",
+        "lentidao_corredor",
+        "sinalizacao_quebrada",
+        "buraco",
+        "outro",
+    }
+)
 # Visibilidade nos mapas — ver report_catalog.STATUS_META e layer_feed.py.
 
 
@@ -68,9 +81,7 @@ def _normalize_interaction(interaction_type: str | None, category: str) -> str:
 
 
 def _duplicate_photo(db: Session, photo_hash: str) -> bool:
-    row = db.execute(
-        select(Report.id).where(Report.photo_hash == photo_hash).limit(1)
-    ).scalar_one_or_none()
+    row = db.execute(select(Report.id).where(Report.photo_hash == photo_hash).limit(1)).scalar_one_or_none()
     return row is not None
 
 
@@ -128,7 +139,8 @@ def _status_for_manifestation(l_score: float, policy) -> str:
 
 
 def _traffic_scope_at(
-    lat: float, lon: float,
+    lat: float,
+    lon: float,
 ) -> tuple[str | None, str | None, dict | None, list[str]]:
     """Classifica escopo viário (DER/IBGE) ou devolve vazios se gate desligado."""
     from .scope import classify_traffic_scope, scope_gate_enabled
@@ -276,16 +288,16 @@ def ingest_report(
                 )
                 .values(valid_to=valid_to_dt.isoformat())
             )
-        explanation.extend(r.explain() + [
-            f"P = V·R = {priority:.2f}",
-            f"status = {status}",
-            f"bloqueante = {is_blocking(category, priority)}",
-        ])
+        explanation.extend(
+            r.explain()
+            + [
+                f"P = V·R = {priority:.2f}",
+                f"status = {status}",
+                f"bloqueante = {is_blocking(category, priority)}",
+            ]
+        )
         if road_scope == ROAD_SCOPE_MUNICIPAL:
-            explanation.append(
-                "escopo municipal — registrado internamente para relatórios e exportação "
-                "(sem publicação no mapa PLI)"
-            )
+            explanation.append("escopo municipal — registrado internamente para relatórios e exportação (sem publicação no mapa PLI)")
 
     rep = Report(
         id=rid,
@@ -324,10 +336,7 @@ def ingest_report(
 
 
 def report_to_feature(r: Report) -> dict[str, Any]:
-    blocking = (
-        r.interaction_type == "evento_trafego"
-        and is_blocking(r.category, r.priority)
-    )
+    blocking = r.interaction_type == "evento_trafego" and is_blocking(r.category, r.priority)
     coords = [r.lon, r.lat]
     geom: dict[str, Any] = {"type": "Point", "coordinates": coords}
     if r.geometry_geojson:
@@ -350,26 +359,22 @@ def report_to_feature(r: Report) -> dict[str, Any]:
     from .layer_schema import visibility_flags
     from .report_catalog import (
         EVENT_CATEGORIES as CATALOG_EVENT_CATEGORIES,
+    )
+    from .report_catalog import (
         MANIF_CATEGORIES as CATALOG_MANIF_CATEGORIES,
+    )
+    from .report_catalog import (
         visibility_for_status,
     )
 
     vis_pub, vis_gest = visibility_flags(r.status, valid_to=r.valid_to)
     vis = visibility_for_status(r.status)
     cat_label = next(
-        (
-            c["label"]
-            for c in CATALOG_EVENT_CATEGORIES + CATALOG_MANIF_CATEGORIES
-            if c["id"] == r.category
-        ),
+        (c["label"] for c in CATALOG_EVENT_CATEGORIES + CATALOG_MANIF_CATEGORIES if c["id"] == r.category),
         r.category,
     )
     cat_sigla = next(
-        (
-            c["sigla"]
-            for c in CATALOG_EVENT_CATEGORIES + CATALOG_MANIF_CATEGORIES
-            if c["id"] == r.category
-        ),
+        (c["sigla"] for c in CATALOG_EVENT_CATEGORIES + CATALOG_MANIF_CATEGORIES if c["id"] == r.category),
         "??",
     )
     return {

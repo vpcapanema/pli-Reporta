@@ -63,3 +63,8 @@ def test_api_publica_page(app_client):
     assert "/api/public/eventos-trafego.geojson" in r.text
     assert "api-status-legend-body" in r.text
     assert "Relação cor / status" in r.text
+    assert "popup-camadas" in r.text
+    assert "Informações de Cadastro" in r.text
+    assert "Informações Rodoviários" in r.text
+    assert "Provavelmente municipal" in r.text
+    assert "api-popup-cadastro-body" in r.text
