@@ -13,8 +13,12 @@ from fastapi.staticfiles import StaticFiles
 
 from .config import settings
 from .database import init_db
-from .routes import health, moderation, reports
 from .routes.auth import router as auth_router
+from .routes.export import router as export_router
+from .routes.health import router as health_router
+from .routes.moderation import router as moderation_router
+from .routes.public_api import router as public_api_router
+from .routes.reports import router as reports_router
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
 GESTAO_DIR = FRONTEND_DIR / "gestao"
@@ -40,6 +44,8 @@ async def _maintenance_loop() -> None:
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    from .database import engine
+
     init_db()
     settings.photo_dir.mkdir(parents=True, exist_ok=True)
     task = asyncio.create_task(_maintenance_loop())
@@ -51,6 +57,7 @@ async def lifespan(_app: FastAPI):
             await task
         except asyncio.CancelledError:
             pass
+        engine.dispose()
 
 
 app = FastAPI(
@@ -76,11 +83,13 @@ async def no_cache_static(request, call_next):
         response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     return response
 
-# API
-app.include_router(reports.router, prefix="/api/v1", tags=["reports"])
-app.include_router(auth_router, prefix="/api/v1", tags=["auth"])
-app.include_router(moderation.router, prefix="/api/v1", tags=["moderation"])
-app.include_router(health.router, tags=["health"])
+# API (mapa público: catalog + export)
+app.include_router(reports_router, prefix="/api", tags=["reports"])
+app.include_router(public_api_router, prefix="/api/public", tags=["public-api"])
+app.include_router(export_router, prefix="/api", tags=["export"])
+app.include_router(auth_router, prefix="/api", tags=["auth"])
+app.include_router(moderation_router, prefix="/api", tags=["moderation"])
+app.include_router(health_router, tags=["health"])
 
 # Mídia (fotos publicadas)
 app.mount("/media", StaticFiles(directory=str(settings.photo_dir)), name="media")
@@ -98,6 +107,11 @@ def index():
 @app.get("/mapa", include_in_schema=False)
 def mapa():
     return FileResponse(FRONTEND_DIR / "viewer.html", headers=_HTML_NO_CACHE)
+
+
+@app.get("/api-publica", include_in_schema=False)
+def api_publica_page():
+    return FileResponse(FRONTEND_DIR / "api-publica.html", headers=_HTML_NO_CACHE)
 
 
 @app.get("/acesso", include_in_schema=False)

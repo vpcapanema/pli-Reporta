@@ -1,0 +1,60 @@
+{
+  "type": "FeatureCollection",
+  "name": "evento_trafego__queda_arvore",
+  "metadata": {
+    "interaction_type": "evento_trafego",
+    "category_id": "queda_arvore",
+    "geometry_role": "ponto"
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "id": "01KV57MWEFZSZ6X06129GTBETR",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -46.63,
+          -23.55
+        ]
+      },
+      "properties": {
+        "ID": "01KV57MWEFZSZ6X06129GTBETR",
+        "Tipo de interação": "Evento de tráfego",
+        "Categoria (código)": "queda_arvore",
+        "Categoria": "Queda de árvore",
+        "Sigla da categoria": "AR",
+        "Magnitude": "normal",
+        "Descrição": null,
+        "Status": "Publicado",
+        "Visível no mapa público": true,
+        "Visível no mapa gestão": true,
+        "Exportação pública": true,
+        "Exportação gestão": true,
+        "Bloqueante": false,
+        "Cluster": "01KV57MWEJZQ03CFQFBS30Q59V",
+        "Veracidade (V)": 0.772,
+        "Relevância (R)": 0.272,
+        "Prioridade (P)": 0.21,
+        "Válido desde": "2026-06-15T08:51:22.707780+00:00",
+        "Válido até": "2026-06-16T08:51:22.707780+00:00",
+        "Capturado em": "2026-06-15T08:51:22.702880+00:00",
+        "Recebido em": "2026-06-15T08:51:22.707780+00:00",
+        "URL da foto": "http://localhost:8080/media/5d/01KV57MWEFZSZ6X06129GTBETR.jpg",
+        "Acurácia GPS (m)": 10.0,
+        "Nonce de captura válido": 1,
+        "Trechos afetados": [],
+        "Classificação viária": null,
+        "Rodovia": null,
+        "Tipo rodoviário": null,
+        "Município": null,
+        "Tipo de pista": null,
+        "Administrador da via": null,
+        "Coordenadoria Regional Geral DER": null,
+        "Sede da coordenadoria": null,
+        "Residência de conserva DER": null,
+        "Sede da residência de conserva": null,
+        "Distância snap utilizada": null
+      }
+    }
+  ]
+}

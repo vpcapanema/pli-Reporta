@@ -23,14 +23,14 @@ def _unique_jpeg() -> bytes:
 
 
 def _create_event(app_client, jpeg_bytes=None, category="acidente", client_id="c1"):
-    nonce = app_client.get("/api/v1/capture-nonce").json()["nonce"]
+    nonce = app_client.get("/api/capture-nonce").json()["nonce"]
     files = {"photo": ("c.jpg", _unique_jpeg(), "image/jpeg")}
     data = {
         "lat": "-23.55", "lon": "-46.63", "accuracy_m": "10",
         "category": category, "captured_at": _now_iso(),
         "capture_nonce": nonce, "client_id": client_id,
     }
-    r = app_client.post("/api/v1/reports", files=files, data=data)
+    r = app_client.post("/api/reports", files=files, data=data)
     assert r.status_code == 201, r.text
     return r.json()
 
@@ -73,12 +73,12 @@ def test_resolve_by_counter_reports(app_client, jpeg_bytes):
     assert cluster_id
 
     # Primeiro voto: ainda não resolve (threshold padrão = 2).
-    r1 = app_client.post(f"/api/v1/incidents/{cluster_id}/resolver")
+    r1 = app_client.post(f"/api/incidents/{cluster_id}/resolver")
     assert r1.status_code == 200
     assert r1.json()["resolved"] is False
 
     # Segundo voto: resolve.
-    r2 = app_client.post(f"/api/v1/incidents/{cluster_id}/resolver")
+    r2 = app_client.post(f"/api/incidents/{cluster_id}/resolver")
     assert r2.status_code == 200
     assert r2.json()["resolved"] is True
 
@@ -90,7 +90,7 @@ def test_resolve_by_counter_reports(app_client, jpeg_bytes):
 
 
 def test_resolve_unknown_cluster(app_client):
-    r = app_client.post("/api/v1/incidents/inexistente/resolver")
+    r = app_client.post("/api/incidents/inexistente/resolver")
     assert r.status_code == 404
 
 

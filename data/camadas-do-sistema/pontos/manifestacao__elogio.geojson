@@ -1,0 +1,158 @@
+{
+  "type": "FeatureCollection",
+  "name": "manifestacao__elogio",
+  "metadata": {
+    "interaction_type": "manifestacao",
+    "category_id": "elogio",
+    "geometry_role": "ponto"
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "id": "01KV57MMZGEXA0B75PKPWYBE3M",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -47.065,
+          -22.895
+        ]
+      },
+      "properties": {
+        "ID": "01KV57MMZGEXA0B75PKPWYBE3M",
+        "Tipo de interação": "Manifestação cidadã",
+        "Categoria (código)": "elogio",
+        "Categoria": "Elogio",
+        "Sigla da categoria": "EL",
+        "Magnitude": "normal",
+        "Descrição": "Excelente sinalização neste trecho da rodovia estadual.",
+        "Status": "Publicado",
+        "Visível no mapa público": true,
+        "Visível no mapa gestão": true,
+        "Exportação pública": true,
+        "Exportação gestão": true,
+        "Bloqueante": false,
+        "Cluster": null,
+        "Veracidade (V)": 0.772,
+        "Relevância (R)": 0.772,
+        "Prioridade (P)": 0.772,
+        "Válido desde": "2026-06-15T08:51:15.058700+00:00",
+        "Válido até": "2026-12-12T08:51:15.057696+00:00",
+        "Capturado em": "2026-06-15T08:51:15.054242+00:00",
+        "Recebido em": "2026-06-15T08:51:15.058700+00:00",
+        "URL da foto": "http://localhost:8080/media/5d/01KV57MMZGEXA0B75PKPWYBE3M.jpg",
+        "Acurácia GPS (m)": 10.0,
+        "Nonce de captura válido": 1,
+        "Trechos afetados": [],
+        "Classificação viária": null,
+        "Rodovia": null,
+        "Tipo rodoviário": null,
+        "Município": null,
+        "Tipo de pista": null,
+        "Administrador da via": null,
+        "Coordenadoria Regional Geral DER": null,
+        "Sede da coordenadoria": null,
+        "Residência de conserva DER": null,
+        "Sede da residência de conserva": null,
+        "Distância snap utilizada": null
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "01KV57MVNJTH4FZV6FF0BWKRZ2",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -46.63,
+          -23.55
+        ]
+      },
+      "properties": {
+        "ID": "01KV57MVNJTH4FZV6FF0BWKRZ2",
+        "Tipo de interação": "Manifestação cidadã",
+        "Categoria (código)": "elogio",
+        "Categoria": "Elogio",
+        "Sigla da categoria": "EL",
+        "Magnitude": "normal",
+        "Descrição": "Excelente conservação da rodovia neste trecho.",
+        "Status": "Arquivado",
+        "Visível no mapa público": false,
+        "Visível no mapa gestão": false,
+        "Exportação pública": false,
+        "Exportação gestão": false,
+        "Bloqueante": false,
+        "Cluster": null,
+        "Veracidade (V)": 0.0,
+        "Relevância (R)": 0.0,
+        "Prioridade (P)": 0.0,
+        "Válido desde": "2026-06-15T08:51:21.909697+00:00",
+        "Válido até": null,
+        "Capturado em": "2026-06-15T08:51:21.903669+00:00",
+        "Recebido em": "2026-06-15T08:51:21.909697+00:00",
+        "URL da foto": "http://localhost:8080/media/56/01KV57MVNJTH4FZV6FF0BWKRZ2.jpg",
+        "Acurácia GPS (m)": 12.0,
+        "Nonce de captura válido": 1,
+        "Trechos afetados": [],
+        "Classificação viária": null,
+        "Rodovia": null,
+        "Tipo rodoviário": null,
+        "Município": null,
+        "Tipo de pista": null,
+        "Administrador da via": null,
+        "Coordenadoria Regional Geral DER": null,
+        "Sede da coordenadoria": null,
+        "Residência de conserva DER": null,
+        "Sede da residência de conserva": null,
+        "Distância snap utilizada": null
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "01KV57MYTHX41JR772GEXR933V",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -47.065,
+          -22.895
+        ]
+      },
+      "properties": {
+        "ID": "01KV57MYTHX41JR772GEXR933V",
+        "Tipo de interação": "Manifestação cidadã",
+        "Categoria (código)": "elogio",
+        "Categoria": "Elogio",
+        "Sigla da categoria": "EL",
+        "Magnitude": "normal",
+        "Descrição": "Excelente sinalização neste trecho da rodovia estadual.",
+        "Status": "Precisa da sua análise",
+        "Visível no mapa público": false,
+        "Visível no mapa gestão": true,
+        "Exportação pública": false,
+        "Exportação gestão": true,
+        "Bloqueante": false,
+        "Cluster": null,
+        "Veracidade (V)": 0.772,
+        "Relevância (R)": 0.772,
+        "Prioridade (P)": 0.772,
+        "Válido desde": "2026-06-15T08:51:25.139854+00:00",
+        "Válido até": "2026-12-12T08:51:25.139854+00:00",
+        "Capturado em": "2026-06-15T08:51:25.135302+00:00",
+        "Recebido em": "2026-06-15T08:51:25.139854+00:00",
+        "URL da foto": "http://localhost:8080/media/7a/01KV57MYTHX41JR772GEXR933V.jpg",
+        "Acurácia GPS (m)": 10.0,
+        "Nonce de captura válido": 1,
+        "Trechos afetados": [],
+        "Classificação viária": null,
+        "Rodovia": null,
+        "Tipo rodoviário": null,
+        "Município": null,
+        "Tipo de pista": null,
+        "Administrador da via": null,
+        "Coordenadoria Regional Geral DER": null,
+        "Sede da coordenadoria": null,
+        "Residência de conserva DER": null,
+        "Sede da residência de conserva": null,
+        "Distância snap utilizada": null
+      }
+    }
+  ]
+}

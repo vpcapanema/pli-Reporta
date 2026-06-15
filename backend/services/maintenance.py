@@ -25,17 +25,26 @@ def expire_old_reports() -> int:
     """Move reportes vencidos para status 'expirado'. Retorna quantidade afetada."""
     now_iso = _now_iso()
     with session_scope() as db:
-        stmt = (
+        ids = list(
+            db.execute(
+                select(Report.id).where(
+                    Report.status.in_(("validado", "publicado", "em_moderacao")),
+                    Report.valid_to.isnot(None),
+                    Report.valid_to <= now_iso,
+                )
+            ).scalars().all()
+        )
+        if not ids:
+            return 0
+        db.execute(
             update(Report)
-            .where(
-                Report.status.in_(("validado", "publicado", "em_moderacao")),
-                Report.valid_to.isnot(None),
-                Report.valid_to <= now_iso,
-            )
+            .where(Report.id.in_(ids))
             .values(status="expirado")
         )
-        result = db.execute(stmt)
-        return result.rowcount or 0
+        from .layer_publish import refresh_reports_layers
+
+        refresh_reports_layers(db, ids)
+        return len(ids)
 
 
 def close_inactive_clusters(idle_hours: float | None = None) -> int:
@@ -86,6 +95,17 @@ def register_resolve_vote(cluster_id: str) -> dict:
                 )
                 .values(status="resolvido")
             )
+            from .layer_publish import refresh_reports_layers
+
+            resolved_ids = list(
+                db.execute(
+                    select(Report.id).where(
+                        Report.cluster_id == cluster.id,
+                        Report.status == "resolvido",
+                    )
+                ).scalars().all()
+            )
+            refresh_reports_layers(db, resolved_ids)
         db.add(cluster)
         return {
             "found": True,

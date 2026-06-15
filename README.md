@@ -12,6 +12,7 @@ para mídia. Para integração com o roteador OSRM/PLI, expõe um endpoint GeoJS
 - [Metodologia conceitual e hierarquização de rotas](./METODOLOGIA.md) — leia primeiro.
 - [API de integração com o roteador](./docs/API.md)
 - [Modelo de dados](./docs/DATA_MODEL.md)
+- [Campos das camadas PostGIS/GeoJSON](./docs/CAMPOS_CAMADAS.md)
 - [Operação e moderação](./docs/OPERACAO.md)
 
 ## Quickstart (dev)
@@ -30,7 +31,7 @@ Abra:
 - `http://localhost:8080/mapa`        — visualizador público
 - `http://localhost:8080/acesso`        — acesso restrito (login gestor / moderação)
 - `http://localhost:8080/docs`        — OpenAPI / Swagger
-- `http://localhost:8080/api/v1/incidents.geojson` — feed para o roteador
+- `http://localhost:8080/api/incidents.geojson` — feed para o roteador
 
 ## Estrutura
 

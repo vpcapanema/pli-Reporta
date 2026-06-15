@@ -18,13 +18,21 @@ _engine_kwargs: dict = {"future": True}
 if settings.database_url.startswith("sqlite"):
     _engine_kwargs["connect_args"] = {"check_same_thread": False}
 else:
-    # Postgres (possivelmente via túnel SSH): valida a conexão antes de usar e
-    # recicla conexões ociosas, evitando erros de socket quando o túnel oscila.
+    # Postgres remoto costuma ter max_connections baixo; reinicios deixavam pool cheio.
     _engine_kwargs["pool_pre_ping"] = True
-    _engine_kwargs["pool_recycle"] = 1800
+    _engine_kwargs["pool_recycle"] = 300
+    if settings.app_env == "development":
+        from sqlalchemy.pool import NullPool
+
+        _engine_kwargs["poolclass"] = NullPool
+    else:
+        _engine_kwargs["pool_size"] = 2
+        _engine_kwargs["max_overflow"] = 1
 
 engine = create_engine(settings.database_url, **_engine_kwargs)
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
+SessionLocal = sessionmaker(  # pylint: disable=invalid-name
+    bind=engine, autoflush=False, autocommit=False, future=True,
+)
 
 
 def _sqlite_add_column_if_missing(conn, table: str, column: str, ddl: str) -> None:

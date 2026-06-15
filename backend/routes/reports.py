@@ -2,10 +2,9 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -16,11 +15,10 @@ from ..models import Report
 from ..schemas import CaptureNonceResponse, ReportCreated
 from ..services import nonce as nonce_svc
 from ..services import scope as scope_svc
-from ..services.pipeline import (
-    active_public_reports_stmt,
-    ingest_report,
-    report_to_feature,
-)
+from ..services.layer_feed import feature_collection
+from ..services.layer_publish import finalize_report_layers
+from ..services.pipeline import ingest_report, report_to_feature
+from ..services.report_catalog import catalog_payload
 
 router = APIRouter()
 
@@ -40,6 +38,12 @@ def _user_message(status: str) -> str:
     return USER_MESSAGES.get(status, "Recebemos seu reporte.")
 
 
+@router.get("/catalog")
+def public_catalog() -> dict:
+    """Catálogo público de categorias e status (mapa público e exportações)."""
+    return catalog_payload()
+
+
 @router.get("/capture-nonce", response_model=CaptureNonceResponse)
 def get_capture_nonce(client_id: str | None = None) -> CaptureNonceResponse:
     return CaptureNonceResponse(
@@ -50,6 +54,7 @@ def get_capture_nonce(client_id: str | None = None) -> CaptureNonceResponse:
 
 @router.post("/reports", status_code=201, response_model=ReportCreated)
 async def create_report(
+    background_tasks: BackgroundTasks,
     photo: Annotated[UploadFile, File(description="Foto (jpeg/png/webp)")],
     lat: Annotated[float, Form()],
     lon: Annotated[float, Form()],
@@ -107,6 +112,7 @@ async def create_report(
     db.commit()
 
     rep = result.report
+    background_tasks.add_task(finalize_report_layers, rep.id)
     return ReportCreated(
         id=rep.id,
         status=rep.status,
@@ -125,11 +131,7 @@ async def create_report(
 
 @router.post("/incidents/{cluster_id}/resolver")
 def resolve_incident(cluster_id: str) -> dict:
-    """Contra-reporte público: 'este evento já foi resolvido / não está mais aqui'.
-
-    Acumula votos; ao atingir o limiar, o evento é marcado como resolvido
-    automaticamente, sem precisar de um gestor conferir.
-    """
+    """Contra-reporte público: 'este evento já foi resolvido / não está mais aqui'."""
     from ..services.maintenance import register_resolve_vote
 
     result = register_resolve_vote(cluster_id)
@@ -150,45 +152,60 @@ def get_report(report_id: str, db: Session = Depends(get_session)) -> dict:
     return report_to_feature(rep)["properties"]
 
 
-def _geojson_feed(
+def _parse_bbox(bbox: str | None) -> tuple[float, float, float, float] | None:
+    if not bbox:
+        return None
+    try:
+        parts = [float(x) for x in bbox.split(",")]
+        if len(parts) == 4:
+            return (parts[0], parts[1], parts[2], parts[3])
+    except ValueError as exc:
+        raise HTTPException(400, detail="bbox inválido.") from exc
+    return None
+
+
+def _public_feed_response(
     db: Session,
     *,
-    interaction_type: str | None,
+    interaction_type: str,
     bbox: str | None,
     since: str | None,
     category: str | None,
     min_priority: float,
 ) -> JSONResponse:
-    now_iso = datetime.now(timezone.utc).isoformat()
-    stmt = active_public_reports_stmt(interaction_type=interaction_type)
-    if category:
-        stmt = stmt.where(Report.category == category)
-    if since:
-        stmt = stmt.where(Report.captured_at >= since)
-    rows = db.execute(stmt).scalars().all()
+    fc = feature_collection(
+        db,
+        mapa="publico",
+        interaction_type=interaction_type,
+        category=category,
+        since=since,
+        min_priority=min_priority,
+        bbox=_parse_bbox(bbox),
+    )
+    return JSONResponse(fc, headers={"Cache-Control": "public, max-age=30"})
 
-    bbox_t: tuple[float, float, float, float] | None = None
-    if bbox:
-        try:
-            parts = [float(x) for x in bbox.split(",")]
-            if len(parts) == 4:
-                bbox_t = (parts[0], parts[1], parts[2], parts[3])
-        except ValueError as exc:
-            raise HTTPException(400, detail="bbox inválido.") from exc
 
-    features = []
-    for r in rows:
-        if r.priority < min_priority:
-            continue
-        if bbox_t and not (
-            bbox_t[0] <= r.lon <= bbox_t[2] and bbox_t[1] <= r.lat <= bbox_t[3]
-        ):
-            continue
-        features.append(report_to_feature(r))
-
-    fc = {"type": "FeatureCollection", "features": features, "generated_at": now_iso}
-    headers = {"Cache-Control": "public, max-age=30"}
-    return JSONResponse(fc, headers=headers)
+@router.get("/layers/points/{interaction_type}.geojson")
+def public_points_layer(
+    interaction_type: str,
+    bbox: str | None = Query(None, description="minLon,minLat,maxLon,maxLat"),
+    since: str | None = Query(None, description="ISO 8601"),
+    category: str | None = None,
+    min_priority: float = Query(0.0, ge=0.0, le=1.0),
+    db: Session = Depends(get_session),
+) -> JSONResponse:
+    """Feed público de pontos por tipo de interação (matriz de visibilidade)."""
+    itype = interaction_type.strip().lower()
+    if itype not in ("evento_trafego", "manifestacao"):
+        raise HTTPException(400, detail="interaction_type inválido.")
+    return _public_feed_response(
+        db,
+        interaction_type=itype,
+        bbox=bbox,
+        since=since,
+        category=category,
+        min_priority=min_priority,
+    )
 
 
 @router.get("/incidents.geojson")
@@ -199,8 +216,8 @@ def incidents_feed(
     min_priority: float = Query(0.0, ge=0.0, le=1.0),
     db: Session = Depends(get_session),
 ) -> JSONResponse:
-    """Feed para o roteador — apenas eventos de tráfego publicados."""
-    return _geojson_feed(
+    """Alias legado — eventos de tráfego visíveis no mapa público."""
+    return _public_feed_response(
         db,
         interaction_type="evento_trafego",
         bbox=bbox,
@@ -218,8 +235,8 @@ def manifestations_feed(
     min_priority: float = Query(0.0, ge=0.0, le=1.0),
     db: Session = Depends(get_session),
 ) -> JSONResponse:
-    """Feed público de manifestações cidadãs (elogio, sugestão, reclamação)."""
-    return _geojson_feed(
+    """Alias legado — manifestações visíveis no mapa público."""
+    return _public_feed_response(
         db,
         interaction_type="manifestacao",
         bbox=bbox,

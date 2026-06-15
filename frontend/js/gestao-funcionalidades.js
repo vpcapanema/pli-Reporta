@@ -7,30 +7,7 @@ import {
   renderSidebar,
   requireAuth,
 } from './gestao-common.js';
-
-/** Categorias cujo arquivo de ícone é PNG (Flaticon); demais são SVG (FA 6). */
-const PNG_IDS = new Set([
-  'acidente', 'alagamento', 'bloqueio_total',
-  'lentidao_corredor', 'obra_grande', 'queda_arvore', 'sinalizacao_quebrada',
-]);
-
-function iconUrl(id) {
-  return `/static/img/icons/${id}.${PNG_IDS.has(id) ? 'png' : 'svg'}`;
-}
-
-/**
- * Gera o HTML do marcador losangular/circular.
- * Se `id` for passado, renderiza <img> com o ícone; senão exibe a sigla.
- */
-function markerPreview({ shape, sigla, color, id }) {
-  const shapeClass = shape === 'diamond' ? 'gestao-marker-diamond' : 'gestao-marker-circle';
-  const inner = id
-    ? `<img src="${iconUrl(id)}" alt="${sigla}" class="gestao-marker-icon"/>`
-    : (sigla || '');
-  return `<div class="gestao-marker ${shapeClass}" style="border-color:${color || '#64748b'}">
-    <span class="gestao-marker-inner">${inner}</span>
-  </div>`;
-}
+import { markerPreview } from './gestao-markers.js';
 
 /** Seção 1 — Forma do marcador */
 function renderShapes(catalog) {
@@ -66,17 +43,25 @@ function renderCategories(catalog) {
   if (mn) mn.innerHTML = (catalog.manifestation_categories || []).map((c) => card(c, 'circle', false)).join('');
 }
 
-/** Seção 3 — Status (a lista de ciclo de vida está diretamente no HTML) */
+/** Seção 3 — Status (matriz de visibilidade + descrição) */
 function renderStatuses(catalog) {
   const el = $('#gloss-status');
   if (!el) return;
   const entries = Object.entries(catalog.statuses || {});
-  el.innerHTML = entries.map(([, m]) => `
+  const badge = (on, label) => `<span class="gestao-vis-badge ${on ? 'on' : 'off'}" title="${label}">${on ? '✓' : '—'} ${label}</span>`;
+  el.innerHTML = entries.map(([id, m]) => `
     <div class="gestao-gloss-status-row">
       <span class="gestao-gloss-border" style="border-color:${m.cor}"></span>
-      <div>
+      <div class="gestao-gloss-status-body">
         <strong>${m.label}</strong>
+        <code class="gestao-gloss-status-id">${id}</code>
         <span class="muted">${m.descricao}</span>
+        <div class="gestao-vis-badges">
+          ${badge(m.visivel_mapa_publico, 'Mapa público')}
+          ${badge(m.visivel_mapa_gestao, m.camada_gestao === 'municipal' ? 'Gestão (municipal)' : 'Mapa gestão')}
+          ${badge(m.export_publico, 'Export público')}
+          ${badge(m.export_gestao, 'Export gestão')}
+        </div>
       </div>
       <code>${m.cor}</code>
     </div>

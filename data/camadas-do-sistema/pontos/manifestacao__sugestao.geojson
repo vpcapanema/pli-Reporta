@@ -1,0 +1,60 @@
+{
+  "type": "FeatureCollection",
+  "name": "manifestacao__sugestao",
+  "metadata": {
+    "interaction_type": "manifestacao",
+    "category_id": "sugestao",
+    "geometry_role": "ponto"
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "id": "01KV57MVS2BZJ0MFA18Z0XDCWP",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -46.63,
+          -23.55
+        ]
+      },
+      "properties": {
+        "ID": "01KV57MVS2BZJ0MFA18Z0XDCWP",
+        "Tipo de interação": "Manifestação cidadã",
+        "Categoria (código)": "sugestao",
+        "Categoria": "Sugestão",
+        "Sigla da categoria": "SG",
+        "Magnitude": "normal",
+        "Descrição": "Sugiro instalação de iluminação neste trecho.",
+        "Status": "Arquivado",
+        "Visível no mapa público": false,
+        "Visível no mapa gestão": false,
+        "Exportação pública": false,
+        "Exportação gestão": false,
+        "Bloqueante": false,
+        "Cluster": null,
+        "Veracidade (V)": 0.0,
+        "Relevância (R)": 0.0,
+        "Prioridade (P)": 0.0,
+        "Válido desde": "2026-06-15T08:51:22.021936+00:00",
+        "Válido até": null,
+        "Capturado em": "2026-06-15T08:51:22.016802+00:00",
+        "Recebido em": "2026-06-15T08:51:22.021936+00:00",
+        "URL da foto": "http://localhost:8080/media/56/01KV57MVS2BZJ0MFA18Z0XDCWP.jpg",
+        "Acurácia GPS (m)": 10.0,
+        "Nonce de captura válido": 1,
+        "Trechos afetados": [],
+        "Classificação viária": null,
+        "Rodovia": null,
+        "Tipo rodoviário": null,
+        "Município": null,
+        "Tipo de pista": null,
+        "Administrador da via": null,
+        "Coordenadoria Regional Geral DER": null,
+        "Sede da coordenadoria": null,
+        "Residência de conserva DER": null,
+        "Sede da residência de conserva": null,
+        "Distância snap utilizada": null
+      }
+    }
+  ]
+}

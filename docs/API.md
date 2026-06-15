@@ -1,6 +1,6 @@
 # API
 
-Base: `/api/v1`
+Base: `/api`
 
 ## Públicos (sem auth)
 

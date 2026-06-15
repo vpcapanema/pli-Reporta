@@ -17,7 +17,7 @@ def test_healthz(app_client):
 
 
 def test_capture_nonce(app_client):
-    r = app_client.get("/api/v1/capture-nonce")
+    r = app_client.get("/api/capture-nonce")
     assert r.status_code == 200
     body = r.json()
     assert body["nonce"]
@@ -25,7 +25,7 @@ def test_capture_nonce(app_client):
 
 
 def test_create_report_with_nonce(app_client, jpeg_bytes):
-    nonce = app_client.get("/api/v1/capture-nonce").json()["nonce"]
+    nonce = app_client.get("/api/capture-nonce").json()["nonce"]
     files = {"photo": ("c.jpg", jpeg_bytes, "image/jpeg")}
     data = {
         "lat": "-23.55",
@@ -37,7 +37,7 @@ def test_create_report_with_nonce(app_client, jpeg_bytes):
         "capture_nonce": nonce,
         "client_id": "test-client",
     }
-    r = app_client.post("/api/v1/reports", files=files, data=data)
+    r = app_client.post("/api/reports", files=files, data=data)
     assert r.status_code == 201, r.text
     body = r.json()
     assert body["status"] in ("publicado", "em_moderacao", "descartado")
@@ -56,13 +56,13 @@ def test_create_report_without_nonce_lower_score(app_client, jpeg_bytes):
         "category": "buraco", "captured_at": _now_iso(),
         "client_id": "no-nonce",
     }
-    r = app_client.post("/api/v1/reports", files=files, data=data)
+    r = app_client.post("/api/reports", files=files, data=data)
     assert r.status_code == 201
     assert r.json()["veracity_score"] < 0.95
 
 
 def test_create_manifestation(app_client, jpeg_bytes):
-    nonce = app_client.get("/api/v1/capture-nonce").json()["nonce"]
+    nonce = app_client.get("/api/capture-nonce").json()["nonce"]
     files = {"photo": ("c.jpg", jpeg_bytes, "image/jpeg")}
     data = {
         "lat": "-23.55",
@@ -75,7 +75,7 @@ def test_create_manifestation(app_client, jpeg_bytes):
         "capture_nonce": nonce,
         "client_id": "test-manif",
     }
-    r = app_client.post("/api/v1/reports", files=files, data=data)
+    r = app_client.post("/api/reports", files=files, data=data)
     assert r.status_code == 201, r.text
     body = r.json()
     assert body["interaction_type"] == "manifestacao"
@@ -90,12 +90,12 @@ def test_manifestation_requires_description(app_client, jpeg_bytes):
         "description": "curto",
         "captured_at": _now_iso(),
     }
-    r = app_client.post("/api/v1/reports", files=files, data=data)
+    r = app_client.post("/api/reports", files=files, data=data)
     assert r.status_code == 400
 
 
 def test_manifestations_feed(app_client, jpeg_bytes):
-    nonce = app_client.get("/api/v1/capture-nonce").json()["nonce"]
+    nonce = app_client.get("/api/capture-nonce").json()["nonce"]
     files = {"photo": ("c.jpg", jpeg_bytes, "image/jpeg")}
     data = {
         "lat": "-23.55", "lon": "-46.63", "accuracy_m": "10",
@@ -103,37 +103,37 @@ def test_manifestations_feed(app_client, jpeg_bytes):
         "description": "Sugiro instalação de iluminação neste trecho.",
         "captured_at": _now_iso(), "capture_nonce": nonce,
     }
-    app_client.post("/api/v1/reports", files=files, data=data)
+    app_client.post("/api/reports", files=files, data=data)
 
-    r = app_client.get("/api/v1/manifestations.geojson")
+    r = app_client.get("/api/manifestations.geojson")
     assert r.status_code == 200
     fc = r.json()
     assert fc["type"] == "FeatureCollection"
 
 
 def test_offline_capture_flag(app_client, jpeg_bytes):
-    nonce = app_client.get("/api/v1/capture-nonce").json()["nonce"]
+    nonce = app_client.get("/api/capture-nonce").json()["nonce"]
     files = {"photo": ("c.jpg", jpeg_bytes, "image/jpeg")}
     data = {
         "lat": "-23.55", "lon": "-46.63", "accuracy_m": "10",
         "category": "buraco", "captured_at": _now_iso(),
         "capture_nonce": nonce, "offline_capture": "true",
     }
-    r = app_client.post("/api/v1/reports", files=files, data=data)
+    r = app_client.post("/api/reports", files=files, data=data)
     assert r.status_code == 201
 
 
 def test_incidents_feed_geojson(app_client, jpeg_bytes):
-    nonce = app_client.get("/api/v1/capture-nonce").json()["nonce"]
+    nonce = app_client.get("/api/capture-nonce").json()["nonce"]
     files = {"photo": ("c.jpg", jpeg_bytes, "image/jpeg")}
     data = {
         "lat": "-23.55", "lon": "-46.63", "accuracy_m": "10",
         "category": "alagamento", "magnitude": "grave",
         "captured_at": _now_iso(), "capture_nonce": nonce,
     }
-    app_client.post("/api/v1/reports", files=files, data=data)
+    app_client.post("/api/reports", files=files, data=data)
 
-    r = app_client.get("/api/v1/incidents.geojson")
+    r = app_client.get("/api/incidents.geojson")
     assert r.status_code == 200
     fc = r.json()
     assert fc["type"] == "FeatureCollection"
@@ -141,12 +141,12 @@ def test_incidents_feed_geojson(app_client, jpeg_bytes):
 
 
 def test_moderation_requires_auth(app_client):
-    r = app_client.get("/api/v1/moderation/queue")
+    r = app_client.get("/api/moderation/queue")
     assert r.status_code == 401
 
 
 def test_login_and_moderation(app_client):
-    login = app_client.post("/api/v1/auth/login", json={
+    login = app_client.post("/api/auth/login", json={
         "username": "test-admin",
         "password": "test-pass",
     })
@@ -154,13 +154,13 @@ def test_login_and_moderation(app_client):
     token = login.json()["token"]
     headers = {"Authorization": f"Bearer {token}"}
 
-    r = app_client.get("/api/v1/moderation/queue", headers=headers)
+    r = app_client.get("/api/moderation/queue", headers=headers)
     assert r.status_code == 200
     assert "items" in r.json()
 
 
 def test_login_invalid_credentials(app_client):
-    r = app_client.post("/api/v1/auth/login", json={
+    r = app_client.post("/api/auth/login", json={
         "username": "wrong",
         "password": "wrongpass",
     })
@@ -168,7 +168,7 @@ def test_login_invalid_credentials(app_client):
 
 
 def test_auth_context(app_client):
-    r = app_client.get("/api/v1/auth/context")
+    r = app_client.get("/api/auth/context")
     assert r.status_code == 200
     body = r.json()
     assert body["profile"] == "GESTOR"

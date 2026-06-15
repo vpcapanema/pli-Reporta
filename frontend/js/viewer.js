@@ -1,28 +1,15 @@
-// Mapa público — eventos de tráfego e manifestações cidadãs.
+// Mapa público — camadas publicadas e resolvidas, dos dois grupos.
 import { OSM_STYLE } from './map-style.js';
-import { fetchIncidents, fetchManifestations, resolveIncident } from './api.js';
-
-const EVENT_COLORS = {
-  bloqueio_total: '#b3261e',
-  acidente: '#d77a1f',
-  incendio: '#e8590c',
-  animal_na_pista: '#a1887f',
-  objeto_na_pista: '#8d6e63',
-  queda_arvore: '#2e7d32',
-  veiculo_quebrado: '#607d8b',
-  alagamento: '#1565c0',
-  obra_grande: '#7b3ea8',
-  lentidao_corredor: '#b88500',
-  sinalizacao_quebrada: '#5c6bc0',
-  buraco: '#3e2723',
-  outro: '#555',
-};
-
-const MANIF_COLORS = {
-  elogio: '#2fa854',
-  sugestao: '#116593',
-  reclamacao: '#c45a11',
-};
+import {
+  downloadExportBatch,
+  fetchCatalog,
+  fetchIncidents,
+  fetchManifestations,
+  resolveIncident,
+} from './api.js';
+import { createMarkerElement, legendStatusSwatch, preloadEventIcons, resolveStatusColor, buildLegendSymbolsBlock } from './gestao-markers.js';
+import { buildGestaoPopupHtml } from './gestao-map-popup.js';
+import { bindRelatoriosCollapse, bindSidebarCollapse } from './public-sidebar.js';
 
 const map = new maplibregl.Map({
   container: 'viewer-map',
@@ -33,56 +20,358 @@ const map = new maplibregl.Map({
 map.addControl(new maplibregl.NavigationControl(), 'top-right');
 map.addControl(new maplibregl.GeolocateControl({ positionOptions: { enableHighAccuracy: true } }), 'top-right');
 
-function layerVisibility(id, visible) {
-  if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', visible ? 'visible' : 'none');
+/** @type {Record<string, maplibregl.Marker[]>} */
+const categoryMarkers = {};
+/** @type {Record<string, boolean>} */
+const layerVisibility = {};
+/** @type {string[]} */
+let allLayerKeys = [];
+let catalog = null;
+let layerControlsBound = false;
+let exportFormBound = false;
+let sidebarToggleBound = false;
+
+const PUBLIC_MAP_STATUSES = ['publicado', 'resolvido'];
+
+const EXPORT_GROUPS = [
+  { id: 'evento_trafego', title: 'Eventos de tráfego', categoriesKey: 'event_categories' },
+  { id: 'manifestacao', title: 'Manifestação cidadã', categoriesKey: 'manifestation_categories' },
+];
+
+function layerKey(typeId, catId) {
+  const prefix = typeId === 'evento_trafego' ? 'evento' : 'manifestacao';
+  return `${prefix}:${catId}`;
 }
 
-function popupHtml(p) {
-  const label = p.interaction_type === 'manifestacao'
-    ? `Manifestação · ${p.category}`
-    : p.category;
-  let roadBlock = '';
-  if (p.road_context) {
-    try {
-      const ctx = typeof p.road_context === 'string' ? JSON.parse(p.road_context) : p.road_context;
-      const lines = [];
-      if (ctx.scope_label) lines.push(`<strong>${ctx.scope_label}</strong>`);
-      if (ctx.rodovia && ctx.denominacao) {
-        lines.push(`${ctx.rodovia} — ${ctx.denominacao}`);
-      } else if (ctx.rodovia) {
-        lines.push(String(ctx.rodovia));
-      }
-      if (ctx.tipo_rodoviario) lines.push(`Tipo: ${ctx.tipo_rodoviario}`);
-      if (ctx.municipio) lines.push(`Município: ${ctx.municipio}`);
-      if (ctx.cod_regional || ctx.sede_regional) {
-        const reg = [ctx.cod_regional, ctx.sede_regional && `sede ${ctx.sede_regional}`].filter(Boolean).join(' · ');
-        lines.push(`Regional DER: ${reg}`);
-      }
-      if (ctx.residencia || ctx.sede_residencia) {
-        const res = [ctx.residencia && `residência ${ctx.residencia}`, ctx.sede_residencia].filter(Boolean).join(' · ');
-        lines.push(`Residência: ${res}`);
-      }
-      if (lines.length) {
-        roadBlock = `<div class="popup-road" style="margin:6px 0;padding:6px 8px;background:#eef3f7;border-radius:6px;font-size:12px;line-height:1.45">${lines.join('<br/>')}</div>`;
-      }
-    } catch (_) { /* ignora JSON inválido */ }
+function mapPublicFeatures(fc) {
+  return fc.features || [];
+}
+
+/** @returns {Record<string, number>} */
+function countsByCategory(fc) {
+  const counts = {};
+  for (const f of mapPublicFeatures(fc)) {
+    const cat = f.properties?.category || 'outro';
+    counts[cat] = (counts[cat] || 0) + 1;
   }
-  const canResolve = p.interaction_type !== 'manifestacao' && p.cluster_id;
-  const resolveBtn = canResolve
-    ? `<button type="button" class="popup-resolver" data-cluster="${p.cluster_id}"
-         style="margin-top:8px;width:100%;padding:8px;border:0;border-radius:6px;
-         background:#2fa854;color:#fff;font-weight:600;cursor:pointer">
-         Já foi resolvido?
-       </button>`
-    : '';
-  return `
-    <strong>${label}</strong>${p.magnitude ? ` · ${p.magnitude}` : ''}<br/>
-    ${roadBlock}
-    ${p.description ? `<em>${p.description.slice(0, 120)}</em><br/>` : ''}
-    <small>id ${p.id}</small><br/>
-    ${p.photo_url ? `<img src="${p.photo_url}" style="max-width:200px;border-radius:6px;margin-top:6px"/>` : ''}
-    ${resolveBtn}
+  return counts;
+}
+
+function ensureLayerKeys() {
+  if (!catalog) return;
+  allLayerKeys = [];
+  for (const c of catalog.event_categories || []) {
+    allLayerKeys.push(layerKey('evento_trafego', c.id));
+  }
+  for (const c of catalog.manifestation_categories || []) {
+    allLayerKeys.push(layerKey('manifestacao', c.id));
+  }
+  for (const k of allLayerKeys) {
+    if (layerVisibility[k] === undefined) layerVisibility[k] = true;
+  }
+  if (layerVisibility.evento_trafego === undefined) layerVisibility.evento_trafego = true;
+  if (layerVisibility.manifestacao === undefined) layerVisibility.manifestacao = true;
+}
+
+function totalCount(counts) {
+  return Object.values(counts).reduce((sum, n) => sum + (n || 0), 0);
+}
+
+function renderLayerControls(eventCounts, manifCounts) {
+  const layersEl = document.getElementById('viewer-layers');
+  if (!layersEl || !catalog) return;
+
+  ensureLayerKeys();
+
+  const catLabel = (c, counts) => {
+    const n = counts[c.id] || 0;
+    return `${c.label} <span class="muted">(${n})</span>`;
+  };
+
+  const groupLayers = (typeId, categories, counts, title) => {
+    const total = totalCount(counts);
+    const cats = categories.map((c) => {
+      const key = layerKey(typeId, c.id);
+      const checked = layerVisibility[key] !== false ? 'checked' : '';
+      return `
+        <label class="public-layer-cat">
+          <input type="checkbox" data-layer="${key}" ${checked}/>
+          <span>${catLabel(c, counts)}</span>
+        </label>`;
+    }).join('');
+    const groupChecked = layerVisibility[typeId] !== false ? 'checked' : '';
+    return `
+      <div class="public-layer-group">
+        <label>
+          <input type="checkbox" data-layer="${typeId}" ${groupChecked}/>
+          <span>${title} <span class="muted">(${total})</span></span>
+        </label>
+        <div class="public-layer-children">${cats}</div>
+      </div>`;
+  };
+
+  const eventCategories = catalog.event_categories || [];
+  const manifCategories = catalog.manifestation_categories || [];
+  layersEl.innerHTML =
+    groupLayers('evento_trafego', eventCategories, eventCounts, 'Eventos de tráfego')
+    + groupLayers('manifestacao', manifCategories, manifCounts, 'Manifestação cidadã');
+
+  if (!layerControlsBound) {
+    layerControlsBound = true;
+    layersEl.addEventListener('change', (ev) => {
+      const input = ev.target;
+      if (!(input instanceof HTMLInputElement) || !input.dataset.layer) return;
+      const key = input.dataset.layer;
+      layerVisibility[key] = input.checked;
+      if (key === 'evento_trafego' || key === 'manifestacao') {
+        const prefix = key === 'evento_trafego' ? 'evento' : 'manifestacao';
+        layersEl.querySelectorAll(`input[data-layer^="${prefix}:"]`).forEach((child) => {
+          if (!(child instanceof HTMLInputElement)) return;
+          child.checked = input.checked;
+          layerVisibility[child.dataset.layer] = input.checked;
+          applyLayerVisibility(child.dataset.layer);
+        });
+      }
+      applyLayerVisibility(key);
+    });
+  }
+}
+
+function exportLayerRef(typeId, catId) {
+  return { interaction_type: typeId, category_id: catId };
+}
+
+function syncExportGroupState(exportsEl, groupId) {
+  const boxes = exportsEl.querySelectorAll(`input[data-export-layer^="${groupId}:"]`);
+  const groupBox = exportsEl.querySelector(`input[data-export-all="${groupId}"]`);
+  if (!(groupBox instanceof HTMLInputElement) || !boxes.length) return;
+  const checked = [...boxes].filter((b) => b.checked).length;
+  groupBox.checked = checked === boxes.length;
+  groupBox.indeterminate = checked > 0 && checked < boxes.length;
+}
+
+function syncExportGlobalState(exportsEl) {
+  const globalBox = exportsEl.querySelector('input[data-export-all="global"]');
+  if (!(globalBox instanceof HTMLInputElement)) return;
+  const all = exportsEl.querySelectorAll('input[data-export-layer]');
+  const checked = [...all].filter((b) => b.checked).length;
+  globalBox.checked = checked === all.length && all.length > 0;
+  globalBox.indeterminate = checked > 0 && checked < all.length;
+}
+
+function renderExportForm(eventCounts, manifCounts) {
+  const exportsEl = document.getElementById('viewer-exports');
+  if (!exportsEl || !catalog) return;
+
+  const countsFor = (groupId) => (groupId === 'evento_trafego' ? eventCounts : manifCounts);
+
+  if (exportFormBound) {
+    EXPORT_GROUPS.forEach((g) => {
+      const counts = countsFor(g.id);
+      for (const c of catalog[g.categoriesKey] || []) {
+        const box = exportsEl.querySelector(`input[data-export-layer="${g.id}:${c.id}"]`);
+        const label = box?.closest('label')?.querySelector('span');
+        if (label) {
+          const n = counts[c.id] || 0;
+          label.innerHTML = `${c.label} <span class="muted">(${n})</span>`;
+        }
+      }
+    });
+    return;
+  }
+
+  const groupBlocks = EXPORT_GROUPS.map((g) => {
+    const categories = catalog[g.categoriesKey] || [];
+    const counts = countsFor(g.id);
+    const catRows = categories.map((c) => {
+      const n = counts[c.id] || 0;
+      return `
+        <label class="public-export-cat">
+          <input type="checkbox" data-export-layer="${g.id}:${c.id}"/>
+          <span>${c.label} <span class="muted">(${n})</span></span>
+        </label>`;
+    }).join('');
+    return `
+      <div class="public-export-group-block" data-export-group="${g.id}">
+        <label class="public-export-group-all">
+          <input type="checkbox" data-export-all="${g.id}"/>
+          <span>Todas — ${g.title}</span>
+        </label>
+        <div class="public-export-cats">${catRows}</div>
+      </div>`;
+  }).join('');
+
+  exportsEl.innerHTML = `
+    <form class="public-export-form" id="viewer-export-form">
+      <fieldset class="public-export-format">
+        <legend>Formato de saída</legend>
+        <div class="public-export-format-options">
+          <label><input type="radio" name="export-format" value="pdf" checked/> PDF</label>
+          <label><input type="radio" name="export-format" value="csv"/> CSV</label>
+          <label><input type="radio" name="export-format" value="zip"/> Shape (ZIP)</label>
+        </div>
+      </fieldset>
+      <label class="public-export-global">
+        <input type="checkbox" data-export-all="global"/>
+        <span>Todas as camadas (todos os grupos)</span>
+      </label>
+      ${groupBlocks}
+      <button type="submit" class="public-export-btn" id="export-download-btn">Baixar relatório</button>
+      <p class="public-export-status muted" id="export-status" aria-live="polite"></p>
+    </form>`;
+
+  if (!exportFormBound) {
+    exportFormBound = true;
+    exportsEl.addEventListener('change', (ev) => {
+      const input = ev.target;
+      if (!(input instanceof HTMLInputElement)) return;
+
+      if (input.dataset.exportAll === 'global') {
+        const on = input.checked;
+        exportsEl.querySelectorAll('input[data-export-layer]').forEach((box) => {
+          if (box instanceof HTMLInputElement) box.checked = on;
+        });
+        EXPORT_GROUPS.forEach((g) => syncExportGroupState(exportsEl, g.id));
+        return;
+      }
+
+      if (input.dataset.exportAll) {
+        const groupId = input.dataset.exportAll;
+        const on = input.checked;
+        exportsEl.querySelectorAll(`input[data-export-layer^="${groupId}:"]`).forEach((box) => {
+          if (box instanceof HTMLInputElement) box.checked = on;
+        });
+        syncExportGlobalState(exportsEl);
+        return;
+      }
+
+      if (input.dataset.exportLayer) {
+        const [groupId] = input.dataset.exportLayer.split(':');
+        syncExportGroupState(exportsEl, groupId);
+        syncExportGlobalState(exportsEl);
+      }
+    });
+
+    exportsEl.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const form = ev.target;
+      if (!(form instanceof HTMLFormElement)) return;
+      const statusEl = document.getElementById('export-status');
+      const btn = document.getElementById('export-download-btn');
+      const formatInput = form.querySelector('input[name="export-format"]:checked');
+      const format = formatInput instanceof HTMLInputElement ? formatInput.value : 'pdf';
+      const selected = [...form.querySelectorAll('input[data-export-layer]:checked')]
+        .map((el) => {
+          const key = el instanceof HTMLInputElement ? el.dataset.exportLayer : '';
+          const [typeId, catId] = (key || '').split(':');
+          return typeId && catId ? exportLayerRef(typeId, catId) : null;
+        })
+        .filter(Boolean);
+
+      if (!selected.length) {
+        if (statusEl) statusEl.textContent = 'Selecione ao menos uma camada.';
+        return;
+      }
+
+      if (btn instanceof HTMLButtonElement) btn.disabled = true;
+      if (statusEl) statusEl.textContent = 'Gerando arquivo…';
+      try {
+        await downloadExportBatch({ format, layers: selected });
+        if (statusEl) statusEl.textContent = 'Download iniciado.';
+      } catch (err) {
+        if (statusEl) statusEl.textContent = err.message || 'Falha na exportação.';
+      } finally {
+        if (btn instanceof HTMLButtonElement) btn.disabled = false;
+      }
+    });
+  }
+}
+
+function applyLayerVisibility(key) {
+  const visible = layerVisibility[key] !== false;
+  if (key === 'evento_trafego' || key === 'manifestacao') {
+    const prefix = key === 'evento_trafego' ? 'evento' : 'manifestacao';
+    allLayerKeys.filter((k) => k.startsWith(`${prefix}:`)).forEach((k) => {
+      (categoryMarkers[k] || []).forEach((m) => {
+        m.getElement().style.display = visible && layerVisibility[k] !== false ? '' : 'none';
+      });
+    });
+    return;
+  }
+  (categoryMarkers[key] || []).forEach((m) => {
+    m.getElement().style.display = visible ? '' : 'none';
+  });
+}
+
+function clearAllMarkers() {
+  for (const key of Object.keys(categoryMarkers)) {
+    categoryMarkers[key].forEach((m) => m.remove());
+    categoryMarkers[key] = [];
+  }
+}
+
+function addMarkers(fc, interactionType) {
+  for (const f of mapPublicFeatures(fc)) {
+    const p = { ...f.properties, interaction_type: f.properties?.interaction_type || interactionType };
+    const [lon, lat] = f.geometry?.coordinates || [];
+    if (lat == null || lon == null) continue;
+    const prefix = interactionType === 'manifestacao' ? 'manifestacao' : 'evento';
+    const key = `${prefix}:${p.category || 'outro'}`;
+    if (!categoryMarkers[key]) categoryMarkers[key] = [];
+
+    const el = createMarkerElement(p, catalog, { wrapForMaplibre: true });
+    const popup = new maplibregl.Popup({
+      offset: 20,
+      maxWidth: '340px',
+      className: 'viewer-map-popup gestao-map-popup',
+    }).setHTML(buildGestaoPopupHtml(p, catalog, { showResolve: true }));
+
+    const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+      .setLngLat([lon, lat])
+      .setPopup(popup)
+      .addTo(map);
+    categoryMarkers[key].push(marker);
+  }
+}
+
+function renderPublicLegend() {
+  const el = document.getElementById('viewer-legend');
+  if (!el || !catalog) return;
+
+  const statuses = PUBLIC_MAP_STATUSES.map((id) => {
+    const m = catalog.statuses?.[id];
+    if (!m) return '';
+    const color = resolveStatusColor({ status: id }, catalog);
+    return `
+      <div class="gestao-legend-row">
+        ${legendStatusSwatch(color)}
+        <div class="gestao-legend-copy">
+          <strong>${m.label}</strong>
+        </div>
+      </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <h3>Legenda</h3>
+    ${buildLegendSymbolsBlock()}
+    <div class="gestao-legend-list">${statuses}</div>
   `;
+}
+
+function bindSidebarToggle() {
+  if (sidebarToggleBound) return;
+  const btn = document.getElementById('toggle-sidebar');
+  const sidebar = document.getElementById('public-sidebar');
+  if (!btn || !sidebar) return;
+  sidebarToggleBound = true;
+  btn.addEventListener('click', () => {
+    sidebar.classList.toggle('public-sidebar-collapsed');
+    const collapsed = sidebar.classList.contains('public-sidebar-collapsed');
+    document.body.classList.toggle('viewer-sidebar-collapsed', collapsed);
+    btn.textContent = collapsed ? '»' : '«';
+    btn.setAttribute('aria-label', collapsed ? 'Expandir menu lateral' : 'Recolher menu lateral');
+    setTimeout(() => map.resize(), 280);
+  });
 }
 
 document.addEventListener('click', async (ev) => {
@@ -99,78 +388,21 @@ document.addEventListener('click', async (ev) => {
   }
 });
 
-function bindPopup(layerId) {
-  map.on('click', layerId, (e) => {
-    const p = e.features[0].properties;
-    new maplibregl.Popup().setLngLat(e.lngLat).setHTML(popupHtml(p)).addTo(map);
-  });
-  map.on('mouseenter', layerId, () => { map.getCanvas().style.cursor = 'pointer'; });
-  map.on('mouseleave', layerId, () => { map.getCanvas().style.cursor = ''; });
-}
-
 map.on('load', async () => {
-  map.addSource('events', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-  map.addSource('manifestations', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-
-  map.addLayer({
-    id: 'events-circles',
-    type: 'circle',
-    source: 'events',
-    paint: {
-      'circle-radius': ['interpolate', ['linear'], ['get', 'priority'], 0, 4, 0.5, 8, 1, 14],
-      'circle-color': [
-        'match', ['get', 'category'],
-        'bloqueio_total', EVENT_COLORS.bloqueio_total,
-        'acidente', EVENT_COLORS.acidente,
-        'incendio', EVENT_COLORS.incendio,
-        'animal_na_pista', EVENT_COLORS.animal_na_pista,
-        'objeto_na_pista', EVENT_COLORS.objeto_na_pista,
-        'queda_arvore', EVENT_COLORS.queda_arvore,
-        'veiculo_quebrado', EVENT_COLORS.veiculo_quebrado,
-        'alagamento', EVENT_COLORS.alagamento,
-        'obra_grande', EVENT_COLORS.obra_grande,
-        'lentidao_corredor', EVENT_COLORS.lentidao_corredor,
-        'sinalizacao_quebrada', EVENT_COLORS.sinalizacao_quebrada,
-        'buraco', EVENT_COLORS.buraco,
-        EVENT_COLORS.outro,
-      ],
-      'circle-opacity': 0.85,
-      'circle-stroke-color': '#fff',
-      'circle-stroke-width': 1.5,
-    },
-  });
-
-  map.addLayer({
-    id: 'manif-circles',
-    type: 'circle',
-    source: 'manifestations',
-    paint: {
-      'circle-radius': 8,
-      'circle-color': [
-        'match', ['get', 'category'],
-        'elogio', MANIF_COLORS.elogio,
-        'sugestao', MANIF_COLORS.sugestao,
-        'reclamacao', MANIF_COLORS.reclamacao,
-        '#888',
-      ],
-      'circle-opacity': 0.8,
-      'circle-stroke-color': '#fff',
-      'circle-stroke-width': 1.5,
-    },
-  });
-
-  bindPopup('events-circles');
-  bindPopup('manif-circles');
-
-  document.getElementById('layer-events').addEventListener('change', (e) => {
-    layerVisibility('events-circles', e.target.checked);
-  });
-  document.getElementById('layer-manif').addEventListener('change', (e) => {
-    layerVisibility('manif-circles', e.target.checked);
-  });
-
-  await refresh();
-  setInterval(refresh, 60_000);
+  try {
+    catalog = await fetchCatalog();
+    await preloadEventIcons(catalog);
+    bindSidebarCollapse('panel-mapa', { defaultExpanded: true });
+    bindRelatoriosCollapse();
+    bindSidebarToggle();
+    renderLayerControls({}, {});
+    renderExportForm({}, {});
+    renderPublicLegend();
+    await refresh();
+    setInterval(refresh, 60_000);
+  } catch (e) {
+    console.error(e);
+  }
 });
 
 async function refresh() {
@@ -179,10 +411,15 @@ async function refresh() {
       fetchIncidents(),
       fetchManifestations(),
     ]);
-    map.getSource('events').setData(events);
-    map.getSource('manifestations').setData(manif);
-    document.getElementById('count-events').textContent = events.features.length;
-    document.getElementById('count-manif').textContent = manif.features.length;
+    const eventCounts = countsByCategory(events);
+    const manifCounts = countsByCategory(manif);
+    renderLayerControls(eventCounts, manifCounts);
+    renderExportForm(eventCounts, manifCounts);
+
+    clearAllMarkers();
+    addMarkers(events, 'evento_trafego');
+    addMarkers(manif, 'manifestacao');
+    allLayerKeys.forEach((k) => applyLayerVisibility(k));
   } catch (e) {
     console.error(e);
   }

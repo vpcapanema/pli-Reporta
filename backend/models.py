@@ -6,7 +6,15 @@ from datetime import datetime, timezone
 from sqlalchemy import Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
+from .config import settings
 from .database import Base
+
+_USE_POSTGIS = not settings.database_url.startswith("sqlite")
+
+try:
+    from geoalchemy2 import Geometry as GeoGeometry  # pylint: disable=import-error
+except ImportError:
+    GeoGeometry = None  # type: ignore[assignment,misc]
 
 
 def _utcnow_iso() -> str:
@@ -56,6 +64,16 @@ class Report(Base):
     road_scope: Mapped[str | None] = mapped_column(String(24), index=True)
     road_label: Mapped[str | None] = mapped_column(String(64))
     road_context_json: Mapped[str | None] = mapped_column(Text)
+
+    if _USE_POSTGIS and GeoGeometry is not None:
+        geom_point: Mapped[object | None] = mapped_column(
+            GeoGeometry(geometry_type="POINT", srid=4326, spatial_index=False),
+            nullable=True,
+        )
+        geom_polygon: Mapped[object | None] = mapped_column(
+            GeoGeometry(geometry_type="POLYGON", srid=4326, spatial_index=False),
+            nullable=True,
+        )
 
 
 Index("ix_reports_status_validto", Report.status, Report.valid_to)

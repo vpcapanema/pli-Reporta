@@ -41,45 +41,85 @@ INTERACTION_TYPES = [
 STATUS_META = {
     "submetido": {
         "label": "Recém-chegado",
-        "cor": "#94a3b8",
+        "cor": "#475569",
         "descricao": "Ainda em processamento inicial",
+        "visivel_mapa_publico": False,
+        "visivel_mapa_gestao": True,
+        "export_publico": False,
+        "export_gestao": True,
     },
     "em_moderacao": {
         "label": "Precisa da sua análise",
-        "cor": "#f59e0b",
+        "cor": "#c2410c",
         "descricao": "O sistema preferiu não decidir sozinho",
+        "visivel_mapa_publico": False,
+        "visivel_mapa_gestao": True,
+        "export_publico": False,
+        "export_gestao": True,
     },
     "validado": {
         "label": "Aprovado internamente",
-        "cor": "#3b82f6",
+        "cor": "#1d4ed8",
         "descricao": "Validado, aguardando publicação no mapa público",
+        "visivel_mapa_publico": False,
+        "visivel_mapa_gestao": True,
+        "export_publico": False,
+        "export_gestao": True,
     },
     "publicado": {
         "label": "Publicado",
-        "cor": "#22c55e",
+        "cor": "#15803d",
         "descricao": "Visível no mapa público",
+        "visivel_mapa_publico": True,
+        "visivel_mapa_gestao": True,
+        "export_publico": True,
+        "export_gestao": True,
     },
     "descartado": {
         "label": "Arquivado",
-        "cor": "#ef4444",
+        "cor": "#b91c1c",
         "descricao": "Não será exibido publicamente",
+        "visivel_mapa_publico": False,
+        "visivel_mapa_gestao": False,
+        "export_publico": False,
+        "export_gestao": False,
     },
     "registro_municipal": {
         "label": "Registro municipal",
-        "cor": "#0ea5e9",
+        "cor": "#0369a1",
         "descricao": "Armazenado internamente para relatórios e exportação às prefeituras",
+        "visivel_mapa_publico": False,
+        "visivel_mapa_gestao": True,
+        "export_publico": False,
+        "export_gestao": True,
+        "camada_gestao": "municipal",
     },
     "expirado": {
         "label": "Expirado",
-        "cor": "#64748b",
+        "cor": "#334155",
         "descricao": "Perdeu validade temporal",
+        "visivel_mapa_publico": False,
+        "visivel_mapa_gestao": False,
+        "export_publico": False,
+        "export_gestao": False,
     },
     "resolvido": {
         "label": "Resolvido",
-        "cor": "#a855f7",
+        "cor": "#7e22ce",
         "descricao": "Encerrado pela autoridade",
+        "visivel_mapa_publico": True,
+        "visivel_mapa_gestao": True,
+        "export_publico": True,
+        "export_gestao": True,
     },
 }
+
+VISIBILITY_KEYS = (
+    "visivel_mapa_publico",
+    "visivel_mapa_gestao",
+    "export_publico",
+    "export_gestao",
+)
 
 GLOSSARY = [
     {
@@ -106,5 +146,33 @@ def catalog_payload() -> dict:
         "event_categories": EVENT_CATEGORIES,
         "manifestation_categories": MANIF_CATEGORIES,
         "statuses": STATUS_META,
+        "status_visibility_matrix": status_visibility_matrix(),
         "glossary": GLOSSARY,
+    }
+
+
+def status_visibility_matrix() -> list[dict]:
+    """Matriz status → mapas/exportações (ver docs/MATRIZ_STATUS_VISIBILIDADE.md)."""
+    rows = []
+    for status_id, meta in STATUS_META.items():
+        rows.append({
+            "status": status_id,
+            "label": meta["label"],
+            "visivel_mapa_publico": meta.get("visivel_mapa_publico", False),
+            "visivel_mapa_gestao": meta.get("visivel_mapa_gestao", False),
+            "export_publico": meta.get("export_publico", False),
+            "export_gestao": meta.get("export_gestao", False),
+            "camada_gestao": meta.get("camada_gestao", "principal"),
+        })
+    return rows
+
+
+def visibility_for_status(status: str) -> dict[str, bool]:
+    """Flags de visibilidade para um status (sem aplicar valid_to)."""
+    meta = STATUS_META.get(status, {})
+    return {
+        "visivel_mapa_publico": bool(meta.get("visivel_mapa_publico")),
+        "visivel_mapa_gestao": bool(meta.get("visivel_mapa_gestao")),
+        "export_publico": bool(meta.get("export_publico")),
+        "export_gestao": bool(meta.get("export_gestao")),
     }

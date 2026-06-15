@@ -27,7 +27,7 @@ EVENT_CATEGORIES = frozenset({
     "objeto_na_pista", "queda_arvore", "veiculo_quebrado", "alagamento",
     "obra_grande", "lentidao_corredor", "sinalizacao_quebrada", "buraco", "outro",
 })
-PUBLIC_STATUSES = frozenset({"publicado", "validado"})
+# Visibilidade nos mapas — ver report_catalog.STATUS_META e layer_feed.py.
 
 
 @dataclass
@@ -198,6 +198,9 @@ def ingest_report(
         )
         db.add(rep)
         db.flush()
+        from .geometry_sync import sync_report_point
+
+        sync_report_point(rep)
         return IngestResult(
             report=rep,
             explanation=["gate=duplicate_photo — foto já utilizada em outro reporte"],
@@ -314,6 +317,9 @@ def ingest_report(
     )
     db.add(rep)
     db.flush()
+    from .geometry_sync import sync_report_point
+
+    sync_report_point(rep)
     return IngestResult(report=rep, explanation=explanation)
 
 
@@ -341,6 +347,31 @@ def report_to_feature(r: Report) -> dict[str, Any]:
             road_context = json.loads(r.road_context_json)
         except (ValueError, TypeError):
             road_context = None
+    from .layer_schema import visibility_flags
+    from .report_catalog import (
+        EVENT_CATEGORIES as CATALOG_EVENT_CATEGORIES,
+        MANIF_CATEGORIES as CATALOG_MANIF_CATEGORIES,
+        visibility_for_status,
+    )
+
+    vis_pub, vis_gest = visibility_flags(r.status, valid_to=r.valid_to)
+    vis = visibility_for_status(r.status)
+    cat_label = next(
+        (
+            c["label"]
+            for c in CATALOG_EVENT_CATEGORIES + CATALOG_MANIF_CATEGORIES
+            if c["id"] == r.category
+        ),
+        r.category,
+    )
+    cat_sigla = next(
+        (
+            c["sigla"]
+            for c in CATALOG_EVENT_CATEGORIES + CATALOG_MANIF_CATEGORIES
+            if c["id"] == r.category
+        ),
+        "??",
+    )
     return {
         "type": "Feature",
         "geometry": geom,
@@ -348,12 +379,18 @@ def report_to_feature(r: Report) -> dict[str, Any]:
             "id": r.id,
             "interaction_type": r.interaction_type,
             "category": r.category,
+            "category_label": cat_label,
+            "category_sigla": cat_sigla,
             "magnitude": r.magnitude,
             "description": r.description,
             "veracity": round(r.veracity_score, 3),
             "relevance": round(r.relevance_score, 3),
             "priority": round(r.priority, 3),
             "status": r.status,
+            "visivel_mapa_publico": vis_pub,
+            "visivel_mapa_gestao": vis_gest,
+            "export_publico": vis["export_publico"],
+            "export_gestao": vis["export_gestao"],
             "blocking": blocking,
             "cluster_id": r.cluster_id,
             "affected_edges": affected,
@@ -367,15 +404,3 @@ def report_to_feature(r: Report) -> dict[str, Any]:
             "road_context": road_context,
         },
     }
-
-
-def active_public_reports_stmt(*, interaction_type: str | None = None):
-    now_iso = datetime.now(timezone.utc).isoformat()
-    stmt = (
-        select(Report)
-        .where(Report.status.in_(tuple(PUBLIC_STATUSES)))
-        .where((Report.valid_to.is_(None)) | (Report.valid_to > now_iso))
-    )
-    if interaction_type:
-        stmt = stmt.where(Report.interaction_type == interaction_type)
-    return stmt

@@ -1,0 +1,60 @@
+{
+  "type": "FeatureCollection",
+  "name": "manifestacao__reclamacao",
+  "metadata": {
+    "interaction_type": "manifestacao",
+    "category_id": "reclamacao",
+    "geometry_role": "ponto"
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "id": "01KV57MZR4P3B00B5WY5Y7F7HM",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -47.065,
+          -22.895
+        ]
+      },
+      "properties": {
+        "ID": "01KV57MZR4P3B00B5WY5Y7F7HM",
+        "Tipo de interação": "Manifestação cidadã",
+        "Categoria (código)": "reclamacao",
+        "Categoria": "Reclamação",
+        "Sigla da categoria": "RC",
+        "Magnitude": "normal",
+        "Descrição": "Integração: buraco profundo na lateral da pista estadual.",
+        "Status": "Precisa da sua análise",
+        "Visível no mapa público": false,
+        "Visível no mapa gestão": true,
+        "Exportação pública": false,
+        "Exportação gestão": true,
+        "Bloqueante": false,
+        "Cluster": null,
+        "Veracidade (V)": 0.653,
+        "Relevância (R)": 0.653,
+        "Prioridade (P)": 0.653,
+        "Válido desde": "2026-06-15T08:51:26.087766+00:00",
+        "Válido até": "2026-12-12T08:51:26.087766+00:00",
+        "Capturado em": "2026-06-15T08:51:26.083361+00:00",
+        "Recebido em": "2026-06-15T08:51:26.087766+00:00",
+        "URL da foto": "http://localhost:8080/media/bd/01KV57MZR4P3B00B5WY5Y7F7HM.jpg",
+        "Acurácia GPS (m)": null,
+        "Nonce de captura válido": 1,
+        "Trechos afetados": [],
+        "Classificação viária": null,
+        "Rodovia": null,
+        "Tipo rodoviário": null,
+        "Município": null,
+        "Tipo de pista": null,
+        "Administrador da via": null,
+        "Coordenadoria Regional Geral DER": null,
+        "Sede da coordenadoria": null,
+        "Residência de conserva DER": null,
+        "Sede da residência de conserva": null,
+        "Distância snap utilizada": null
+      }
+    }
+  ]
+}

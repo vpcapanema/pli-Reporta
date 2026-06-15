@@ -20,16 +20,27 @@
       </div>
     </div>
     <nav id="gestao-nav" class="gestao-nav"></nav>
+    <section id="gestao-layer-load" class="gestao-layer-load" hidden aria-label="Carregamento das camadas">
+      <header class="gestao-layer-load-head">
+        <strong>Camadas no mapa</strong>
+        <div class="gestao-load-overall-wrap">
+          <span id="gestao-load-overall" class="gestao-load-overall">0%</span>
+          <span id="gestao-load-overall-hint" class="gestao-load-overall-hint muted"></span>
+        </div>
+      </header>
+      <div id="gestao-layer-load-body" class="gestao-layer-load-body"></div>
+    </section>
     <div class="gestao-sidebar-foot">
       <span id="gestao-user" class="muted"></span>
       <button type="button" id="btn-gestao-logout" class="secondary">Sair</button>
+      <p class="sidebar-credit">Desenvolvido e implementado por<br>VPC-Geotecnologias e Websistemas.<br>Desenvolvido para o PLI/SP-2050</p>
     </div>
   </aside>
   <main class="gestao-main">
     <header class="gestao-header">
       <div>
         <h1><span class="gestao-header-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg></span>Painel de gestão</h1>
-        <p class="muted">Mapa operacional e fila de casos que precisam da sua análise</p>
+        <p class="muted">Mapa operacional com camadas por tipo de reporte</p>
       </div>
       <button type="button" id="btn-gestao-refresh">Atualizar</button>
     </header>
@@ -39,16 +50,20 @@
       <article><span class="gestao-stat-label">Arquivados</span><strong id="stat-arquivados">—</strong></article>
       <article><span class="gestao-stat-label">Total</span><strong id="stat-total">—</strong></article>
     </section>
-    <div class="gestao-split">
-      <section class="gestao-panel gestao-queue-panel">
-        <h2>Precisa da sua análise <span id="gestao-fila-count" class="gestao-badge">0</span></h2>
-        <div id="gestao-queue" class="gestao-queue"></div>
-      </section>
-      <section class="gestao-panel gestao-map-panel">
-        <div id="gestao-map"></div>
-        <aside id="gestao-legend" class="gestao-legend"></aside>
-      </section>
-    </div>
+    <section class="gestao-panel gestao-map-panel gestao-map-full">
+      <div id="gestao-map"></div>
+      <aside id="gestao-layers" class="gestao-layers gestao-map-float" aria-label="Camadas do mapa">
+        <div class="gestao-float-head" id="gestao-layers-handle">
+          <h3>Camadas</h3>
+          <div class="gestao-float-actions">
+            <button type="button" id="gestao-layers-toggle" class="gestao-layers-toggle secondary" aria-expanded="true" title="Recolher camadas">−</button>
+            <span class="gestao-float-grip" aria-hidden="true" title="Arrastar">⠿</span>
+          </div>
+        </div>
+        <div id="gestao-layers-body" class="gestao-layers-body"></div>
+      </aside>
+      <aside id="gestao-legend" class="gestao-legend"></aside>
+    </section>
   </main>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script type="module" src="/static/js/gestao-dashboard.js"></script>

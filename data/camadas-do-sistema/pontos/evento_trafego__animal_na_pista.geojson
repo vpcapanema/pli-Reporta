@@ -1,0 +1,60 @@
+{
+  "type": "FeatureCollection",
+  "name": "evento_trafego__animal_na_pista",
+  "metadata": {
+    "interaction_type": "evento_trafego",
+    "category_id": "animal_na_pista",
+    "geometry_role": "ponto"
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "id": "01KV57MWC313DJS8F3VGFRQ8GE",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -46.63,
+          -23.55
+        ]
+      },
+      "properties": {
+        "ID": "01KV57MWC313DJS8F3VGFRQ8GE",
+        "Tipo de interação": "Evento de tráfego",
+        "Categoria (código)": "animal_na_pista",
+        "Categoria": "Animal na pista",
+        "Sigla da categoria": "AN",
+        "Magnitude": "normal",
+        "Descrição": null,
+        "Status": "Publicado",
+        "Visível no mapa público": true,
+        "Visível no mapa gestão": true,
+        "Exportação pública": true,
+        "Exportação gestão": true,
+        "Bloqueante": false,
+        "Cluster": "01KV57MWC9Q0JDSH12XQ40EX1V",
+        "Veracidade (V)": 0.772,
+        "Relevância (R)": 0.254,
+        "Prioridade (P)": 0.196,
+        "Válido desde": "2026-06-15T08:51:22.655400+00:00",
+        "Válido até": "2026-06-15T11:51:22.655400+00:00",
+        "Capturado em": "2026-06-15T08:51:22.626550+00:00",
+        "Recebido em": "2026-06-15T08:51:22.655400+00:00",
+        "URL da foto": "http://localhost:8080/media/16/01KV57MWC313DJS8F3VGFRQ8GE.jpg",
+        "Acurácia GPS (m)": 10.0,
+        "Nonce de captura válido": 1,
+        "Trechos afetados": [],
+        "Classificação viária": null,
+        "Rodovia": null,
+        "Tipo rodoviário": null,
+        "Município": null,
+        "Tipo de pista": null,
+        "Administrador da via": null,
+        "Coordenadoria Regional Geral DER": null,
+        "Sede da coordenadoria": null,
+        "Residência de conserva DER": null,
+        "Sede da residência de conserva": null,
+        "Distância snap utilizada": null
+      }
+    }
+  ]
+}

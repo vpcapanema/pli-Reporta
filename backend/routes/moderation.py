@@ -22,6 +22,7 @@ from ..services.moderation_policy import (
     simulate_policy,
     update_policy,
 )
+from ..services.layer_feed import feature_collection
 from ..services.pipeline import report_to_feature
 from ..services.report_catalog import catalog_payload
 from ..services.road_context import MANAGER_REVIEW_SCOPES, STATUS_REGISTRO_MUNICIPAL
@@ -195,6 +196,38 @@ def list_reports(
     }
 
 
+@router.get("/moderation/layers/points/{interaction_type}.geojson")
+def gestao_points_layer(
+    interaction_type: str,
+    status: str | None = Query(default=None),
+    road_scope: str | None = Query(default=None),
+    db: Session = Depends(get_session),
+    _moderator: auth_svc.ModeratorSession = Depends(require_moderator),
+) -> dict:
+    """Feed de gestão — pontos visíveis na matriz (camada principal)."""
+    itype = interaction_type.strip().lower()
+    if itype not in ("evento_trafego", "manifestacao"):
+        raise HTTPException(400, detail="interaction_type inválido.")
+    fc = feature_collection(
+        db,
+        mapa="gestao",
+        interaction_type=itype,
+        gestao_layer="principal",
+        limit=2000,
+    )
+    if status or road_scope:
+        filtered = []
+        for f in fc.get("features", []):
+            p = f.get("properties") or {}
+            if status and p.get("status") != status:
+                continue
+            if road_scope and (p.get("road_scope") or "").lower() != road_scope.strip().lower():
+                continue
+            filtered.append(f)
+        fc = {**fc, "features": filtered}
+    return fc
+
+
 @router.get("/moderation/reports.geojson")
 def reports_geojson(
     db: Session = Depends(get_session),
@@ -203,18 +236,25 @@ def reports_geojson(
     status: str | None = Query(default=None),
     road_scope: str | None = Query(default=None),
 ) -> dict:
-    stmt = select(Report).order_by(Report.received_at.desc()).limit(2000)
+    """Alias — todos os pontos visíveis na gestão (camada principal)."""
+    fc = feature_collection(db, mapa="gestao", gestao_layer="principal", limit=2000)
     if interaction_type:
-        stmt = stmt.where(Report.interaction_type == interaction_type)
+        fc["features"] = [
+            f for f in fc.get("features", [])
+            if (f.get("properties") or {}).get("interaction_type") == interaction_type
+        ]
     if status:
-        stmt = stmt.where(Report.status == status)
+        fc["features"] = [
+            f for f in fc.get("features", [])
+            if (f.get("properties") or {}).get("status") == status
+        ]
     if road_scope:
-        stmt = stmt.where(Report.road_scope == road_scope.strip().lower())
-    rows = db.execute(stmt).scalars().all()
-    return {
-        "type": "FeatureCollection",
-        "features": [report_to_feature(r) for r in rows],
-    }
+        rs = road_scope.strip().lower()
+        fc["features"] = [
+            f for f in fc.get("features", [])
+            if ((f.get("properties") or {}).get("road_scope") or "").lower() == rs
+        ]
+    return fc
 
 
 @router.get("/moderation/municipal.geojson")
@@ -331,4 +371,7 @@ def decide(
         payload_json=json.dumps({"note": decision.note}, ensure_ascii=False),
     ))
     db.commit()
+    from ..services.layer_publish import refresh_report_layers
+
+    refresh_report_layers(rep.id)
     return {"id": rep.id, "status": rep.status}

@@ -62,6 +62,225 @@ const SIGNAL_CRITERIA = {
 /* ── Utilidades ──────────────────────────────────────────────────────── */
 const BLOCKING_IDS = new Set(['bloqueio_total', 'alagamento', 'incendio']);
 
+/** Valores padrão (preset equilibrado) — espelham moderation_policy.py / relevance.py */
+const DEFAULT_GLOBAL = {
+  event_publish_min: 70,
+  event_discard_below: 30,
+  manif_publish_min: 75,
+  manif_discard_below: 40,
+  always_review_blocking: true,
+  always_review_offline: true,
+  always_review_first_in_area: false,
+  always_review_other: true,
+};
+
+const DEFAULT_SIGNALS = [
+  { id: 'geo_browser', label: 'Precisão GPS', descricao: 'Precisão do GPS declarado pelo navegador/app', peso: 20 },
+  { id: 'exif_match', label: 'Coerência EXIF', descricao: 'Coerência entre GPS e timestamp da foto (EXIF) com o reporte', peso: 15 },
+  { id: 'capture_inapp', label: 'Captura in-app', descricao: 'Foto capturada dentro do app vs. enviada da galeria', peso: 20 },
+  { id: 'road_snap', label: 'Snap à via', descricao: 'Proximidade do ponto reportado a uma via conhecida', peso: 10 },
+  { id: 'image_integrity', label: 'Integridade da imagem', descricao: 'Ausência de sinais de edição por software', peso: 15 },
+  { id: 'user_reputation', label: 'Reputação do usuário', descricao: 'Histórico de acertos/erros anteriores do usuário', peso: 10 },
+  { id: 'temporal_plausibility', label: 'Atualidade da captura', descricao: 'Frescor da captura — foto muito antiga reduz confiabilidade', peso: 10 },
+];
+
+const DEFAULT_EVENT_CATS = [
+  { id: 'bloqueio_total', label: 'Bloqueio total', severidade_base: 100, ttl_horas: 6, sempre_revisar: true, limiar_publicar: null, limiar_descartar: null },
+  { id: 'incendio', label: 'Incêndio', severidade_base: 95, ttl_horas: 4, sempre_revisar: true, limiar_publicar: null, limiar_descartar: null },
+  { id: 'acidente', label: 'Acidente', severidade_base: 85, ttl_horas: 2, sempre_revisar: false, limiar_publicar: null, limiar_descartar: null },
+  { id: 'alagamento', label: 'Alagamento', severidade_base: 85, ttl_horas: 12, sempre_revisar: true, limiar_publicar: null, limiar_descartar: null },
+  { id: 'queda_arvore', label: 'Queda de árvore', severidade_base: 75, ttl_horas: 24, sempre_revisar: false, limiar_publicar: null, limiar_descartar: null },
+  { id: 'animal_na_pista', label: 'Animal na pista', severidade_base: 70, ttl_horas: 3, sempre_revisar: false, limiar_publicar: null, limiar_descartar: null },
+  { id: 'obra_grande', label: 'Obra na pista', severidade_base: 70, ttl_horas: 720, sempre_revisar: false, limiar_publicar: null, limiar_descartar: null },
+  { id: 'objeto_na_pista', label: 'Objeto na pista', severidade_base: 65, ttl_horas: 6, sempre_revisar: false, limiar_publicar: null, limiar_descartar: null },
+  { id: 'lentidao_corredor', label: 'Lentidão no corredor', severidade_base: 65, ttl_horas: 1, sempre_revisar: false, limiar_publicar: null, limiar_descartar: null },
+  { id: 'veiculo_quebrado', label: 'Veículo quebrado', severidade_base: 55, ttl_horas: 3, sempre_revisar: false, limiar_publicar: null, limiar_descartar: null },
+  { id: 'sinalizacao_quebrada', label: 'Sinalização quebrada', severidade_base: 50, ttl_horas: 336, sempre_revisar: false, limiar_publicar: null, limiar_descartar: null },
+  { id: 'buraco', label: 'Buraco', severidade_base: 40, ttl_horas: 2160, sempre_revisar: false, limiar_publicar: null, limiar_descartar: null },
+  { id: 'outro', label: 'Outro', severidade_base: 30, ttl_horas: 168, sempre_revisar: true, limiar_publicar: null, limiar_descartar: null },
+];
+
+const DEFAULT_MANIF_CATS = [
+  { id: 'elogio', label: 'Elogio', sempre_revisar: false, limiar_publicar: null, limiar_descartar: null },
+  { id: 'sugestao', label: 'Sugestão', sempre_revisar: false, limiar_publicar: null, limiar_descartar: null },
+  { id: 'reclamacao', label: 'Reclamação', sempre_revisar: false, limiar_publicar: null, limiar_descartar: null },
+];
+
+const DEFAULT_HIGHWAY = [
+  { id: 'motorway', label: 'Rodovia principal (faixa dupla)', fator: 100 },
+  { id: 'motorway_link', label: 'Acesso de rodovia principal', fator: 100 },
+  { id: 'trunk', label: 'Rodovia de acesso / contorno', fator: 100 },
+  { id: 'trunk_link', label: 'Acesso de rodovia de contorno', fator: 100 },
+  { id: 'primary', label: 'Avenida / via primária', fator: 85 },
+  { id: 'primary_link', label: 'Acesso de via primária', fator: 85 },
+  { id: 'secondary', label: 'Via secundária', fator: 70 },
+  { id: 'secondary_link', label: 'Acesso de via secundária', fator: 70 },
+  { id: 'tertiary', label: 'Via terciária', fator: 55 },
+  { id: 'tertiary_link', label: 'Acesso de via terciária', fator: 55 },
+  { id: 'residential', label: 'Via residencial', fator: 35 },
+  { id: 'unclassified', label: 'Via sem classificação', fator: 35 },
+  { id: 'service', label: 'Via de serviço', fator: 15 },
+  { id: 'track', label: 'Estrada de terra / trilha', fator: 15 },
+];
+
+let thresholdRangesBound = false;
+
+/** Extrai limiar numérico (0–100) de formatos legado e novo. */
+function pickThreshold(value, fallback) {
+  if (value == null || value === '') return fallback;
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    if (value > 0 && value <= 1) return Math.round(value * 100);
+    return Math.round(value);
+  }
+  if (typeof value === 'object') {
+    if (typeof value.valor === 'number') return Math.round(value.valor);
+  }
+  return fallback;
+}
+
+function buildDefaultPolicy() {
+  return {
+    preset: 'equilibrado',
+    global: { ...DEFAULT_GLOBAL },
+    sinais_veracidade: DEFAULT_SIGNALS.map((s) => ({ ...s })),
+    fatores_via: DEFAULT_HIGHWAY.map((h) => ({ ...h })),
+    categorias_evento: DEFAULT_EVENT_CATS.map((c) => ({ ...c })),
+    categorias_manif: DEFAULT_MANIF_CATS.map((c) => ({ ...c })),
+  };
+}
+
+/** Garante formato completo mesmo com resposta legada ou parcial da API. */
+function normalizePolicy(raw) {
+  const base = buildDefaultPolicy();
+  if (!raw || typeof raw !== 'object') return base;
+
+  const legacyGlobal = {};
+  if (!raw.global && (raw.eventos || raw.manifestacoes)) {
+    const ev = raw.eventos || {};
+    const mn = raw.manifestacoes || {};
+    Object.assign(legacyGlobal, {
+      event_publish_min: pickThreshold(ev.publicar_sozinho, undefined),
+      event_discard_below: pickThreshold(ev.arquivar_sozinho, undefined),
+      manif_publish_min: pickThreshold(mn.publicar_sozinho, undefined),
+      manif_discard_below: pickThreshold(mn.arquivar_sozinho, undefined),
+      always_review_blocking: ev.revisar_bloqueios,
+      always_review_offline: ev.revisar_offline,
+      always_review_first_in_area: ev.revisar_primeiro_na_area,
+      always_review_other: ev.revisar_outro,
+    });
+    const sr = ev.sempre_revisar;
+    if (sr && typeof sr === 'object' && !Array.isArray(sr)) {
+      if ('bloqueio_alagamento' in sr) legacyGlobal.always_review_blocking = !!sr.bloqueio_alagamento;
+      if ('envio_offline' in sr) legacyGlobal.always_review_offline = !!sr.envio_offline;
+      if ('primeiro_na_regiao' in sr) legacyGlobal.always_review_first_in_area = !!sr.primeiro_na_regiao;
+      if ('categoria_outro' in sr) legacyGlobal.always_review_other = !!sr.categoria_outro;
+    }
+  }
+
+  const fromApi = raw.global || {};
+  const cleanedApi = Object.fromEntries(
+    Object.entries(fromApi).filter(([, v]) => v != null && v !== ''),
+  );
+  const cleanedLegacy = Object.fromEntries(
+    Object.entries(legacyGlobal).filter(([, v]) => v != null && v !== ''),
+  );
+  const globalCfg = { ...base.global, ...cleanedLegacy, ...cleanedApi };
+  for (const key of Object.keys(globalCfg)) {
+    if (key.includes('_min') || key.includes('_below')) {
+      globalCfg[key] = pickThreshold(globalCfg[key], base.global[key]);
+    }
+  }
+
+  return {
+    ...base,
+    ...raw,
+    global: globalCfg,
+    sinais_veracidade: raw.sinais_veracidade?.length ? raw.sinais_veracidade : base.sinais_veracidade,
+    fatores_via: raw.fatores_via?.length ? raw.fatores_via : base.fatores_via,
+    categorias_evento: raw.categorias_evento?.length ? raw.categorias_evento : base.categorias_evento,
+    categorias_manif: raw.categorias_manif?.length ? raw.categorias_manif : base.categorias_manif,
+  };
+}
+
+const RELEVANCE_FIXED = [
+  {
+    title: 'R_confirmação',
+    formula: 'R_conf = 0,5 + 0,5 × (1 − e^(−0,6 × n))',
+    detail: 'n = confirmações no cluster (outros cidadãos no mesmo ponto). Mais confirmações → relevância sobe.',
+  },
+  {
+    title: 'R_persistência',
+    formula: 'R_pers = e^(−idade_horas / TTL_categoria)',
+    detail: 'TTL configurável por categoria na tabela 4a. Reportes antigos perdem relevância até expirar.',
+  },
+  {
+    title: 'Magnitude do evento',
+    formula: 'R_sev × fator: leve 70% · normal 100% · grave 120%',
+    detail: 'Escolhida pelo cidadão no envio. Multiplica a severidade base da categoria.',
+  },
+  {
+    title: 'Prioridade no mapa',
+    formula: 'P = V × R',
+    detail: 'Usada para ordenar eventos e decidir destaque. Não substitui os limiares de V para publicação.',
+  },
+];
+
+function bindTabs() {
+  const tabs = document.querySelectorAll('.policy-type-tab');
+  const panels = {
+    eventos: $('#panel-eventos'),
+    manifestacoes: $('#panel-manifestacoes'),
+  };
+  tabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      const id = tab.dataset.tab;
+      tabs.forEach((t) => {
+        const on = t === tab;
+        t.classList.toggle('active', on);
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      Object.entries(panels).forEach(([key, panel]) => {
+        if (!panel) return;
+        panel.hidden = key !== id;
+      });
+    });
+  });
+}
+
+/** Sincroniza slider ↔ input numérico. */
+function bindRangePair(rangeId, numId, onChange) {
+  const range = $(rangeId);
+  const num = $(numId);
+  if (!range || !num) return;
+  const sync = (fromRange) => {
+    if (fromRange) num.value = range.value;
+    else range.value = num.value;
+    onChange?.();
+  };
+  range.addEventListener('input', () => sync(true));
+  num.addEventListener('input', () => sync(false));
+  sync(true);
+}
+
+function bindThresholdRanges(onGlobalChange) {
+  bindRangePair('#g-event-pub-range', '#g-event-pub', onGlobalChange);
+  bindRangePair('#g-event-disc-range', '#g-event-disc', onGlobalChange);
+  bindRangePair('#g-manif-pub-range', '#g-manif-pub', onGlobalChange);
+  bindRangePair('#g-manif-disc-range', '#g-manif-disc', onGlobalChange);
+}
+
+function renderRelevanceFixed() {
+  const box = $('#relevance-fixed-params');
+  if (!box) return;
+  box.innerHTML = RELEVANCE_FIXED.map((p) => `
+    <article class="gestao-slider-block">
+      <strong>${p.title}</strong>
+      <code>${p.formula}</code>
+      <p class="muted">${p.detail}</p>
+    </article>
+  `).join('');
+}
+
 function ttlHuman(h) {
   if (!h || h < 1) return '';
   if (h < 24)       return `${h} h`;
@@ -75,21 +294,42 @@ function ttlHuman(h) {
 }
 
 /* ── Seção 1: Limiares de decisão ────────────────────────────────────── */
-function renderGlobal(g) {
-  $('#g-event-pub').value    = g.event_publish_min;
-  $('#g-event-disc').value   = g.event_discard_below;
-  $('#g-manif-pub').value    = g.manif_publish_min;
-  $('#g-manif-disc').value   = g.manif_discard_below;
-  $('#g-blocking').checked   = g.always_review_blocking;
-  $('#g-offline').checked    = g.always_review_offline;
-  $('#g-first-area').checked = g.always_review_first_in_area;
-  $('#g-other').checked      = g.always_review_other;
+function updateGlobalLabels(g) {
+  const ep = $('#lbl-event-pub');
+  if (ep) ep.textContent = `Padrão: ${g.event_publish_min} pts`;
+  const ed = $('#lbl-event-disc');
+  if (ed) ed.textContent = `Padrão: ${g.event_discard_below} pts`;
+  const mp = $('#lbl-manif-pub');
+  if (mp) mp.textContent = `Padrão: ${g.manif_publish_min} pts`;
+  const md = $('#lbl-manif-disc');
+  if (md) md.textContent = `Padrão: ${g.manif_discard_below} pts`;
+}
 
-  // Atualiza rótulos de padrão nas tabelas das seções 3 e 5
-  const ep = $('#lbl-event-pub');  if (ep) ep.textContent = `Padrão: ${g.event_publish_min} pts`;
-  const ed = $('#lbl-event-disc'); if (ed) ed.textContent = `Padrão: ${g.event_discard_below} pts`;
-  const mp = $('#lbl-manif-pub');  if (mp) mp.textContent = `Padrão: ${g.manif_publish_min} pts`;
-  const md = $('#lbl-manif-disc'); if (md) md.textContent = `Padrão: ${g.manif_discard_below} pts`;
+function renderGlobal(g) {
+  const cfg = { ...DEFAULT_GLOBAL, ...(g || {}) };
+  const setPair = (rangeId, numId, val, fallback) => {
+    const n = pickThreshold(val, fallback);
+    const num = $(numId);
+    const range = $(rangeId);
+    if (num) num.value = n;
+    if (range) range.value = n;
+  };
+
+  setPair('#g-event-pub-range', '#g-event-pub', cfg.event_publish_min, DEFAULT_GLOBAL.event_publish_min);
+  setPair('#g-event-disc-range', '#g-event-disc', cfg.event_discard_below, DEFAULT_GLOBAL.event_discard_below);
+  setPair('#g-manif-pub-range', '#g-manif-pub', cfg.manif_publish_min, DEFAULT_GLOBAL.manif_publish_min);
+  setPair('#g-manif-disc-range', '#g-manif-disc', cfg.manif_discard_below, DEFAULT_GLOBAL.manif_discard_below);
+
+  const blocking = $('#g-blocking');
+  const offline = $('#g-offline');
+  const firstArea = $('#g-first-area');
+  const other = $('#g-other');
+  if (blocking) blocking.checked = !!cfg.always_review_blocking;
+  if (offline) offline.checked = !!cfg.always_review_offline;
+  if (firstArea) firstArea.checked = !!cfg.always_review_first_in_area;
+  if (other) other.checked = !!cfg.always_review_other;
+
+  updateGlobalLabels(cfg);
 }
 
 /* ── Seção 2: Sinais de veracidade ───────────────────────────────────── */
@@ -112,8 +352,9 @@ function _criteriaRows(signalId) {
 function renderSignals(sinais) {
   const tbody = $('#tbody-signals');
   if (!tbody) return;
+  if (!sinais?.length) sinais = DEFAULT_SIGNALS;
 
-  const total = sinais.reduce((s, x) => s + x.peso, 0);
+  const total = sinais.reduce((s, x) => s + (x.peso || 0), 0);
   const lbl = $('#lbl-weight-total');
   if (lbl) lbl.textContent = `(total: ${total.toFixed(1)}%)`;
 
@@ -129,6 +370,9 @@ function renderSignals(sinais) {
       </td>
       <td class="col-weight">
         <div class="thresh-cell">
+          <input type="range" class="policy-weight-range" data-field="peso-range"
+                 min="0" max="100" step="0.5" value="${s.peso}"
+                 aria-label="Peso ${s.label}"/>
           <input type="number" class="policy-num-input"
                  data-field="peso" min="0" max="100" step="0.1"
                  value="${s.peso}"/>
@@ -140,15 +384,27 @@ function renderSignals(sinais) {
       </td>
     </tr>`).join('');
 
-  // Atualiza total ao digitar
+  // Atualiza total e sincroniza sliders ao digitar
   tbody.querySelectorAll('[data-field="peso"]').forEach((el) => {
-    el.addEventListener('input', () => {
+    const row = el.closest('tr');
+    const range = row?.querySelector('[data-field="peso-range"]');
+    const update = () => {
       const all = Array.from(tbody.querySelectorAll('[data-field="peso"]'));
       const sum = all.reduce((acc, i) => acc + (parseFloat(i.value) || 0), 0);
       if (lbl) lbl.textContent = `(total: ${sum.toFixed(1)}%)`;
-      const bar = el.closest('tr')?.querySelector('.weight-bar');
+      const bar = row?.querySelector('.weight-bar');
       if (bar) bar.style.width = `${Math.min(parseFloat(el.value) || 0, 100)}%`;
+    };
+    el.addEventListener('input', () => {
+      if (range) range.value = el.value;
+      update();
     });
+    if (range) {
+      range.addEventListener('input', () => {
+        el.value = range.value;
+        update();
+      });
+    }
   });
 }
 
@@ -156,12 +412,15 @@ function renderSignals(sinais) {
 function renderEventosTable(categorias, globalPub, globalDisc) {
   const tbody = $('#tbody-eventos');
   if (!tbody) return;
+  if (!categorias?.length) categorias = DEFAULT_EVENT_CATS;
+  const pubDefault = pickThreshold(globalPub, DEFAULT_GLOBAL.event_publish_min);
+  const discDefault = pickThreshold(globalDisc, DEFAULT_GLOBAL.event_discard_below);
 
   tbody.innerHTML = categorias.map((cat) => {
     const pubIsGlobal  = cat.limiar_publicar  == null;
     const discIsGlobal = cat.limiar_descartar == null;
-    const pubVal  = pubIsGlobal  ? globalPub  : cat.limiar_publicar;
-    const discVal = discIsGlobal ? globalDisc : cat.limiar_descartar;
+    const pubVal  = pubIsGlobal  ? pubDefault  : pickThreshold(cat.limiar_publicar, pubDefault);
+    const discVal = discIsGlobal ? discDefault : pickThreshold(cat.limiar_descartar, discDefault);
 
     return `
       <tr data-cat-id="${cat.id}">
@@ -224,6 +483,7 @@ function renderEventosTable(categorias, globalPub, globalDisc) {
 function renderHighwayTable(fatores) {
   const tbody = $('#tbody-highway');
   if (!tbody) return;
+  if (!fatores?.length) fatores = DEFAULT_HIGHWAY;
 
   tbody.innerHTML = fatores.map((hw) => `
     <tr data-hw-id="${hw.id}">
@@ -231,6 +491,9 @@ function renderHighwayTable(fatores) {
       <td class="col-highway-label"><span class="muted">${hw.label}</span></td>
       <td class="col-weight">
         <div class="thresh-cell">
+          <input type="range" class="policy-weight-range" data-field="fator-range"
+                 min="0" max="100" step="1" value="${hw.fator}"
+                 aria-label="Fator ${hw.label}"/>
           <input type="number" class="policy-num-input"
                  data-field="fator" min="0" max="100" step="1"
                  value="${hw.fator}"/>
@@ -243,10 +506,22 @@ function renderHighwayTable(fatores) {
     </tr>`).join('');
 
   tbody.querySelectorAll('[data-field="fator"]').forEach((el) => {
-    el.addEventListener('input', () => {
-      const bar = el.closest('tr')?.querySelector('.weight-bar');
+    const row = el.closest('tr');
+    const range = row?.querySelector('[data-field="fator-range"]');
+    const updateBar = () => {
+      const bar = row?.querySelector('.weight-bar');
       if (bar) bar.style.width = `${Math.min(parseFloat(el.value) || 0, 100)}%`;
+    };
+    el.addEventListener('input', () => {
+      if (range) range.value = el.value;
+      updateBar();
     });
+    if (range) {
+      range.addEventListener('input', () => {
+        el.value = range.value;
+        updateBar();
+      });
+    }
   });
 }
 
@@ -254,12 +529,15 @@ function renderHighwayTable(fatores) {
 function renderManifTable(categorias, globalPub, globalDisc) {
   const tbody = $('#tbody-manif');
   if (!tbody) return;
+  if (!categorias?.length) categorias = DEFAULT_MANIF_CATS;
+  const pubDefault = pickThreshold(globalPub, DEFAULT_GLOBAL.manif_publish_min);
+  const discDefault = pickThreshold(globalDisc, DEFAULT_GLOBAL.manif_discard_below);
 
   tbody.innerHTML = categorias.map((cat) => {
     const pubIsGlobal  = cat.limiar_publicar  == null;
     const discIsGlobal = cat.limiar_descartar == null;
-    const pubVal  = pubIsGlobal  ? globalPub  : cat.limiar_publicar;
-    const discVal = discIsGlobal ? globalDisc : cat.limiar_descartar;
+    const pubVal  = pubIsGlobal  ? pubDefault  : pickThreshold(cat.limiar_publicar, pubDefault);
+    const discVal = discIsGlobal ? discDefault : pickThreshold(cat.limiar_descartar, discDefault);
 
     return `
       <tr data-cat-id="${cat.id}">
@@ -320,19 +598,37 @@ function _bindTtlLabels(tbody) {
 
 /* ── Render completo ─────────────────────────────────────────────────── */
 function renderPolicy(data) {
-  renderGlobal(data.global);
-  renderSignals(data.sinais_veracidade || []);
-  renderHighwayTable(data.fatores_via || []);
+  const policy = normalizePolicy(data);
+  renderGlobal(policy.global);
+  renderSignals(policy.sinais_veracidade);
+  renderHighwayTable(policy.fatores_via);
   renderEventosTable(
-    data.categorias_evento,
-    data.global.event_publish_min,
-    data.global.event_discard_below,
+    policy.categorias_evento,
+    policy.global.event_publish_min,
+    policy.global.event_discard_below,
   );
   renderManifTable(
-    data.categorias_manif,
-    data.global.manif_publish_min,
-    data.global.manif_discard_below,
+    policy.categorias_manif,
+    policy.global.manif_publish_min,
+    policy.global.manif_discard_below,
   );
+  renderRelevanceFixed();
+
+  const onGlobalChange = () => {
+    updateGlobalLabels({
+      event_publish_min: Number($('#g-event-pub')?.value || DEFAULT_GLOBAL.event_publish_min),
+      event_discard_below: Number($('#g-event-disc')?.value || DEFAULT_GLOBAL.event_discard_below),
+      manif_publish_min: Number($('#g-manif-pub')?.value || DEFAULT_GLOBAL.manif_publish_min),
+      manif_discard_below: Number($('#g-manif-disc')?.value || DEFAULT_GLOBAL.manif_discard_below),
+    });
+  };
+
+  if (!thresholdRangesBound) {
+    bindThresholdRanges(onGlobalChange);
+    thresholdRangesBound = true;
+  } else {
+    onGlobalChange();
+  }
 }
 
 /* ── Coleta payload ──────────────────────────────────────────────────── */
@@ -463,12 +759,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!session) return;
   renderSidebar('aprovador');
   bindLogout();
+  bindTabs();
+
+  // Preenche imediatamente com defaults — não depende só do fetch
+  renderPolicy(buildDefaultPolicy());
 
   try {
     const data = await fetchModerationPolicy(session.token);
     renderPolicy(data);
   } catch (err) {
-    handleAuthError(err);
+    if (handleAuthError(err)) return;
+    const msg = $('#policy-save-msg');
+    if (msg) {
+      msg.hidden = false;
+      msg.className = 'gestao-feedback err';
+      msg.textContent = `Não foi possível carregar a política do servidor (${err.message}). Exibindo valores padrão — salvar sobrescreverá no banco.`;
+    }
   }
 
   $('#btn-save-policy')?.addEventListener('click', savePolicy);

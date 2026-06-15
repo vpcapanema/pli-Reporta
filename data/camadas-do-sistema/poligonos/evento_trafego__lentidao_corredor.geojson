@@ -1,0 +1,10 @@
+{
+  "type": "FeatureCollection",
+  "name": "evento_trafego__lentidao_corredor",
+  "metadata": {
+    "interaction_type": "evento_trafego",
+    "category_id": "lentidao_corredor",
+    "geometry_role": "poligono"
+  },
+  "features": []
+}

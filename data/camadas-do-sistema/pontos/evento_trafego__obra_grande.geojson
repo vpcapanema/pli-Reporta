@@ -1,0 +1,10 @@
+{
+  "type": "FeatureCollection",
+  "name": "evento_trafego__obra_grande",
+  "metadata": {
+    "interaction_type": "evento_trafego",
+    "category_id": "obra_grande",
+    "geometry_role": "ponto"
+  },
+  "features": []
+}

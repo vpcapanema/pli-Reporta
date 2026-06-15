@@ -25,8 +25,15 @@ PUBLIC_PAGES = [
         "path": "/mapa",
         "html": "viewer.html",
         "script": "/static/js/viewer.js",
-        "buttons": ["layer-events", "layer-manif"],
-        "js_markers": ["layer-events", "layer-manif", "popup-resolver"],
+        "buttons": ["viewer-layers", "viewer-map", "viewer-legend", "btn-relatorios-toggle"],
+        "js_markers": ["viewer-layers", "fetchIncidents", "renderPublicLegend"],
+    },
+    {
+        "path": "/api-publica",
+        "html": "api-publica.html",
+        "script": "/static/js/api-publica.js",
+        "buttons": ["api-base-url", "api-layers-body", "link-try-all"],
+        "js_markers": ["loadManifest", "api-layers-body", "DOMContentLoaded"],
     },
     {
         "path": "/acesso",
@@ -40,6 +47,8 @@ PUBLIC_PAGES = [
 JS_CHAIN = [
     "frontend/js/app.js",
     "frontend/js/viewer.js",
+    "frontend/js/api-publica.js",
+    "frontend/js/public-sidebar.js",
     "frontend/js/access-login.js",
     "frontend/js/api.js",
     "frontend/js/db.js",

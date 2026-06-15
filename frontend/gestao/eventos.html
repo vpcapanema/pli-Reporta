@@ -18,13 +18,14 @@
     <div class="gestao-sidebar-foot">
       <span id="gestao-user" class="muted"></span>
       <button type="button" id="btn-gestao-logout" class="secondary">Sair</button>
+      <p class="sidebar-credit">Desenvolvido e implementado por<br>VPC-Geotecnologias e Websistemas.<br>Desenvolvido para o PLI/SP-2050</p>
     </div>
   </aside>
   <main class="gestao-main gestao-main-list">
     <header class="gestao-header">
       <div>
         <h1><span class="gestao-header-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>Eventos de Tráfego</h1>
-        <p class="muted">Todos os reportes de eventos, em qualquer status</p>
+        <p class="muted">Fila de análise, listagem e revisão de eventos viários</p>
       </div>
       <div class="gestao-toolbar">
         <label>Status
@@ -35,21 +36,38 @@
         <button type="button" id="btn-reload">Atualizar</button>
       </div>
     </header>
-    <p id="gestao-table-meta" class="muted"></p>
-    <div class="gestao-table-wrap">
-      <table class="gestao-table">
-        <thead>
-          <tr>
-            <th>ID</th><th>Categoria</th><th>Status</th><th>Recebido</th><th>Coordenadas</th><th>Descrição</th>
-          </tr>
-        </thead>
-        <tbody id="gestao-table-body"></tbody>
-      </table>
+
+    <section class="gestao-list-queue">
+      <h2>Precisa da sua análise <span id="gestao-fila-count" class="gestao-badge">0</span></h2>
+      <div id="gestao-queue" class="gestao-queue gestao-queue-horizontal"></div>
+    </section>
+
+    <nav class="gestao-view-tabs" aria-label="Visualização">
+      <button type="button" id="gestao-tab-lista" class="active">Registros</button>
+      <button type="button" id="gestao-tab-analise" disabled>Análise</button>
+    </nav>
+
+    <div id="gestao-panel-lista">
+      <p id="gestao-table-meta" class="muted"></p>
+      <div class="gestao-table-wrap">
+        <table class="gestao-table">
+          <thead>
+            <tr>
+              <th>ID</th><th>Categoria</th><th>Status</th><th>Recebido</th><th>Coordenadas</th><th>Descrição</th>
+            </tr>
+          </thead>
+          <tbody id="gestao-table-body"></tbody>
+        </table>
+      </div>
+      <div class="gestao-pagination">
+        <button type="button" id="btn-prev" class="secondary">Anterior</button>
+        <button type="button" id="btn-next" class="secondary">Próxima</button>
+      </div>
     </div>
-    <div class="gestao-pagination">
-      <button type="button" id="btn-prev" class="secondary">Anterior</button>
-      <button type="button" id="btn-next" class="secondary">Próxima</button>
-    </div>
+
+    <section id="gestao-panel-analise" hidden>
+      <div id="gestao-analysis" class="gestao-analysis-panel"></div>
+    </section>
   </main>
   <script type="module" src="/static/js/gestao-list.js"></script>
 </body>

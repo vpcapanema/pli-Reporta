@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="theme-color" content="#003b5a"/>
+  <title>PLI Reporta — API pública</title>
+  <link rel="icon" href="/static/icons/icon-192.png"/>
+  <link rel="stylesheet" href="/static/styles.css"/>
+</head>
+<body class="gestao-page api-publica-page public-shell-page">
+  <aside class="public-sidebar" aria-label="Navegação">
+    <div class="public-brand">
+      <img src="/static/icons/icon-192.png" alt="" width="40" height="40"/>
+      <div>
+        <strong>PLI Reporta</strong>
+        <span class="muted">API pública</span>
+      </div>
+    </div>
+    <div class="public-sidebar-scroll">
+
+      <section class="public-sidebar-block public-sidebar-block-collapsible" id="panel-api-publica" aria-label="API pública">
+
+        <button type="button" class="public-nav-item public-nav-item-toggle active" id="btn-api-publica-toggle" aria-expanded="true" aria-controls="api-publica-body" aria-current="page">
+
+          <span class="public-nav-icon" aria-hidden="true">
+
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+
+          </span>
+
+          <span class="public-nav-item-label">API pública</span>
+
+          <span class="public-nav-toggle" aria-hidden="true">▼</span>
+
+        </button>
+
+        <div class="public-sidebar-block-body" id="api-publica-body">
+
+          <p class="public-sidebar-subheading">Nesta página</p>
+
+          <nav class="api-publica-toc" id="api-toc" aria-label="Índice">
+            <a href="#visao">Visão geral</a>
+            <a href="#endpoint-principal">Endpoint principal</a>
+            <a href="#camadas">Camadas por categoria</a>
+            <a href="#parametros">Parâmetros</a>
+            <a href="#exemplos">Como utilizar</a>
+            <a href="#campos">Campos GeoJSON</a>
+          </nav>
+
+        </div>
+
+      </section>
+
+      <div id="public-sidebar-nav"></div>
+
+    </div>
+    <footer class="public-sidebar-foot">
+      <p class="sidebar-credit">Desenvolvido e implementado por<br>VPC-Geotecnologias e Websistemas.<br>Desenvolvido para o PLI/SP-2050</p>
+    </footer>
+  </aside>
+
+  <main class="gestao-main gestao-main-policy">
+    <header class="gestao-header">
+      <div>
+        <h1>API pública de eventos de tráfego</h1>
+        <p class="muted">Documentação para integrar mapas, dashboards e sistemas externos</p>
+      </div>
+    </header>
+
+    <div class="gestao-policy-grid">
+        <section id="visao" class="gestao-policy-section gestao-policy-full">
+          <h2>Visão geral</h2>
+          <p>
+            A API pública permite consumir os <strong>eventos de tráfego aprovados</strong> do PLI Reporta
+            em formato GeoJSON — buraco, acidente, alagamento, bloqueio, lentidão, etc.
+            Não inclui manifestações cidadãs nem reportes em análise interna.
+          </p>
+          <div class="api-publica-callout">
+            <strong>Status incluídos:</strong>
+            <span id="api-statuses">publicado, resolvido</span>
+            (conforme matriz de visibilidade do sistema).
+          </div>
+          <p class="muted api-publica-base">
+            Base URL: <code id="api-base-url">—</code>
+          </p>
+          <p id="api-manifest-warn" class="api-publica-warn" hidden>
+            Não foi possível carregar o manifesto ao vivo. Verifique se o backend está em execução
+            e reinicie com a tarefa <em>Start App</em> do VS Code.
+          </p>
+        </section>
+
+        <section id="endpoint-principal" class="gestao-policy-section gestao-policy-full">
+          <h2>Endpoint principal</h2>
+          <p>Use este endereço para obter <em>todas</em> as categorias em um único GeoJSON:</p>
+          <pre class="api-publica-code" id="code-all-events"><code>GET /api/public/eventos-trafego.geojson</code></pre>
+          <p>
+            Resposta: <code>FeatureCollection</code> com geometria <code>Point</code> (WGS84) e propriedades
+            descritas abaixo. Cache HTTP de 60 segundos.
+          </p>
+          <p>
+            <a class="api-publica-try" id="link-try-all" href="/api/public/eventos-trafego.geojson" target="_blank" rel="noopener">
+              Abrir GeoJSON no navegador →
+            </a>
+          </p>
+        </section>
+
+        <section id="camadas" class="gestao-policy-section gestao-policy-full">
+          <h2>Camadas por categoria</h2>
+          <p>Uma URL GeoJSON por tipo de evento:</p>
+          <pre class="api-publica-code"><code>GET /api/public/eventos-trafego/{category_id}.geojson</code></pre>
+          <div class="api-publica-table-wrap">
+            <table class="api-publica-table">
+              <thead>
+                <tr>
+                  <th>Categoria</th>
+                  <th>ID</th>
+                  <th>Endpoint</th>
+                </tr>
+              </thead>
+              <tbody id="api-layers-body">
+                <tr><td colspan="3" class="muted">Carregando camadas…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="parametros" class="gestao-policy-section gestao-policy-full">
+          <h2>Parâmetros de consulta</h2>
+          <p>Disponíveis em todos os endpoints <code>*.geojson</code>:</p>
+          <dl class="api-publica-dl">
+            <dt><code>bbox</code></dt>
+            <dd><code>minLon,minLat,maxLon,maxLat</code> — limita à caixa delimitadora (WGS84).</dd>
+            <dt><code>since</code></dt>
+            <dd>Data ISO 8601 — apenas eventos capturados a partir deste instante.</dd>
+            <dt><code>min_priority</code></dt>
+            <dd>Número 0.0–1.0 — filtra por prioridade mínima (padrão <code>0</code>).</dd>
+          </dl>
+          <pre class="api-publica-code" id="code-bbox-example"><code>—</code></pre>
+        </section>
+
+        <section id="exemplos" class="gestao-policy-section gestao-policy-full">
+          <h2>Como utilizar</h2>
+
+          <h3>cURL</h3>
+          <pre class="api-publica-code" id="code-curl"><code>—</code></pre>
+
+          <h3>JavaScript (fetch)</h3>
+          <pre class="api-publica-code" id="code-fetch"><code>—</code></pre>
+
+          <h3>QGIS</h3>
+          <ol class="api-publica-steps">
+            <li>Camada → Adicionar camada → Adicionar camada vetorial…</li>
+            <li>Protocolo: <strong>HTTP(S)/Cloud</strong></li>
+            <li>URL: cole o endpoint <code>eventos-trafego.geojson</code> (ou uma categoria específica)</li>
+            <li>OK — o GeoJSON será carregado como camada de pontos</li>
+          </ol>
+
+          <h3>Manifesto da API (JSON)</h3>
+          <p>
+            <code>GET /api/public/</code> retorna a lista completa de endpoints, camadas e regras
+            em JSON — útil para descoberta automática por integradores.
+          </p>
+          <pre class="api-publica-code" id="code-manifest"><code>GET /api/public/</code></pre>
+        </section>
+
+        <section id="campos" class="gestao-policy-section gestao-policy-full">
+          <h2>Campos das features</h2>
+          <p>Cada feature inclui, entre outros:</p>
+          <ul class="api-publica-fields">
+            <li><code>id</code>, <code>category</code>, <code>category_label</code>, <code>status</code></li>
+            <li><code>description</code>, <code>magnitude</code>, <code>priority</code></li>
+            <li><code>veracity</code>, <code>relevance</code>, <code>blocking</code></li>
+            <li><code>valid_from</code>, <code>valid_to</code>, <code>captured_at</code></li>
+            <li><code>road_scope</code>, <code>road_label</code>, <code>road_context</code></li>
+            <li><code>photo_url</code> — link público da foto do reporte</li>
+          </ul>
+          <p class="muted">
+            Registros com <code>valid_to</code> expirado não aparecem, mesmo que o status seja publicado.
+          </p>
+        </section>
+    </div>
+  </main>
+  <script type="module" src="/static/js/api-publica.js"></script>
+</body>
+</html>

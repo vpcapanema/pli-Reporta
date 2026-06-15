@@ -31,6 +31,23 @@ import pytest  # noqa: E402
 
 
 @pytest.fixture
+def db_session():
+    """Sessão SQLAlchemy com schema inicializado."""
+    from backend.database import SessionLocal, init_db
+
+    init_db()
+    db = SessionLocal()
+    try:
+        yield db
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+@pytest.fixture
 def app_client():
     """Importa app já com env de teste e devolve TestClient."""
     from fastapi.testclient import TestClient

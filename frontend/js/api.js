@@ -15,13 +15,13 @@ export function clearSession() {
 }
 
 export async function fetchAuthContext() {
-  const res = await fetch('/api/v1/auth/context');
+  const res = await fetch('/api/auth/context');
   if (!res.ok) throw new Error('auth context failed: ' + res.status);
   return res.json();
 }
 
 export async function loginModerator(username, password) {
-  const res = await fetch('/api/v1/auth/login', {
+  const res = await fetch('/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
@@ -49,7 +49,7 @@ function authHeaders(token) {
   return { Authorization: `Bearer ${token}` };
 }
 export async function getCaptureNonce(clientId) {
-  const u = new URL('/api/v1/capture-nonce', location.origin);
+  const u = new URL('/api/capture-nonce', location.origin);
   if (clientId) u.searchParams.set('client_id', clientId);
   const res = await fetch(u);
   if (!res.ok) throw new Error('nonce request failed');
@@ -77,7 +77,7 @@ export async function postReport({
   if (offlineCapture) fd.append('offline_capture', 'true');
   if (queuedAt) fd.append('queued_at', queuedAt);
 
-  const res = await fetch(`${BASE}/api/v1/reports`, { method: 'POST', body: fd });
+  const res = await fetch(`${BASE}/api/reports`, { method: 'POST', body: fd });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     let detail = text;
@@ -94,15 +94,15 @@ export async function postReport({
 }
 
 export async function fetchIncidents(opts = {}) {
-  return fetchGeoJson('/api/v1/incidents.geojson', opts);
+  return fetchGeoJson('/api/layers/points/evento_trafego.geojson', opts);
 }
 
 export async function fetchManifestations(opts = {}) {
-  return fetchGeoJson('/api/v1/manifestations.geojson', opts);
+  return fetchGeoJson('/api/layers/points/manifestacao.geojson', opts);
 }
 
 export async function resolveIncident(clusterId) {
-  const res = await fetch(`/api/v1/incidents/${clusterId}/resolver`, { method: 'POST' });
+  const res = await fetch(`/api/incidents/${clusterId}/resolver`, { method: 'POST' });
   if (!res.ok) throw new Error('resolveIncident failed: ' + res.status);
   return res.json();
 }
@@ -118,8 +118,58 @@ async function fetchGeoJson(path, { bbox, since, category, minPriority } = {}) {
   return res.json();
 }
 
+export async function fetchCatalog() {
+  const res = await fetch('/api/catalog');
+  if (!res.ok) throw new Error('fetchCatalog failed: ' + res.status);
+  return res.json();
+}
+
+export function exportLayerUrl(interactionType, categoryId, format) {
+  const u = new URL(`/api/export/layer/${interactionType}/${categoryId}`, location.origin);
+  u.searchParams.set('format', format);
+  return u.toString();
+}
+
+/** @typedef {{ interaction_type: string, category_id: string }} ExportLayerRef */
+
+/**
+ * Exporta uma ou mais camadas (PDF, CSV ou ZIP shapefile).
+ * @param {{ format: 'csv'|'pdf'|'zip', layers: ExportLayerRef[] }} opts
+ */
+export async function downloadExportBatch({ format, layers }) {
+  const res = await fetch('/api/export/batch', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ format, layers }),
+  });
+  if (!res.ok) {
+    let detail = `Exportação falhou (${res.status})`;
+    try {
+      const err = await res.json();
+      if (err.detail) {
+        detail = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail);
+      }
+    } catch (_) { /* ignore */ }
+    throw new Error(detail);
+  }
+  const blob = await res.blob();
+  const disp = res.headers.get('Content-Disposition') || '';
+  const match = /filename="?([^";\n]+)"?/.exec(disp);
+  const ext = format === 'zip' ? 'zip' : format;
+  const filename = match ? match[1] : `pli-reporta_export.${ext}`;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 export async function fetchModerationQueue(token) {
-  const res = await fetch('/api/v1/moderation/queue', {
+  const res = await fetch('/api/moderation/queue', {
     headers: authHeaders(token),
   });
   if (!res.ok) throw new Error('fetchModerationQueue failed: ' + res.status);
@@ -127,7 +177,7 @@ export async function fetchModerationQueue(token) {
 }
 
 export async function decideModeration(token, id, decision, note) {
-  const res = await fetch(`/api/v1/moderation/${id}/decide`, {
+  const res = await fetch(`/api/moderation/${id}/decide`, {
     method: 'POST',
     headers: { ...authHeaders(token), 'Content-Type': 'application/json' },
     body: JSON.stringify({ decision, note: note || null }),
@@ -137,7 +187,7 @@ export async function decideModeration(token, id, decision, note) {
 }
 
 async function moderationFetch(path, token, opts = {}) {
-  const res = await fetch(`/api/v1/moderation${path}`, {
+  const res = await fetch(`/api/moderation${path}`, {
     ...opts,
     headers: { ...authHeaders(token), ...(opts.headers || {}) },
   });
@@ -162,6 +212,10 @@ export function fetchModerationPolicy(token) {
   return moderationFetch('/policy', token);
 }
 
+export function fetchModerationReportDetail(token, reportId) {
+  return moderationFetch(`/reports/${reportId}`, token);
+}
+
 export function updateModerationPolicy(token, payload) {
   return moderationFetch('/policy', token, {
     method: 'PATCH',
@@ -175,7 +229,7 @@ export function simulateModerationPolicy(token, days = 7) {
 }
 
 export function fetchManagementReports(token, params = {}) {
-  const u = new URL('/api/v1/moderation/reports', location.origin);
+  const u = new URL('/api/moderation/reports', location.origin);
   Object.entries(params).forEach(([k, v]) => {
     if (v != null && v !== '') u.searchParams.set(k, String(v));
   });
@@ -187,9 +241,14 @@ export function fetchManagementReports(token, params = {}) {
 }
 
 export function fetchManagementGeoJson(token, params = {}) {
-  const u = new URL('/api/v1/moderation/reports.geojson', location.origin);
+  const itype = params.interaction_type || params.interactionType;
+  const path = itype
+    ? `/api/moderation/layers/points/${itype}.geojson`
+    : '/api/moderation/reports.geojson';
+  const u = new URL(path, location.origin);
   Object.entries(params).forEach(([k, v]) => {
-    if (v != null && v !== '') u.searchParams.set(k, String(v));
+    if (v == null || v === '' || k === 'interaction_type' || k === 'interactionType') return;
+    u.searchParams.set(k, String(v));
   });
   return fetch(u, { headers: authHeaders(token) }).then((res) => {
     if (res.status === 401) throw Object.assign(new Error('401'), { status: 401 });

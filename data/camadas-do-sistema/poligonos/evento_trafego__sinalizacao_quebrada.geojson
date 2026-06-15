@@ -1,0 +1,10 @@
+{
+  "type": "FeatureCollection",
+  "name": "evento_trafego__sinalizacao_quebrada",
+  "metadata": {
+    "interaction_type": "evento_trafego",
+    "category_id": "sinalizacao_quebrada",
+    "geometry_role": "poligono"
+  },
+  "features": []
+}

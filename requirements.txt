@@ -1,17 +1,37 @@
+# API e servidor
 fastapi==0.110.0
 uvicorn[standard]==0.27.1
+python-multipart==0.0.9
+httpx==0.27.0
+itsdangerous==2.1.2
+
+# Banco e migrações
 sqlalchemy==2.0.27
 alembic==1.13.1
+psycopg[binary]==3.1.18
+geoalchemy2==0.14.4
+
+# Config e validação
 pydantic==2.6.1
 pydantic-settings==2.2.1
-python-multipart==0.0.9
+python-dotenv==1.0.1
+
+# Imagem e geometria
 pillow==10.2.0
+numpy<2
 shapely==2.0.3
-itsdangerous==2.1.2
-psycopg[binary]==3.1.18
+
+# Autenticação
 argon2-cffi==23.1.0
 bcrypt==4.2.0
-python-dotenv==1.0.1
-httpx==0.27.0
+
+# Exportação (shapefile via pyshp → import shapefile; PDF)
+pyshp==2.3.1
+reportlab==4.1.0
+
+# Scripts geoespaciais (malha/IBGE)
+pyproj==3.6.1
+
+# Testes
 pytest==8.0.2
 pytest-asyncio==0.23.5

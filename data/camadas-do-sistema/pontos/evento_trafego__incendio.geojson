@@ -1,0 +1,10 @@
+{
+  "type": "FeatureCollection",
+  "name": "evento_trafego__incendio",
+  "metadata": {
+    "interaction_type": "evento_trafego",
+    "category_id": "incendio",
+    "geometry_role": "ponto"
+  },
+  "features": []
+}

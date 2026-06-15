@@ -61,6 +61,15 @@ export function statusLabel(status, catalog) {
   return catalog?.statuses?.[status]?.label || status;
 }
 
+export function categoryLabel(category, catalog) {
+  const all = [
+    ...(catalog?.event_categories || []),
+    ...(catalog?.manifestation_categories || []),
+  ];
+  const hit = all.find((c) => c.id === category);
+  return hit?.label || category || '—';
+}
+
 export function categorySigla(category, catalog) {
   const all = [
     ...(catalog?.event_categories || []),
@@ -70,6 +79,9 @@ export function categorySigla(category, catalog) {
   return hit?.sigla || category?.slice(0, 2).toUpperCase() || '?';
 }
 
+/** Status que permitem abrir painel de análise ao clicar na tabela. */
+export const REVIEW_STATUSES = new Set(['em_moderacao', 'submetido']);
+
 export function formatDate(iso) {
   if (!iso) return '—';
   try {
@@ -77,6 +89,15 @@ export function formatDate(iso) {
   } catch {
     return iso;
   }
+}
+
+export function escHtml(s) {
+  if (s == null || s === '') return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 export function handleAuthError(err) {

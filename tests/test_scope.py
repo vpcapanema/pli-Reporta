@@ -67,7 +67,7 @@ def test_classifies_municipal_outside_urban():
 
 def test_api_rejects_urban_report(app_client, scope_env, jpeg_bytes):
     del scope_env  # fixture: aplica paths DER/IBGE nos serviços
-    nonce = app_client.get("/api/v1/capture-nonce").json()["nonce"]
+    nonce = app_client.get("/api/capture-nonce").json()["nonce"]
     files = {"photo": ("c.jpg", jpeg_bytes, "image/jpeg")}
     data = {
         "lat": "-23.55",
@@ -76,7 +76,7 @@ def test_api_rejects_urban_report(app_client, scope_env, jpeg_bytes):
         "captured_at": datetime.now(timezone.utc).isoformat(),
         "capture_nonce": nonce,
     }
-    r = app_client.post("/api/v1/reports", files=files, data=data)
+    r = app_client.post("/api/reports", files=files, data=data)
     assert r.status_code == 422, r.text
     assert "via urbana" in r.json()["detail"].lower()
 
@@ -92,7 +92,7 @@ def test_api_stores_municipal_report_without_publication(app_client, scope_env):
     img.save(buf, format="JPEG", quality=80)
     jpeg = buf.getvalue()
 
-    nonce = app_client.get("/api/v1/capture-nonce").json()["nonce"]
+    nonce = app_client.get("/api/capture-nonce").json()["nonce"]
     files = {"photo": ("municipal.jpg", jpeg, "image/jpeg")}
     data = {
         "lat": "-22.50",
@@ -101,7 +101,7 @@ def test_api_stores_municipal_report_without_publication(app_client, scope_env):
         "captured_at": datetime.now(timezone.utc).isoformat(),
         "capture_nonce": nonce,
     }
-    r = app_client.post("/api/v1/reports", files=files, data=data)
+    r = app_client.post("/api/reports", files=files, data=data)
     assert r.status_code == 201, r.text
     body = r.json()
     assert body["road_scope"] == ROAD_SCOPE_MUNICIPAL
@@ -120,7 +120,7 @@ def test_municipal_not_in_public_feed(app_client, scope_env):
     img.save(buf, format="JPEG", quality=80)
     jpeg = buf.getvalue()
 
-    nonce = app_client.get("/api/v1/capture-nonce").json()["nonce"]
+    nonce = app_client.get("/api/capture-nonce").json()["nonce"]
     files = {"photo": ("municipal2.jpg", jpeg, "image/jpeg")}
     data = {
         "lat": "-22.50",
@@ -129,10 +129,10 @@ def test_municipal_not_in_public_feed(app_client, scope_env):
         "captured_at": datetime.now(timezone.utc).isoformat(),
         "capture_nonce": nonce,
     }
-    created = app_client.post("/api/v1/reports", files=files, data=data)
+    created = app_client.post("/api/reports", files=files, data=data)
     assert created.status_code == 201
     rid = created.json()["id"]
 
-    feed = app_client.get("/api/v1/incidents.geojson")
+    feed = app_client.get("/api/incidents.geojson")
     ids = [f["properties"]["id"] for f in feed.json()["features"]]
     assert rid not in ids
