@@ -26,6 +26,8 @@ set -euo pipefail
 APP_DIR="/opt/pli-reporta"
 COMPOSE_FILE="$APP_DIR/docker-compose.vm.yml"
 NGINX_SRC="$APP_DIR/.deploy/nginx-host/pli-reporta"
+NGINX_SRC_HTTPS="$APP_DIR/.deploy/nginx-host/pli-reporta-https"
+CERT_PATH="/etc/letsencrypt/live/$PUBLIC_HOST/fullchain.pem"
 NGINX_DST="/etc/nginx/sites-available/pli-reporta"
 EXPECTED_REPO_FRAGMENT="vpcapanema/pli-Reporta"
 PUBLIC_HOST="pli-reporta.56-125-163-194.sslip.io"
@@ -152,10 +154,17 @@ fi
 
 if [[ $DO_NGINX -eq 1 || ! -f "$NGINX_DST" ]]; then
     step "atualizando Nginx do host"
-    if [[ -f "$NGINX_SRC" ]]; then
-        if ! sudo cmp -s "$NGINX_SRC" "$NGINX_DST" 2>/dev/null; then
+    NGINX_ACTIVE="$NGINX_SRC"
+    if [[ -f "$CERT_PATH" && -f "$NGINX_SRC_HTTPS" ]]; then
+        NGINX_ACTIVE="$NGINX_SRC_HTTPS"
+        ok "certificado TLS encontrado — config HTTPS"
+    else
+        warn "sem TLS — GPS/camera bloqueados em HTTP; rode .deploy/enable_https_vm.sh"
+    fi
+    if [[ -f "$NGINX_ACTIVE" ]]; then
+        if ! sudo cmp -s "$NGINX_ACTIVE" "$NGINX_DST" 2>/dev/null; then
             sudo cp "$NGINX_DST" "${NGINX_DST}.bak.$(date +%Y%m%d%H%M%S)" 2>/dev/null || true
-            sudo cp "$NGINX_SRC" "$NGINX_DST"
+            sudo cp "$NGINX_ACTIVE" "$NGINX_DST"
             sudo ln -sf "$NGINX_DST" /etc/nginx/sites-enabled/pli-reporta
             sudo nginx -t
             sudo systemctl reload nginx

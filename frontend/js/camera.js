@@ -1,7 +1,11 @@
 // Captura de foto via getUserMedia. Fallback para <input capture> em browsers restritos.
+import { canUseCamera, canUseGeolocation } from './device-capabilities.js';
+
+export { canUseCamera, canUseGeolocation, isSecureReportContext } from './device-capabilities.js';
+
 export async function startCamera(videoEl) {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    return { ok: false, reason: 'mediaDevices indisponível' };
+  if (!canUseCamera()) {
+    return { ok: false, reason: 'Câmera indisponível (exige HTTPS ou permissão)' };
   }
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -39,8 +43,8 @@ export async function captureFrame(videoEl, maxSide = 1600) {
 }
 
 export async function getPositionOnce(timeoutMs = 12000) {
-  if (!('geolocation' in navigator)) {
-    throw new Error('Geolocation indisponível');
+  if (!canUseGeolocation()) {
+    throw new Error('Geolocation indisponível (exige HTTPS ou permissão)');
   }
   return new Promise((resolve, reject) => {
     navigator.geolocation.getCurrentPosition(

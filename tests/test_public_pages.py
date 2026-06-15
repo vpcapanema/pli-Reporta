@@ -56,6 +56,7 @@ JS_CHAIN = [
     "frontend/js/api.js",
     "frontend/js/db.js",
     "frontend/js/camera.js",
+    "frontend/js/device-capabilities.js",
     "frontend/js/map-pick.js",
     "frontend/js/map-style.js",
 ]

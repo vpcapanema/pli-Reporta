@@ -24,6 +24,7 @@
   </header>
 
   <main>
+    <p id="device-cap-banner" class="device-cap-banner" hidden role="status"></p>
     <!-- Etapa 0: tipo de interação -->
     <section id="step-0" class="card">
       <span class="label">O que você quer reportar?</span>
@@ -70,13 +71,13 @@
       </div>
 
       <div class="photo-toggle-wrap">
-        <button type="button" id="btn-toggle-photo" class="photo-toggle-btn" aria-pressed="false">
-          <span class="photo-toggle-icon" id="photo-toggle-icon" data-report-icon="camera"></span>
+        <button type="button" id="btn-toggle-photo" class="photo-toggle-btn active" aria-pressed="true">
+          <span class="photo-toggle-icon" id="photo-toggle-icon" data-report-icon="check"></span>
           <span class="photo-toggle-body">
             <span class="photo-toggle-title">Enviar registro fotográfico</span>
-            <span class="photo-toggle-desc" id="photo-toggle-desc">Clique para abrir a câmera ao continuar</span>
+            <span class="photo-toggle-desc" id="photo-toggle-desc">Câmera será aberta ao continuar</span>
           </span>
-          <span class="photo-toggle-pill" id="photo-toggle-pill">Não</span>
+          <span class="photo-toggle-pill" id="photo-toggle-pill">Sim</span>
         </button>
       </div>
 
@@ -94,6 +95,9 @@
       <video id="cam-video" class="preview" autoplay playsinline muted></video>
       <p id="cam-status" class="muted"></p>
       <input id="fallback-input" type="file" accept="image/*" capture="environment" hidden/>
+      <button type="button" id="btn-fallback-camera" class="secondary" hidden style="margin-top:8px;width:100%">
+        Abrir câmera do aparelho
+      </button>
       <div class="row" style="margin-top:10px">
         <button class="secondary" id="btn-back">Voltar</button>
         <button id="btn-shoot" disabled>Capturar</button>

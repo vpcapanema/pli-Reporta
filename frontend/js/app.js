@@ -9,6 +9,7 @@
 import { getOrCreateClientId, enqueue, listQueue, dequeue, newLocalId, queueSize } from './db.js';
 import { getCaptureNonce, postReport } from './api.js';
 import { startCamera, stopCamera, captureFrame, getPositionOnce } from './camera.js';
+import { deviceCapabilitiesMessage, isSecureReportContext } from './device-capabilities.js';
 import { createPickMap } from './map-pick.js';
 import { categoryIconUrl } from './gestao-markers.js';
 import { setReportIcon, mountReportPageIcons } from './report-icons.js';
@@ -54,7 +55,7 @@ const state = {
   stream: null,
   pickMap: null,
   mapInitialized: false,
-  withPhoto: false,
+  withPhoto: true,
 };
 
 const clientId = getOrCreateClientId();
@@ -367,12 +368,12 @@ async function continueManifestacaoStep1() {
   }
 }
 
-function togglePhotoOption() {
-  state.withPhoto = !state.withPhoto;
-  const btn  = $('#btn-toggle-photo');
+function applyPhotoToggleUI() {
+  const btn = $('#btn-toggle-photo');
   const pill = $('#photo-toggle-pill');
-  const ico  = $('#photo-toggle-icon');
+  const ico = $('#photo-toggle-icon');
   const desc = $('#photo-toggle-desc');
+  if (!btn) return;
 
   btn.classList.toggle('active', state.withPhoto);
   btn.setAttribute('aria-pressed', String(state.withPhoto));
@@ -384,8 +385,25 @@ function togglePhotoOption() {
   } else {
     pill.textContent = 'Não';
     setReportIcon(ico, 'camera');
-    if (desc) desc.textContent = 'Clique para abrir a câmera ao continuar';
+    if (desc) desc.textContent = 'Clique para ativar a câmera ao continuar';
   }
+}
+
+function togglePhotoOption() {
+  state.withPhoto = !state.withPhoto;
+  applyPhotoToggleUI();
+}
+
+function showDeviceCapabilitiesNotice() {
+  const msg = deviceCapabilitiesMessage();
+  const banner = $('#device-cap-banner');
+  if (!banner) return;
+  if (!msg) {
+    banner.hidden = true;
+    return;
+  }
+  banner.hidden = false;
+  banner.textContent = msg;
 }
 
 async function openCameraStep() {
@@ -410,6 +428,10 @@ async function openCameraStep() {
     state.accuracy = pos.accuracy;
     $('#gps-line').textContent =
       `GPS: ${pos.lat.toFixed(5)}, ${pos.lon.toFixed(5)} (±${Math.round(pos.accuracy)} m)`;
+  } else if (!isSecureReportContext()) {
+    $('#gps-line').textContent =
+      'GPS bloqueado — site sem HTTPS. Ajuste o ponto no mapa na etapa seguinte.';
+    state.position = { lat: -23.55, lon: -46.63 };
   } else {
     $('#gps-line').textContent = 'GPS indisponível — ajuste no mapa depois da foto.';
     state.position = { lat: -23.55, lon: -46.63 };
@@ -422,10 +444,15 @@ async function openCameraStep() {
     $('#cam-status').textContent = 'Câmera ativa';
     $('#btn-shoot').disabled = false;
     $('#fallback-input').hidden = true;
+    $('#btn-fallback-camera').hidden = true;
   } else {
-    $('#cam-status').textContent = 'Câmera indisponível — use o botão abaixo.';
+    const hint = isSecureReportContext()
+      ? 'Câmera indisponível — use o botão abaixo.'
+      : 'Câmera do navegador exige HTTPS — use o botão abaixo para abrir a câmera do aparelho.';
+    $('#cam-status').textContent = hint;
     $('#btn-shoot').disabled = true;
     $('#fallback-input').hidden = false;
+    $('#btn-fallback-camera').hidden = false;
   }
   $('#status-line').textContent = '';
 }
@@ -556,7 +583,7 @@ function resetForNext() {
   state.accuracy = null;
   state.capturedAt = null;
   state.photoBlob = null;
-  state.withPhoto = false;
+  state.withPhoto = true;
   if (state.photoPreviewUrl) URL.revokeObjectURL(state.photoPreviewUrl);
   state.photoPreviewUrl = null;
   state.nonce = null;
@@ -568,16 +595,7 @@ function resetForNext() {
   refreshDescCharCount();
   $('#btn-step1-evento').disabled = true;
   $('#btn-step1-manifestacao').disabled = true;
-  const toggleBtn = $('#btn-toggle-photo');
-  if (toggleBtn) {
-    toggleBtn.classList.remove('active');
-    toggleBtn.setAttribute('aria-pressed', 'false');
-  }
-  const pill = $('#photo-toggle-pill');
-  if (pill) pill.textContent = 'Não';
-  setReportIcon($('#photo-toggle-icon'), 'camera');
-  const desc = $('#photo-toggle-desc');
-  if (desc) desc.textContent = 'Clique para abrir a câmera ao continuar';
+  applyPhotoToggleUI();
   $('#preview-img').hidden = true;
   $('#preview-img').removeAttribute('src');
   $('#photo-preview-wrap').hidden = true;
@@ -661,6 +679,7 @@ function bindUI() {
   $('#btn-toggle-photo').addEventListener('click', togglePhotoOption);
 
   $('#btn-shoot').addEventListener('click', shoot);
+  $('#btn-fallback-camera').addEventListener('click', () => $('#fallback-input').click());
   $('#fallback-input').addEventListener('change', onFallbackFile);
   $('#btn-submit').addEventListener('click', submit);
   $('#btn-new').addEventListener('click', resetForNext);
@@ -690,6 +709,8 @@ function registerSW() {
 
 document.addEventListener('DOMContentLoaded', () => {
   bindUI();
+  applyPhotoToggleUI();
+  showDeviceCapabilitiesNotice();
   registerSW();
   updateQueueBadge();
   flushQueue();

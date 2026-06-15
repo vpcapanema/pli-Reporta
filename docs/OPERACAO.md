@@ -126,7 +126,7 @@ publica via Nginx do host (sem alterar o sigma-pli).
 | Container | `pli_reporta_app` |
 | Rede propria | `pli_reporta_net` |
 | Porta host (loopback) | `127.0.0.1:8090` |
-| URL publica | `http://pli-reporta.56-125-163-194.sslip.io` |
+| URL publica | `https://pli-reporta.56-125-163-194.sslip.io` (HTTPS necessario para GPS/camera no navegador) |
 | Postgres | `sigma_pli_db:5432` via rede `sigma-backend-network` |
 | Banco | `pli_reporta` / usuario `pli_user` |
 
@@ -208,6 +208,19 @@ O script:
 3. Faz `git push` ou `git pull --ff-only` se o laptop estiver desatualizado
 4. Roda `sync-vm.ps1` se a VM estiver desatualizada
 5. Valida `/healthz` no ambiente que foi atualizado
+
+### HTTPS (GPS e camera no celular/navegador)
+
+Navegadores **bloqueiam geolocalizacao e `getUserMedia` em HTTP** (exceto localhost).
+Na VM, habilite TLS uma vez:
+
+```bash
+ssh ubuntu@56.125.163.194
+bash /opt/pli-reporta/.deploy/enable_https_vm.sh
+```
+
+Depois acesse **`https://pli-reporta.56-125-163-194.sslip.io`**. O `update_vm.sh` passa a
+usar automaticamente a config nginx HTTPS quando o certificado existir.
 
 Mensagem do commit: informe no prompt da task ou deixe vazio para gerar automaticamente (`sync: publica N arquivos locais`).
 

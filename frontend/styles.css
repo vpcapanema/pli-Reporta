@@ -2023,6 +2023,17 @@ body.api-publica-page .gestao-policy-section h3:first-of-type {
   line-height: 1.5;
 }
 
+.device-cap-banner {
+  margin: 0 0 var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius);
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .api-publica-code {
   background: #0f172a;
   color: #e2e8f0;
