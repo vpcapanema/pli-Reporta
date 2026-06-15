@@ -31,6 +31,14 @@ class CaptureNonceResponse(BaseModel):
     expires_in: int
 
 
+class FormatTextRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=500)
+
+
+class FormatTextResponse(BaseModel):
+    formatted: str
+
+
 class ReportCreated(BaseModel):
     id: str
     status: str

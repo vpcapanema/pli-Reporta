@@ -10,6 +10,7 @@ import {
 import { createMarkerElement, legendStatusSwatch, preloadEventIcons, resolveStatusColor, buildLegendSymbolsBlock } from './gestao-markers.js';
 import { buildGestaoPopupHtml } from './gestao-map-popup.js';
 import { bindRelatoriosCollapse, bindSidebarCollapse } from './public-sidebar.js';
+import { mountSidebarBrands } from './sidebar-brand.js';
 
 const map = new maplibregl.Map({
   container: 'viewer-map',
@@ -387,6 +388,8 @@ document.addEventListener('click', async (ev) => {
     btn.textContent = 'Não foi possível enviar. Tente de novo.';
   }
 });
+
+mountSidebarBrands();
 
 map.on('load', async () => {
   try {

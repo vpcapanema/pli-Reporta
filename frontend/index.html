@@ -29,20 +29,20 @@
       <span class="label">O que você quer reportar?</span>
       <div class="branch-grid">
         <button type="button" id="branch-evento" class="branch-btn">
-          <span class="branch-btn-icon">🚧</span>
+          <span class="branch-btn-icon" data-report-icon="evento"></span>
           <span class="branch-btn-body">
             <span class="branch-title">Evento de Tráfego</span>
             <span class="branch-desc">Buraco, alagamento, acidente, bloqueio…</span>
           </span>
-          <span class="branch-btn-arrow">›</span>
+          <span class="branch-btn-arrow" data-report-icon="chevron"></span>
         </button>
         <button type="button" id="branch-manifestacao" class="branch-btn">
-          <span class="branch-btn-icon">💬</span>
+          <span class="branch-btn-icon" data-report-icon="manifestacao"></span>
           <span class="branch-btn-body">
             <span class="branch-title">Manifestação Cidadã</span>
             <span class="branch-desc">Elogio, sugestão ou reclamação</span>
           </span>
-          <span class="branch-btn-arrow">›</span>
+          <span class="branch-btn-arrow" data-report-icon="chevron"></span>
         </button>
       </div>
     </section>
@@ -63,12 +63,15 @@
       <span class="label">Qual o tipo?</span>
       <div id="manif-grid" class="cat-grid manif-grid"></div>
       <label class="label" for="txt-manif" style="margin-top:12px">Descreva (obrigatório)</label>
-      <textarea id="txt-manif" class="field" maxlength="500" minlength="15"
-        placeholder="Conte o que você elogiou, sugere ou reclama"></textarea>
+      <div class="field-counter-wrap">
+        <textarea id="txt-manif" class="field field-counted" maxlength="500" minlength="15"
+          placeholder="Conte o que você elogiou, sugere ou reclama"></textarea>
+        <span class="field-char-count" id="txt-manif-count" aria-live="polite">0 / 500</span>
+      </div>
 
       <div class="photo-toggle-wrap">
         <button type="button" id="btn-toggle-photo" class="photo-toggle-btn" aria-pressed="false">
-          <span class="photo-toggle-icon" id="photo-toggle-icon">📷</span>
+          <span class="photo-toggle-icon" id="photo-toggle-icon" data-report-icon="camera"></span>
           <span class="photo-toggle-body">
             <span class="photo-toggle-title">Enviar registro fotográfico</span>
             <span class="photo-toggle-desc" id="photo-toggle-desc">Clique para abrir a câmera ao continuar</span>
@@ -100,11 +103,29 @@
     <!-- Etapa 3: confirmação e envio -->
     <section id="step-3" class="card" hidden>
       <span class="label">Confirme e envie</span>
-      <div id="no-photo-notice" class="no-photo-notice" hidden>
-        <span>📋</span>
-        <span>Sem registro fotográfico — apenas texto e coordenada GPS.</span>
+
+      <div id="submit-summary" class="submit-summary" hidden>
+        <div class="submit-summary-row">
+          <span class="submit-summary-label">Tipo do reporte</span>
+          <span class="submit-summary-value" id="summary-interaction"></span>
+        </div>
+        <div class="submit-summary-row">
+          <span class="submit-summary-label">Tipo</span>
+          <span class="submit-summary-value" id="summary-category"></span>
+        </div>
+        <div class="submit-summary-row submit-summary-row-block">
+          <span class="submit-summary-label">Descrição</span>
+          <p class="submit-summary-description" id="summary-description"></p>
+        </div>
       </div>
-      <img id="preview-img" class="preview" alt="prévia" style="margin-bottom:10px"/>
+
+      <div id="photo-preview-wrap" hidden>
+        <div id="no-photo-notice" class="no-photo-notice" hidden>
+          <span data-report-icon="document"></span>
+          <span>Sem registro fotográfico — apenas texto e coordenada GPS.</span>
+        </div>
+        <img id="preview-img" class="preview" alt="prévia" style="margin-bottom:10px" hidden/>
+      </div>
 
       <details id="extras-details" class="extras">
         <summary>Ajustar local ou detalhes</summary>
@@ -118,18 +139,23 @@
             <option value="leve">Leve</option>
           </select>
         </div>
-        <label class="label" for="txt-desc">Descrição extra (opcional)</label>
-        <textarea id="txt-desc" class="field" maxlength="500" placeholder="Detalhe adicional"></textarea>
+        <div id="extra-desc-wrap">
+          <label class="label" for="txt-desc">Descrição extra (opcional)</label>
+          <div class="field-counter-wrap">
+            <textarea id="txt-desc" class="field field-counted" maxlength="500" placeholder="Detalhe adicional"></textarea>
+            <span class="field-char-count" id="txt-desc-count" aria-live="polite">0 / 500</span>
+          </div>
+        </div>
       </details>
 
       <button id="btn-submit" style="margin-top:14px">Enviar</button>
-      <p class="help">Sem internet? Salva no celular e envia quando voltar.</p>
+      <p class="help" id="offline-help">Sem conexão, o envio é salvo neste aparelho e transmitido automaticamente em segundo plano quando a internet voltar.</p>
     </section>
 
     <!-- Etapa 4: confirmação simples -->
     <section id="step-4" class="card" hidden>
       <div class="result-ok">
-        <span class="result-icon">✓</span>
+        <span class="result-icon" data-report-icon="success"></span>
         <span class="label">Reporte recebido</span>
       </div>
       <p id="result-message" class="help"></p>
@@ -141,7 +167,7 @@
   <footer class="footer">
     <div>Plano de Logística e Investimentos do Estado de São Paulo</div>
     <div style="margin-top:4px">
-      <a href="/docs">API</a>
+      <a href="/api-publica">API pública</a>
       <a href="/mapa">Mapa público</a>
       <a href="/acesso">Acesso Restrito</a>
     </div>

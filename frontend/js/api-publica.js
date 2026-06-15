@@ -1,5 +1,6 @@
 /** Documentação interativa da API pública — preenche URLs a partir do manifesto. */
 import { bindSidebarCollapse, mountPublicNavSecondary } from './public-sidebar.js';
+import { mountSidebarBrands } from './sidebar-brand.js';
 
 function $(sel) {
   return document.querySelector(sel);
@@ -68,6 +69,7 @@ async function loadManifest() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  mountSidebarBrands();
   bindSidebarCollapse('panel-api-publica', { defaultExpanded: true });
   mountPublicNavSecondary('#public-sidebar-nav', 'api');
   loadManifest();

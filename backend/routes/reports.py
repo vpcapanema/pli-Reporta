@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from ..config import settings
 from ..database import get_session
 from ..models import Report
+from .. import schemas
 from ..schemas import CaptureNonceResponse, ReportCreated
 from ..services import nonce as nonce_svc
 from ..services import scope as scope_svc
@@ -19,6 +20,7 @@ from ..services.layer_feed import feature_collection
 from ..services.layer_publish import finalize_report_layers
 from ..services.pipeline import ingest_report, report_to_feature
 from ..services.report_catalog import catalog_payload
+from ..services.text_format import format_portuguese_text
 
 router = APIRouter()
 
@@ -50,6 +52,13 @@ def get_capture_nonce(client_id: str | None = None) -> CaptureNonceResponse:
         nonce=nonce_svc.issue_nonce(client_id),
         expires_in=settings.capture_nonce_ttl_seconds,
     )
+
+
+@router.post("/format-text", response_model=schemas.FormatTextResponse)
+def format_text(body: schemas.FormatTextRequest) -> schemas.FormatTextResponse:
+    """Revisa ortografia e gramática em português brasileiro (norma culta)."""
+    formatted = format_portuguese_text(body.text)
+    return schemas.FormatTextResponse(formatted=formatted)
 
 
 @router.post("/reports", status_code=201, response_model=ReportCreated)

@@ -3,6 +3,7 @@ import {
   clearSession,
   getSession,
 } from './api.js';
+import { mountSidebarBrands } from './sidebar-brand.js';
 
 const SVG = {
   dashboard: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>`,
@@ -44,6 +45,7 @@ export function bindLogout() {
 }
 
 export function renderSidebar(activeId) {
+  mountSidebarBrands();
   const nav = $('#gestao-nav');
   if (!nav) return;
   nav.innerHTML = NAV.map((item) => `

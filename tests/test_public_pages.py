@@ -46,6 +46,9 @@ PUBLIC_PAGES = [
 
 JS_CHAIN = [
     "frontend/js/app.js",
+    "frontend/js/report-icons.js",
+    "frontend/js/sidebar-brand.js",
+    "frontend/js/text-format.js",
     "frontend/js/viewer.js",
     "frontend/js/api-publica.js",
     "frontend/js/public-sidebar.js",

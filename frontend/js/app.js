@@ -1,29 +1,44 @@
 // Orquestrador da tela de captura.
+//
+// Fluxo — Evento de tráfego:
+//   step-0 → step-1-evento (categoria) → step-2 (foto) → step-3 → step-4
+//   descrição extra (txt-desc) revisada no envio
+// Fluxo — Manifestação cidadã:
+//   step-0 → step-1-manifestacao (tipo + texto revisado) → step-2 (se foto) OU step-3 → step-4
+//   descrição extra (txt-desc) revisada no envio, se preenchida
 import { getOrCreateClientId, enqueue, listQueue, dequeue, newLocalId, queueSize } from './db.js';
 import { getCaptureNonce, postReport } from './api.js';
 import { startCamera, stopCamera, captureFrame, getPositionOnce } from './camera.js';
 import { createPickMap } from './map-pick.js';
+import { categoryIconUrl } from './gestao-markers.js';
+import { setReportIcon, mountReportPageIcons } from './report-icons.js';
+import { formatDescriptionText } from './text-format.js';
+
+const INTERACTION_LABELS = {
+  evento_trafego: 'Evento de Tráfego',
+  manifestacao: 'Manifestação cidadã',
+};
 
 const EVENT_CATEGORIES = [
-  { id: 'buraco',                 ico: 'BU', label: 'Buraco' },
-  { id: 'alagamento',             ico: 'AL', label: 'Alagamento' },
-  { id: 'acidente',               ico: 'AC', label: 'Acidente' },
-  { id: 'incendio',               ico: 'IN', label: 'Incêndio' },
-  { id: 'animal_na_pista',        ico: 'AN', label: 'Animal na pista' },
-  { id: 'objeto_na_pista',        ico: 'OP', label: 'Objeto na pista' },
-  { id: 'queda_arvore',           ico: 'AR', label: 'Queda de árvore' },
-  { id: 'veiculo_quebrado',       ico: 'VQ', label: 'Veículo quebrado' },
-  { id: 'bloqueio_total',         ico: 'BL', label: 'Bloqueio total' },
-  { id: 'obra_grande',            ico: 'OB', label: 'Obra' },
-  { id: 'lentidao_corredor',      ico: 'LE', label: 'Lentidão' },
-  { id: 'sinalizacao_quebrada',   ico: 'SI', label: 'Sinalização' },
-  { id: 'outro',                  ico: 'OU', label: 'Outro' },
+  { id: 'buraco',                 label: 'Buraco' },
+  { id: 'alagamento',             label: 'Alagamento' },
+  { id: 'acidente',               label: 'Acidente' },
+  { id: 'incendio',               label: 'Incêndio' },
+  { id: 'animal_na_pista',        label: 'Animal na pista' },
+  { id: 'objeto_na_pista',        label: 'Objeto na pista' },
+  { id: 'queda_arvore',           label: 'Queda de árvore' },
+  { id: 'veiculo_quebrado',       label: 'Veículo quebrado' },
+  { id: 'bloqueio_total',         label: 'Bloqueio total' },
+  { id: 'obra_grande',            label: 'Obra' },
+  { id: 'lentidao_corredor',      label: 'Lentidão' },
+  { id: 'sinalizacao_quebrada',   label: 'Sinalização' },
+  { id: 'outro',                  label: 'Outro' },
 ];
 
 const MANIF_TYPES = [
-  { id: 'elogio',     ico: 'EL', label: 'Elogio' },
-  { id: 'sugestao',   ico: 'SG', label: 'Sugestão' },
-  { id: 'reclamacao', ico: 'RC', label: 'Reclamação' },
+  { id: 'elogio',     icon: 'elogio',     label: 'Elogio' },
+  { id: 'sugestao',   icon: 'sugestao',   label: 'Sugestão' },
+  { id: 'reclamacao', icon: 'reclamacao', label: 'Reclamação' },
 ];
 
 const state = {
@@ -43,6 +58,23 @@ const state = {
 };
 
 const clientId = getOrCreateClientId();
+
+const DESCRIPTION_MAX = 500;
+
+function bindCharCounter(fieldSel, counterSel) {
+  const field = $(fieldSel);
+  const counter = $(counterSel);
+  if (!field || !counter) return () => {};
+  const max = Number(field.maxLength) || DESCRIPTION_MAX;
+  const update = () => {
+    const len = field.value.length;
+    counter.textContent = `${len} / ${max}`;
+    counter.classList.toggle('is-limit', len >= max);
+  };
+  field.addEventListener('input', update);
+  update();
+  return update;
+}
 
 function $(sel) { return document.querySelector(sel); }
 function show(id) { $(id).hidden = false; }
@@ -77,7 +109,8 @@ function renderEventCategories() {
     const b = document.createElement('button');
     b.type = 'button';
     b.dataset.id = c.id;
-    b.innerHTML = `<span class="ico">${c.ico}</span><span>${c.label}</span>`;
+    const url = categoryIconUrl(c.id);
+    b.innerHTML = `<span class="ico ico-img"><img src="${url}" alt="" width="28" height="28"/></span><span>${c.label}</span>`;
     b.addEventListener('click', () => selectEventCategory(c.id));
     grid.appendChild(b);
   }
@@ -90,7 +123,8 @@ function renderManifTypes() {
     const b = document.createElement('button');
     b.type = 'button';
     b.dataset.id = c.id;
-    b.innerHTML = `<span class="ico">${c.ico}</span><span>${c.label}</span>`;
+    b.innerHTML = `<span class="ico"></span><span>${c.label}</span>`;
+    setReportIcon(b.querySelector('.ico'), c.icon);
     b.addEventListener('click', () => selectManifType(c.id));
     grid.appendChild(b);
   }
@@ -117,6 +151,114 @@ function validateManifStep() {
   $('#btn-step1-manifestacao').disabled = !ok;
 }
 
+function categoryLabel(id) {
+  const event = EVENT_CATEGORIES.find((c) => c.id === id);
+  if (event) return event.label;
+  const manif = MANIF_TYPES.find((c) => c.id === id);
+  return manif?.label || id || '—';
+}
+
+function fillSubmitSummary() {
+  $('#summary-interaction').textContent =
+    INTERACTION_LABELS[state.interactionType] || '—';
+  $('#summary-category').textContent = categoryLabel(state.category);
+  $('#summary-description').textContent = state.description || '—';
+}
+
+/** Formata texto, grava no campo (se houver) e devolve o resultado. */
+async function applyFormattedText(text, fieldEl) {
+  const formatted = await formatDescriptionText(text);
+  if (fieldEl) fieldEl.value = formatted;
+  return formatted;
+}
+
+/** Manifestação: revisa descrição principal ao sair da etapa 1. */
+async function prepareManifestacaoDescription() {
+  const el = $('#txt-manif');
+  const formatted = await applyFormattedText(el.value.trim(), el);
+  state.description = formatted;
+  return formatted;
+}
+
+/** Revisa descrição extra (step 3) quando preenchida. */
+async function prepareExtraDescription() {
+  return applyFormattedText($('#txt-desc').value.trim(), $('#txt-desc'));
+}
+
+/** Revisa todos os textos do reporte antes do envio (versão corrigida vai ao banco). */
+async function prepareDescriptionsForSubmit() {
+  if (state.interactionType === 'manifestacao') {
+    await prepareManifestacaoDescription();
+  }
+  await prepareExtraDescription();
+}
+
+function buildReportDescription() {
+  const isManif = state.interactionType === 'manifestacao';
+  if (isManif) {
+    const main = state.description || $('#txt-manif').value.trim();
+    const extra = $('#txt-desc').value.trim();
+    if (main && extra) return `${main}\n${extra}`;
+    return main || extra;
+  }
+  return $('#txt-desc').value.trim();
+}
+
+function buildPayload() {
+  const isManif = state.interactionType === 'manifestacao';
+  return {
+    photoBlob: state.photoBlob,
+    lat: state.position.lat,
+    lon: state.position.lon,
+    accuracy: state.accuracy,
+    category: state.category,
+    interactionType: state.interactionType,
+    magnitude: isManif ? 'normal' : ($('#sel-magnitude').value || 'normal'),
+    description: buildReportDescription(),
+    capturedAt: state.capturedAt,
+    captureNonce: state.nonce,
+    clientId,
+  };
+}
+
+/** Ajusta visibilidade dos blocos do step-3 conforme o fluxo. */
+function configureConfirmStep(mode) {
+  const isManifTextOnly = mode === 'manifestacao-text-only';
+  const photoWrap = $('#photo-preview-wrap');
+  const noPhoto = $('#no-photo-notice');
+  const preview = $('#preview-img');
+  const extraDesc = $('#extra-desc-wrap');
+  const magnitude = $('#magnitude-wrap');
+
+  $('#submit-summary').hidden = !isManifTextOnly;
+  extraDesc.hidden = isManifTextOnly;
+  magnitude.hidden = isManifTextOnly || state.interactionType !== 'evento_trafego';
+
+  if (isManifTextOnly) {
+    photoWrap.hidden = true;
+    noPhoto.hidden = true;
+    preview.hidden = true;
+    preview.removeAttribute('src');
+    $('#extras-details').open = true;
+    fillSubmitSummary();
+  } else {
+    const showPreview = Boolean(state.photoPreviewUrl);
+    photoWrap.hidden = !showPreview;
+    noPhoto.hidden = true;
+    preview.hidden = !showPreview;
+    if (!showPreview) preview.removeAttribute('src');
+    magnitude.hidden = state.interactionType !== 'evento_trafego';
+    $('#extras-details').open = false;
+  }
+}
+
+function showConfirmStep(mode) {
+  configureConfirmStep(mode);
+  hideAllSteps();
+  show('#step-3');
+  initPickMapLazy();
+}
+
 function startBranch(type) {
   state.interactionType = type;
   hideAllSteps();
@@ -140,10 +282,9 @@ async function createPlaceholderPhoto() {
   });
 }
 
-/** Fluxo sem câmera: captura GPS, gera placeholder e vai direto para confirmação. */
+/** Fluxo sem câmera: captura GPS e vai para confirmação com resumo. */
 async function openConfirmDirectly() {
   const btn = $('#btn-step1-manifestacao');
-  btn.disabled = true;
   btn.textContent = 'Buscando GPS…';
 
   try {
@@ -168,14 +309,24 @@ async function openConfirmDirectly() {
     if (state.photoPreviewUrl) URL.revokeObjectURL(state.photoPreviewUrl);
     state.photoPreviewUrl = null;
 
-    $('#preview-img').hidden = true;
-    $('#no-photo-notice').hidden = false;
-    $('#magnitude-wrap').hidden = true;
-    $('#extras-details').open = true;
+    showConfirmStep('manifestacao-text-only');
+  } finally {
+    btn.textContent = 'Continuar';
+  }
+}
 
-    hideAllSteps();
-    show('#step-3');
-    initPickMapLazy();
+/** Manifestação etapa 1 → etapa 2 ou 3 (sempre revisa o texto antes). */
+async function continueManifestacaoStep1() {
+  const btn = $('#btn-step1-manifestacao');
+  btn.disabled = true;
+  try {
+    btn.textContent = 'Formatando texto…';
+    await prepareManifestacaoDescription();
+    if (state.withPhoto) {
+      await openCameraStep();
+    } else {
+      await openConfirmDirectly();
+    }
   } finally {
     btn.disabled = false;
     btn.textContent = 'Continuar';
@@ -195,11 +346,11 @@ function togglePhotoOption() {
 
   if (state.withPhoto) {
     pill.textContent = 'Sim';
-    ico.textContent  = '✓';
+    setReportIcon(ico, 'check');
     if (desc) desc.textContent = 'Câmera será aberta ao continuar';
   } else {
     pill.textContent = 'Não';
-    ico.textContent  = '📷';
+    setReportIcon(ico, 'camera');
     if (desc) desc.textContent = 'Clique para abrir a câmera ao continuar';
   }
 }
@@ -249,30 +400,26 @@ async function openCameraStep() {
 async function shoot() {
   try {
     const blob = await captureFrame($('#cam-video'));
-    onPhoto(blob);
+    await onPhoto(blob);
   } catch (err) {
     toast('Falha ao capturar: ' + err.message, 'err');
   }
 }
 
-function onPhoto(blob) {
+async function onPhoto(blob) {
   state.photoBlob = blob;
   state.capturedAt = new Date().toISOString();
   if (state.photoPreviewUrl) URL.revokeObjectURL(state.photoPreviewUrl);
   state.photoPreviewUrl = URL.createObjectURL(blob);
   $('#preview-img').src = state.photoPreviewUrl;
-  $('#preview-img').hidden = false;
-  $('#no-photo-notice').hidden = true;
 
-  const isEvent = state.interactionType === 'evento_trafego';
-  $('#magnitude-wrap').hidden = !isEvent;
-  $('#extras-details').open = false;
+  if (state.interactionType === 'manifestacao' && !state.description) {
+    await prepareManifestacaoDescription();
+  }
 
-  hideAllSteps();
-  show('#step-3');
+  showConfirmStep('with-photo');
   stopCamera(state.stream);
   state.stream = null;
-  initPickMapLazy();
 }
 
 function initPickMapLazy() {
@@ -285,52 +432,34 @@ function initPickMapLazy() {
   state.mapInitialized = true;
 }
 
-function buildPayload() {
-  const isManif = state.interactionType === 'manifestacao';
-  let description = $('#txt-desc').value.trim();
-  if (isManif) {
-    description = state.description || $('#txt-manif').value.trim();
-    if ($('#txt-desc').value.trim()) {
-      description = description + '\n' + $('#txt-desc').value.trim();
-    }
-  }
-  return {
-    photoBlob: state.photoBlob,
-    lat: state.position.lat,
-    lon: state.position.lon,
-    accuracy: state.accuracy,
-    category: state.category,
-    interactionType: state.interactionType,
-    magnitude: isManif ? 'normal' : ($('#sel-magnitude').value || 'normal'),
-    description,
-    capturedAt: state.capturedAt,
-    captureNonce: state.nonce,
-    clientId,
-  };
-}
-
 async function submit() {
-  $('#btn-submit').disabled = true;
-  const payload = buildPayload();
-
-  if (!navigator.onLine) {
-    await enqueueOffline(payload);
-    $('#btn-submit').disabled = false;
-    return;
-  }
-
+  const btn = $('#btn-submit');
+  btn.disabled = true;
   try {
-    const res = await postReport(payload);
-    showResult(res);
-  } catch (err) {
-    console.error(err);
-    if (err.status === 422) {
-      toast(err.detail || err.message, 'err');
+    btn.textContent = 'Formatando texto…';
+    await prepareDescriptionsForSubmit();
+    btn.textContent = 'Enviando…';
+    const payload = buildPayload();
+
+    if (!navigator.onLine) {
+      await enqueueOffline(payload);
       return;
     }
-    await enqueueOffline(payload);
+
+    try {
+      const res = await postReport(payload);
+      showResult(res);
+    } catch (err) {
+      console.error(err);
+      if (err.status === 422) {
+        toast(err.detail || err.message, 'err');
+        return;
+      }
+      await enqueueOffline(payload);
+    }
   } finally {
-    $('#btn-submit').disabled = false;
+    btn.textContent = 'Enviar';
+    btn.disabled = false;
   }
 }
 
@@ -366,9 +495,16 @@ function showResult(res) {
 }
 
 function resetForNext() {
+  if (state.stream) {
+    stopCamera(state.stream);
+    state.stream = null;
+  }
   state.interactionType = null;
   state.category = null;
   state.description = '';
+  state.position = null;
+  state.accuracy = null;
+  state.capturedAt = null;
   state.photoBlob = null;
   state.withPhoto = false;
   if (state.photoPreviewUrl) URL.revokeObjectURL(state.photoPreviewUrl);
@@ -378,9 +514,10 @@ function resetForNext() {
   state.pickMap = null;
   $('#txt-desc').value = '';
   $('#txt-manif').value = '';
+  refreshManifCharCount();
+  refreshDescCharCount();
   $('#btn-step1-evento').disabled = true;
   $('#btn-step1-manifestacao').disabled = true;
-  // Reset toggle de foto
   const toggleBtn = $('#btn-toggle-photo');
   if (toggleBtn) {
     toggleBtn.classList.remove('active');
@@ -388,13 +525,15 @@ function resetForNext() {
   }
   const pill = $('#photo-toggle-pill');
   if (pill) pill.textContent = 'Não';
-  const ico = $('#photo-toggle-icon');
-  if (ico) ico.textContent = '📷';
+  setReportIcon($('#photo-toggle-icon'), 'camera');
   const desc = $('#photo-toggle-desc');
   if (desc) desc.textContent = 'Clique para abrir a câmera ao continuar';
-  // Reset preview
-  $('#preview-img').hidden = false;
+  $('#preview-img').hidden = true;
+  $('#preview-img').removeAttribute('src');
+  $('#photo-preview-wrap').hidden = true;
   $('#no-photo-notice').hidden = true;
+  $('#submit-summary').hidden = true;
+  $('#extra-desc-wrap').hidden = false;
   document.querySelectorAll('.cat-grid button').forEach((b) => b.classList.remove('selected'));
   hideAllSteps();
   show('#step-0');
@@ -435,15 +574,21 @@ async function flushQueue() {
   if (sent > 0) toast(`${sent} reporte(s) enviado(s).`, 'ok');
 }
 
-function onFallbackFile(ev) {
+async function onFallbackFile(ev) {
   const f = ev.target.files && ev.target.files[0];
   if (!f) return;
-  onPhoto(f);
+  await onPhoto(f);
 }
 
+let refreshManifCharCount = () => {};
+let refreshDescCharCount = () => {};
+
 function bindUI() {
+  mountReportPageIcons();
   renderEventCategories();
   renderManifTypes();
+  refreshManifCharCount = bindCharCounter('#txt-manif', '#txt-manif-count');
+  refreshDescCharCount = bindCharCounter('#txt-desc', '#txt-desc-count');
 
   $('#branch-evento').addEventListener('click', () => startBranch('evento_trafego'));
   $('#branch-manifestacao').addEventListener('click', () => startBranch('manifestacao'));
@@ -453,12 +598,7 @@ function bindUI() {
 
   $('#btn-step1-evento').addEventListener('click', openCameraStep);
   $('#btn-step1-manifestacao').addEventListener('click', () => {
-    state.description = $('#txt-manif').value.trim();
-    if (state.withPhoto) {
-      openCameraStep();
-    } else {
-      openConfirmDirectly();
-    }
+    continueManifestacaoStep1();
   });
 
   $('#txt-manif').addEventListener('input', validateManifStep);
