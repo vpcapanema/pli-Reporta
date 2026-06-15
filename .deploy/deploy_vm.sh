@@ -1,16 +1,15 @@
 #!/bin/bash
 # =============================================================================
-# Deploy do PLI Reporta na VM AWS — script idempotente (padrao PLI-HazardTrack)
+# Deploy inicial via tarball (alternativa offline ao bootstrap git).
 #
-# Pressupoe arquivos em /tmp/pli-reporta/:
-#   - pli-reporta-app-arm64.tar   (ou amd64, conforme a VM)
-#   - docker-compose.vm.yml
-#   - pli-reporta                 (config nginx do host)
-#   - .env.vm                     (PLI_DB_PASSWORD, SECRET_KEY; opcional)
+# Fluxo RECOMENDADO para atualizacoes futuras:
+#   (laptop)  powershell -File scripts/push-and-sync-vm.ps1
+#   (vm)      bash /opt/pli-reporta/.deploy/update_vm.sh
 #
-# Uso na VM:
-#   cd /tmp/pli-reporta
-#   bash deploy_vm.sh
+# Primeira instalacao na VM (preferencial):
+#   bash .deploy/bootstrap_vm.sh
+#
+# Este script (tarball) serve quando nao ha git na VM ou deploy offline.
 # =============================================================================
 set -euo pipefail
 

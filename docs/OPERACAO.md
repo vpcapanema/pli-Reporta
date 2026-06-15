@@ -156,3 +156,58 @@ docker compose -f /opt/pli-reporta/docker-compose.vm.yml down
 sudo rm /etc/nginx/sites-enabled/pli-reporta
 sudo systemctl reload nginx
 ```
+
+## Sincronizacao laptop → GitHub → VM
+
+GitHub e a fonte da verdade. A VM mantem um clone em `/opt/pli-reporta`
+e atualiza **somente o que mudou** (git diff + cache Docker).
+
+| Ambiente | Papel |
+|----------|-------|
+| Laptop | desenvolvimento + `git push` |
+| GitHub | repositorio central (`main`) |
+| VM | clone em `/opt/pli-reporta` + container Docker |
+
+### Fluxo habitual (apos cada alteracao)
+
+```powershell
+# 1) commit + push + atualiza VM
+powershell -File scripts/push-and-sync-vm.ps1 -CommitMessage "sua mensagem"
+
+# ou, se ja commitou e fez push:
+powershell -File scripts/sync-vm.ps1
+```
+
+Na VM, `update_vm.sh` automaticamente:
+
+1. `git pull --ff-only` (preserva `.env.vm`)
+2. Rebuild da imagem **so** se mudou `Dockerfile`, `backend/`, `frontend/`, etc.
+3. Recria container somente quando a imagem mudou
+4. Recarrega Nginx somente se mudou `.deploy/nginx-host/pli-reporta`
+5. Pula rebuild se so mudaram docs/testes
+
+### Conferir se os tres estao alinhados
+
+```powershell
+powershell -File scripts/verify-sync.ps1
+```
+
+Mostra o SHA do laptop, GitHub e VM. Os tres devem ser iguais.
+
+### Primeira instalacao na VM (uma vez)
+
+```bash
+git clone https://github.com/vpcapanema/pli-Reporta.git /tmp/pli-reporta-setup
+cd /tmp/pli-reporta-setup
+cp .env.vm.example .env.vm   # preencher PLI_DB_PASSWORD e SECRET_KEY
+bash .deploy/bootstrap_vm.sh
+```
+
+### Reverter versao na VM
+
+```bash
+cd /opt/pli-reporta
+git log --oneline -5
+git reset --hard <sha-anterior>
+bash .deploy/update_vm.sh
+```

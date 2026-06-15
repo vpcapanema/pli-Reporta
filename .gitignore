@@ -42,7 +42,8 @@ data/ibge_tmp/
 .DS_Store
 Thumbs.db
 
-# Build / cache
+# Build / artefatos
 dist/
 build/
 .cache/
+pli-reporta-app-*.tar

@@ -1,0 +1,44 @@
+# Sincroniza a VM com o commit ja publicado no GitHub.
+# Uso: powershell -File scripts/sync-vm.ps1
+#
+# Pre-requisito: git push origin main (use push-and-sync-vm.ps1 para fazer os dois)
+
+param(
+    [string]$VmHost = '56.125.163.194',
+    [string]$VmUser = 'ubuntu',
+    [string]$Branch = 'main',
+    [string]$AppDir = '/opt/pli-reporta'
+)
+
+$ErrorActionPreference = 'Stop'
+$root = Split-Path -Parent $PSScriptRoot
+Set-Location $root
+
+function Step([string]$msg) { Write-Host "`n=== $msg ===" -ForegroundColor Cyan }
+
+Step '1/3 Verificando alinhamento local <-> GitHub'
+git fetch origin $Branch 2>&1 | Out-Null
+$local = (git rev-parse HEAD).Trim()
+$remote = (git rev-parse "origin/$Branch" 2>$null).Trim()
+if (-not $remote) { throw "Branch origin/$Branch nao encontrada no remoto" }
+if ($local -ne $remote) {
+    throw @"
+Local ($($local.Substring(0,7))) difere do GitHub ($($remote.Substring(0,7))).
+Rode: git push origin $Branch
+"@
+}
+Write-Host "  OK  laptop e GitHub em $local" -ForegroundColor Green
+
+Step '2/3 Atualizando VM'
+$target = "${VmUser}@${VmHost}"
+ssh $target "bash $AppDir/.deploy/update_vm.sh"
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+Step '3/3 Conferindo versao na VM'
+$vmSha = (ssh $target "git -C $AppDir rev-parse HEAD 2>/dev/null || cat $AppDir/.deploy/last_deploy_sha").Trim()
+if ($vmSha -eq $local) {
+    Write-Host "  OK  VM alinhada com GitHub ($vmSha)" -ForegroundColor Green
+} else {
+    Write-Host "  AVISO  VM=$vmSha  GitHub=$local" -ForegroundColor Yellow
+}
+Write-Host "`nURL: http://pli-reporta.56-125-163-194.sslip.io" -ForegroundColor Green
