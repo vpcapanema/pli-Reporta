@@ -8,7 +8,6 @@ param(
     [string]$AppDir = '/opt/pli-reporta',
     [string]$VmBaseUrl = 'http://pli-reporta.56-125-163-194.sslip.io',
     [string]$VmHealthUrl = 'http://pli-reporta.56-125-163-194.sslip.io/healthz',
-    [string]$RenderHealthUrl = 'https://pli-reporta.onrender.com/healthz',
     [string]$CommitMessage = ''
 )
 
@@ -59,10 +58,7 @@ function Invoke-LocalCommit {
 }
 
 function Invoke-LaptopGitHubAlign {
-    param(
-        [string]$BranchName,
-        [ref]$Pushed
-    )
+    param([string]$BranchName)
 
     $state = Get-SyncState -VmHost $VmHost -VmUser $VmUser -Branch $BranchName -AppDir $AppDir
     $action = Get-LaptopSyncAction -LocalSha $state.Local -GitHubSha $state.GitHub
@@ -75,7 +71,6 @@ function Invoke-LaptopGitHubAlign {
         Write-Host ('  Acao: git push origin ' + $BranchName) -ForegroundColor Yellow
         git push origin $BranchName
         if ($LASTEXITCODE -ne 0) { throw 'git push falhou' }
-        $Pushed.Value = $true
         Write-Host '  OK  laptop enviado ao GitHub' -ForegroundColor Green
         return
     }
@@ -95,9 +90,8 @@ function Invoke-LaptopGitHubAlign {
 }
 
 $updatedVm = $false
-$pushedGitHub = $false
 
-Write-Step '1/7 Estado atual (Git central)'
+Write-Step '1/6 Estado atual (Git central)'
 $state = Get-SyncState -VmHost $VmHost -VmUser $VmUser -Branch $Branch -AppDir $AppDir
 Write-SyncStatus $state
 if (-not (Test-WorkingTreeClean)) {
@@ -107,13 +101,13 @@ if (Test-VmRuntimeStale -BaseUrl $VmBaseUrl) {
     Write-Host '  AVISO  container na VM desatualizado (git pode estar OK)' -ForegroundColor Yellow
 }
 
-Write-Step '2/7 Commit das alteracoes locais'
-$committed = Invoke-LocalCommit -Message $CommitMessage
+Write-Step '2/6 Commit das alteracoes locais'
+$null = Invoke-LocalCommit -Message $CommitMessage
 
-Write-Step '3/7 Alinhando laptop com GitHub'
-Invoke-LaptopGitHubAlign -BranchName $Branch -Pushed ([ref]$pushedGitHub)
+Write-Step '3/6 Alinhando laptop com GitHub'
+Invoke-LaptopGitHubAlign -BranchName $Branch
 
-Write-Step '4/7 VM — git pull, rebuild do container e testes'
+Write-Step '4/6 VM — git pull, rebuild do container e testes'
 $state = Get-SyncState -VmHost $VmHost -VmUser $VmUser -Branch $Branch -AppDir $AppDir
 $runtimeStale = Test-VmRuntimeStale -BaseUrl $VmBaseUrl
 $needsVmDeploy = ($state.Vm -ne $state.GitHub) -or $runtimeStale
@@ -134,7 +128,7 @@ if ($needsVmDeploy) {
     Write-Host '  OK  git e container ja atualizados na VM' -ForegroundColor Green
 }
 
-Write-Step '5/7 Verificacao Git final'
+Write-Step '5/6 Verificacao Git final'
 if (-not (Test-WorkingTreeClean)) {
     throw 'Ainda existem alteracoes locais nao commitadas.'
 }
@@ -145,19 +139,11 @@ if (-not $state.IsSynced) {
     throw 'Sincronizacao Git incompleta apos as correcoes automaticas.'
 }
 
-Write-Step '6/7 Teste do container na VM (health + manifesto + pagina)'
+Write-Step '6/6 Teste do container na VM (health + manifesto + pagina)'
 if (-not $updatedVm) {
     $null = Test-VmRuntime -BaseUrl $VmBaseUrl -HealthUrl $VmHealthUrl -Label 'VM' -MaxAttempts 6 -DelaySeconds 5
 } else {
-    Write-Host '  OK  testes ja executados no passo 4/7' -ForegroundColor Green
-}
-
-Write-Step '7/7 Healthcheck Render (se houve push)'
-if ($pushedGitHub) {
-    Write-Host '  Testando Render (apos push no GitHub)...' -ForegroundColor Cyan
-    $null = Test-AppHealth -Url $RenderHealthUrl -Label 'Render' -MaxAttempts 12 -DelaySeconds 10
-} else {
-    Write-Host '  Pulado — nenhum push nesta execucao' -ForegroundColor DarkGray
+    Write-Host '  OK  testes ja executados no passo 4/6' -ForegroundColor Green
 }
 
 Write-Host ''
