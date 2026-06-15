@@ -1,12 +1,12 @@
 services:
   - type: web
     name: pli-reporta
-    env: python
+    runtime: python
     plan: starter
     buildCommand: |
       pip install -r requirements.txt
       python scripts/generate_icons.py
-    startCommand: python -m uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    startCommand: python scripts/db_migrate.py && python -m uvicorn backend.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
@@ -17,10 +17,18 @@ services:
       - key: PUBLIC_BASE_URL
         sync: false
       - key: DATABASE_URL
-        value: sqlite:///./pli_reporta.db
+        sync: false
       - key: PHOTO_STORAGE_DIR
         value: ./backend/storage/photos
-      - key: MODERATOR_API_KEY
+      - key: SIGMA_POSTGRES_HOST
+        sync: false
+      - key: SIGMA_POSTGRES_PORT
+        value: "5433"
+      - key: SIGMA_POSTGRES_DATABASE
+        sync: false
+      - key: SIGMA_POSTGRES_USER
+        sync: false
+      - key: SIGMA_POSTGRES_PASSWORD
         sync: false
     autoDeploy: true
     healthCheckPath: /healthz

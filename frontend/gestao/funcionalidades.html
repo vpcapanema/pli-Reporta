@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>PLI Reporta — Funcionalidades do sistema</title>
+  <link rel="icon" href="/static/icons/icon-192.png"/>
+  <link rel="stylesheet" href="/static/styles.css"/>
+</head>
+<body class="gestao-page">
+  <p class="gestao-mobile-warn">Este módulo foi projetado para uso em computador. Para a melhor experiência, acesse em tela larga.</p>
+  <aside class="gestao-sidebar">
+    <div class="gestao-brand">
+      <img src="/static/icons/icon-192.png" alt="" width="40" height="40"/>
+      <div><strong>PLI Reporta</strong><span class="muted">Gestão</span></div>
+    </div>
+    <nav id="gestao-nav" class="gestao-nav"></nav>
+    <div class="gestao-sidebar-foot">
+      <span id="gestao-user" class="muted"></span>
+      <button type="button" id="btn-gestao-logout" class="secondary">Sair</button>
+    </div>
+  </aside>
+
+  <main class="gestao-main gestao-main-policy">
+    <header class="gestao-header">
+      <div>
+        <h1>Funcionalidades do sistema</h1>
+        <p class="muted">Guia de referência da console de gestão</p>
+      </div>
+    </header>
+
+    <div class="gestao-policy-grid">
+
+      <!-- ── 1. Forma do marcador ─────────────────────────────────────── -->
+      <section class="gestao-policy-section gestao-policy-full">
+        <h2>Forma do marcador</h2>
+        <p class="muted">O formato do símbolo identifica o tipo de interação registrada no mapa.</p>
+        <div id="gloss-shapes" class="gestao-gloss-grid"></div>
+      </section>
+
+      <!-- ── 2. Ícone no marcador — categorias ──────────────────────────── -->
+      <section class="gestao-policy-section gestao-policy-full">
+        <h2>Ícone no marcador — categoria</h2>
+        <p class="muted">O símbolo interno identifica a categoria do registro.</p>
+
+        <h3 class="gestao-gloss-sub">Eventos de tráfego</h3>
+        <div id="gloss-cat-eventos" class="gestao-gloss-grid"></div>
+
+        <h3 class="gestao-gloss-sub">Manifestações cidadãs</h3>
+        <div id="gloss-cat-manif" class="gestao-gloss-grid"></div>
+      </section>
+
+      <!-- ── 3. Status e ciclo de vida ──────────────────────────────────── -->
+      <section class="gestao-policy-section gestao-policy-full">
+        <h2>Status e ciclo de vida</h2>
+        <p class="muted">
+          A cor da borda indica em que ponto do ciclo o registro está.
+          Eventos de tráfego progridem automaticamente — intervenção humana só nos casos ambíguos.
+        </p>
+
+        <h3 class="gestao-gloss-sub">Cor da borda — status atual</h3>
+        <div id="gloss-status" class="gestao-gloss-status"></div>
+
+        <h3 class="gestao-gloss-sub">Como os eventos avançam</h3>
+        <ul class="gestao-considera">
+          <li>
+            <strong>Tempo de vida por categoria:</strong> cada tipo de evento tem uma duração
+            esperada — acidente ~2 h, alagamento ~12 h, buraco ~90 dias. Ao vencer,
+            o status muda para <em>Expirado</em> automaticamente.
+          </li>
+          <li>
+            <strong>Renovação por confirmação:</strong> enquanto cidadãos continuam reportando
+            o mesmo ponto, o evento se mantém vivo. Quando os reportes cessam, expira naturalmente.
+          </li>
+          <li>
+            <strong>Contra-reporte do cidadão:</strong> no mapa público, qualquer pessoa pode
+            indicar "já foi resolvido". Com confirmações suficientes, o evento vira
+            <em>Resolvido</em> sem necessidade de ação do gestor.
+          </li>
+          <li>
+            <strong>Revisão humana só quando necessário:</strong> o gestor intervém apenas nos
+            casos sensíveis ou ambíguos — o resto é tratado pelo sistema.
+          </li>
+        </ul>
+      </section>
+
+    </div>
+  </main>
+
+  <script type="module" src="/static/js/gestao-funcionalidades.js"></script>
+</body>
+</html>

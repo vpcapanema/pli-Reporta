@@ -11,29 +11,60 @@
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.5.0/dist/maplibre-gl.css"/>
   <link rel="stylesheet" href="/static/styles.css"/>
 </head>
-<body>
+<body class="public-page report-page">
   <header class="topbar">
     <h1>PLI Reporta</h1>
     <nav>
+      <span id="queue-badge" class="queue-badge" hidden></span>
       <a href="/">Reportar</a>
       <a href="/mapa">Mapa</a>
-      <a href="/moderar">Moderar</a>
+      <a href="/acesso">Acesso Restrito</a>
     </nav>
   </header>
 
   <main>
-    <!-- Etapa 1: categoria -->
-    <section id="step-1" class="card">
+    <!-- Etapa 0: tipo de interação -->
+    <section id="step-0" class="card">
       <span class="label">O que você quer reportar?</span>
+      <div class="branch-grid">
+        <button type="button" id="branch-evento" class="branch-btn">
+          <span class="branch-title">Evento de Tráfego</span>
+          <span class="branch-desc">Buraco, alagamento, acidente, bloqueio…</span>
+        </button>
+        <button type="button" id="branch-manifestacao" class="branch-btn">
+          <span class="branch-title">Manifestação Cidadã</span>
+          <span class="branch-desc">Elogio, sugestão ou reclamação</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Etapa 1a: categoria de evento -->
+    <section id="step-1-evento" class="card" hidden>
+      <span class="label">Qual o evento?</span>
       <p class="help">Toque na categoria que mais se aproxima.</p>
       <div id="cat-grid" class="cat-grid"></div>
-      <div style="height:14px"></div>
-      <button id="btn-step1" disabled>Continuar</button>
+      <div class="row" style="margin-top:14px">
+        <button class="secondary" id="btn-back-0">Voltar</button>
+        <button id="btn-step1-evento" disabled>Continuar</button>
+      </div>
+    </section>
+
+    <!-- Etapa 1b: manifestação -->
+    <section id="step-1-manifestacao" class="card" hidden>
+      <span class="label">Qual o tipo?</span>
+      <div id="manif-grid" class="cat-grid manif-grid"></div>
+      <label class="label" for="txt-manif" style="margin-top:12px">Descreva (obrigatório)</label>
+      <textarea id="txt-manif" class="field" maxlength="500" minlength="15"
+        placeholder="Conte o que você elogiou, sugere ou reclama"></textarea>
+      <div class="row" style="margin-top:14px">
+        <button class="secondary" id="btn-back-0b">Voltar</button>
+        <button id="btn-step1-manifestacao" disabled>Continuar</button>
+      </div>
     </section>
 
     <!-- Etapa 2: foto + GPS -->
     <section id="step-2" class="card" hidden>
-      <span class="label">Tire a foto</span>
+      <span class="label">Tire a foto do local</span>
       <p id="status-line" class="help"></p>
       <p id="gps-line" class="muted"></p>
       <video id="cam-video" class="preview" autoplay playsinline muted></video>
@@ -45,36 +76,39 @@
       </div>
     </section>
 
-    <!-- Etapa 3: ajuste, descrição, envio -->
+    <!-- Etapa 3: confirmação e envio -->
     <section id="step-3" class="card" hidden>
-      <span class="label">Confirme o local e envie</span>
+      <span class="label">Confirme e envie</span>
       <img id="preview-img" class="preview" alt="prévia" style="margin-bottom:10px"/>
-      <div id="pickmap"></div>
-      <p id="picked-line" class="muted" style="margin-top:6px"></p>
 
-      <label class="label" for="sel-magnitude" style="margin-top:10px">Gravidade</label>
-      <select id="sel-magnitude" class="field">
-        <option value="leve">Leve</option>
-        <option value="normal" selected>Normal</option>
-        <option value="grave">Grave</option>
-      </select>
+      <details id="extras-details" class="extras">
+        <summary>Ajustar local ou detalhes</summary>
+        <div id="pickmap"></div>
+        <p id="picked-line" class="muted" style="margin-top:6px"></p>
+        <div id="magnitude-wrap" hidden>
+          <label class="label" for="sel-magnitude">Gravidade</label>
+          <select id="sel-magnitude" class="field">
+            <option value="normal" selected>Normal</option>
+            <option value="grave">Grave</option>
+            <option value="leve">Leve</option>
+          </select>
+        </div>
+        <label class="label" for="txt-desc">Descrição extra (opcional)</label>
+        <textarea id="txt-desc" class="field" maxlength="500" placeholder="Detalhe adicional"></textarea>
+      </details>
 
-      <label class="label" for="txt-desc" style="margin-top:10px">Descrição (opcional)</label>
-      <textarea id="txt-desc" class="field" maxlength="500" placeholder="Detalhe o que está acontecendo"></textarea>
-
-      <button id="btn-submit" style="margin-top:14px">Enviar reporte</button>
-      <p class="help">Sem internet? O reporte é salvo no celular e enviado quando voltar.</p>
+      <button id="btn-submit" style="margin-top:14px">Enviar</button>
+      <p class="help">Sem internet? Salva no celular e envia quando voltar.</p>
     </section>
 
-    <!-- Etapa 4: resultado -->
+    <!-- Etapa 4: confirmação simples -->
     <section id="step-4" class="card" hidden>
-      <span class="label">Resultado <span id="result-status" class="badge"></span></span>
-      <p class="muted">id <code id="result-id"></code></p>
-      <p>Veracidade <strong id="result-v"></strong> · Relevância <strong id="result-r"></strong> · Prioridade <strong id="result-p"></strong></p>
-      <details>
-        <summary>Detalhamento dos sinais</summary>
-        <ul id="result-explain" class="signals"></ul>
-      </details>
+      <div class="result-ok">
+        <span class="result-icon">✓</span>
+        <span class="label">Reporte recebido</span>
+      </div>
+      <p id="result-message" class="help"></p>
+      <p class="muted">Referência: <code id="result-id"></code></p>
       <button id="btn-new" style="margin-top:14px">Fazer outro reporte</button>
     </section>
   </main>
@@ -84,7 +118,7 @@
     <div style="margin-top:4px">
       <a href="/docs">API</a>
       <a href="/mapa">Mapa público</a>
-      <a href="/moderar">Moderação</a>
+      <a href="/acesso">Acesso Restrito</a>
     </div>
   </footer>
 

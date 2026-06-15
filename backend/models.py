@@ -19,6 +19,7 @@ class Report(Base):
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
     client_id: Mapped[str | None] = mapped_column(String(64))
 
+    interaction_type: Mapped[str] = mapped_column(String(24), default="evento_trafego", index=True)
     category: Mapped[str] = mapped_column(String(32), index=True)
     magnitude: Mapped[str] = mapped_column(String(16), default="normal")
     description: Mapped[str | None] = mapped_column(String(500))
@@ -67,6 +68,7 @@ class Cluster(Base):
     first_seen: Mapped[str] = mapped_column(String(32))
     last_seen: Mapped[str] = mapped_column(String(32), index=True)
     confirmations: Mapped[int] = mapped_column(Integer, default=1)
+    resolve_votes: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[str] = mapped_column(String(24), default="ativo")
 
 
@@ -80,3 +82,21 @@ class AuditLog(Base):
     target_type: Mapped[str] = mapped_column(String(32))
     target_id: Mapped[str] = mapped_column(String(64))
     payload_json: Mapped[str | None] = mapped_column(Text)
+
+
+class ModerationPolicy(Base):
+    """Política ativa do aprovador automático (linha única id=1)."""
+    __tablename__ = "moderation_policy"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    preset: Mapped[str] = mapped_column(String(24), default="equilibrado")
+    event_publish_min: Mapped[float] = mapped_column(Float, default=0.70)
+    event_discard_below: Mapped[float] = mapped_column(Float, default=0.30)
+    manif_publish_min: Mapped[float] = mapped_column(Float, default=0.75)
+    manif_discard_below: Mapped[float] = mapped_column(Float, default=0.40)
+    always_review_blocking: Mapped[int] = mapped_column(Integer, default=1)
+    always_review_offline: Mapped[int] = mapped_column(Integer, default=1)
+    always_review_first_in_area: Mapped[int] = mapped_column(Integer, default=0)
+    always_review_other: Mapped[int] = mapped_column(Integer, default=1)
+    updated_at: Mapped[str] = mapped_column(String(32), default=_utcnow_iso)
+    updated_by: Mapped[str | None] = mapped_column(String(128))

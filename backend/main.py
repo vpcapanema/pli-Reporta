@@ -1,6 +1,8 @@
 """Aplicação FastAPI raiz: serve API, mídia e a PWA estática."""
 from __future__ import annotations
 
+import asyncio
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -12,15 +14,43 @@ from fastapi.staticfiles import StaticFiles
 from .config import settings
 from .database import init_db
 from .routes import health, moderation, reports
+from .routes.auth import router as auth_router
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
+GESTAO_DIR = FRONTEND_DIR / "gestao"
+_HTML_NO_CACHE = {"Cache-Control": "no-cache"}
+
+logger = logging.getLogger("pli_reporta.maintenance")
+
+
+async def _maintenance_loop() -> None:
+    """Roda o ciclo de vida automático dos eventos em segundo plano."""
+    from .services.maintenance import run_maintenance
+
+    interval = max(60, settings.maintenance_interval_seconds)
+    while True:
+        try:
+            result = await asyncio.to_thread(run_maintenance)
+            if result.get("expired") or result.get("closed_clusters"):
+                logger.info("manutenção: %s", result)
+        except Exception:  # noqa: BLE001 - loop não pode morrer
+            logger.exception("falha no ciclo de manutenção")
+        await asyncio.sleep(interval)
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     init_db()
     settings.photo_dir.mkdir(parents=True, exist_ok=True)
-    yield
+    task = asyncio.create_task(_maintenance_loop())
+    try:
+        yield
+    finally:
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
 
 
 app = FastAPI(
@@ -34,12 +64,13 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
     allow_credentials=False,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
     allow_headers=["*"],
 )
 
 # API
 app.include_router(reports.router, prefix="/api/v1", tags=["reports"])
+app.include_router(auth_router, prefix="/api/v1", tags=["auth"])
 app.include_router(moderation.router, prefix="/api/v1", tags=["moderation"])
 app.include_router(health.router, tags=["health"])
 
@@ -53,17 +84,47 @@ if FRONTEND_DIR.exists():
 
 @app.get("/", include_in_schema=False)
 def index():
-    return FileResponse(FRONTEND_DIR / "index.html")
+    return FileResponse(FRONTEND_DIR / "index.html", headers=_HTML_NO_CACHE)
 
 
 @app.get("/mapa", include_in_schema=False)
 def mapa():
-    return FileResponse(FRONTEND_DIR / "viewer.html")
+    return FileResponse(FRONTEND_DIR / "viewer.html", headers=_HTML_NO_CACHE)
+
+
+@app.get("/acesso", include_in_schema=False)
+def acesso():
+    return FileResponse(FRONTEND_DIR / "acesso.html", headers=_HTML_NO_CACHE)
+
+
+@app.get("/gestao", include_in_schema=False)
+def gestao_dashboard():
+    return FileResponse(GESTAO_DIR / "index.html", headers=_HTML_NO_CACHE)
+
+
+@app.get("/gestao/eventos", include_in_schema=False)
+def gestao_eventos():
+    return FileResponse(GESTAO_DIR / "eventos.html", headers=_HTML_NO_CACHE)
+
+
+@app.get("/gestao/manifestacoes", include_in_schema=False)
+def gestao_manifestacoes():
+    return FileResponse(GESTAO_DIR / "manifestacoes.html", headers=_HTML_NO_CACHE)
+
+
+@app.get("/gestao/aprovador", include_in_schema=False)
+def gestao_aprovador():
+    return FileResponse(GESTAO_DIR / "aprovador.html", headers=_HTML_NO_CACHE)
+
+
+@app.get("/gestao/funcionalidades", include_in_schema=False)
+def gestao_funcionalidades():
+    return FileResponse(GESTAO_DIR / "funcionalidades.html", headers=_HTML_NO_CACHE)
 
 
 @app.get("/moderar", include_in_schema=False)
-def moderar():
-    return FileResponse(FRONTEND_DIR / "moderation.html")
+def moderar_redirect():
+    return RedirectResponse(url="/acesso", status_code=301)
 
 
 @app.get("/manifest.webmanifest", include_in_schema=False)

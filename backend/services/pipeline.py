@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from ..config import settings
@@ -15,9 +16,18 @@ from . import photos as photo_svc
 from .clustering import find_or_create_cluster
 from .geo import nearest_road
 from .ids import new_ulid
+from .legitimacy import compute_legitimacy
 from .nonce import verify_nonce
-from .relevance import compute_relevance, is_blocking, ttl_for
+from .relevance import BLOCKING_CATEGORIES, compute_relevance, is_blocking, ttl_for
 from .veracity import compute_veracity, signals_to_payload
+
+MANIFESTATION_CATEGORIES = frozenset({"elogio", "sugestao", "reclamacao"})
+EVENT_CATEGORIES = frozenset({
+    "bloqueio_total", "acidente", "incendio", "animal_na_pista",
+    "objeto_na_pista", "queda_arvore", "veiculo_quebrado", "alagamento",
+    "obra_grande", "lentidao_corredor", "sinalizacao_quebrada", "buraco", "outro",
+})
+PUBLIC_STATUSES = frozenset({"publicado", "validado"})
 
 
 @dataclass
@@ -48,6 +58,75 @@ def _osm_id_for(lat: float, lon: float) -> str | None:
     return f"osm:way:{osm_id}"
 
 
+def _normalize_interaction(interaction_type: str | None, category: str) -> str:
+    it = (interaction_type or "evento_trafego").strip().lower()
+    if category in MANIFESTATION_CATEGORIES:
+        return "manifestacao"
+    if it in ("manifestacao", "evento_trafego"):
+        return it
+    return "evento_trafego"
+
+
+def _duplicate_photo(db: Session, photo_hash: str) -> bool:
+    row = db.execute(
+        select(Report.id).where(Report.photo_hash == photo_hash).limit(1)
+    ).scalar_one_or_none()
+    return row is not None
+
+
+def _status_for_event(
+    *,
+    v_score: float,
+    category: str,
+    policy,
+    offline: bool = False,
+    cluster_confirmations: int = 1,
+) -> str:
+    from .moderation_policy import ActivePolicy
+
+    if not isinstance(policy, ActivePolicy):
+        if v_score < policy.auto_discard_threshold:
+            return "descartado"
+        if category in BLOCKING_CATEGORIES:
+            return "em_moderacao"
+        if v_score < policy.auto_publish_threshold:
+            return "em_moderacao"
+        return "publicado"
+
+    if v_score < policy.event_discard_below:
+        return "descartado"
+    if policy.always_review_blocking and category in BLOCKING_CATEGORIES:
+        return "em_moderacao"
+    if policy.always_review_other and category == "outro":
+        return "em_moderacao"
+    if policy.always_review_first_in_area and cluster_confirmations <= 1:
+        return "em_moderacao"
+    if v_score < policy.event_publish_min:
+        status = "em_moderacao"
+    else:
+        status = "publicado"
+    if policy.always_review_offline and offline and status == "publicado":
+        return "em_moderacao"
+    return status
+
+
+def _status_for_manifestation(l_score: float, policy) -> str:
+    from .moderation_policy import ActivePolicy
+
+    if not isinstance(policy, ActivePolicy):
+        if l_score < policy.manifestation_discard_threshold:
+            return "descartado"
+        if l_score < policy.manifestation_publish_threshold:
+            return "em_moderacao"
+        return "publicado"
+
+    if l_score < policy.manif_discard_below:
+        return "descartado"
+    if l_score < policy.manif_publish_min:
+        return "em_moderacao"
+    return "publicado"
+
+
 def ingest_report(
     db: Session,
     *,
@@ -62,17 +141,48 @@ def ingest_report(
     capture_nonce: str | None,
     client_id: str | None,
     geometry_geojson: str | None,
+    interaction_type: str | None = "evento_trafego",
+    offline_capture: bool = False,
     user_reputation: float = 0.0,
 ) -> IngestResult:
     rid = new_ulid()
     rel_path, sha = photo_svc.save_photo(image_bytes, rid)
     exif_data = exif_svc.parse_exif(image_bytes)
-    nonce_ok = verify_nonce(capture_nonce)
+    nonce_ok = verify_nonce(capture_nonce, offline=offline_capture)
 
-    # Cluster + confirmações.
-    cluster = find_or_create_cluster(db, category=category, lat=lat, lon=lon)
+    itype = _normalize_interaction(interaction_type, category)
+    if itype == "manifestacao" and category not in MANIFESTATION_CATEGORIES:
+        category = "reclamacao"
 
-    # Veracidade.
+    if _duplicate_photo(db, sha):
+        rep = Report(
+            id=rid,
+            client_id=client_id,
+            interaction_type=itype,
+            category=category,
+            magnitude=magnitude or "normal",
+            description=(description or None),
+            lat=lat,
+            lon=lon,
+            accuracy_m=accuracy_m,
+            geometry_geojson=geometry_geojson,
+            photo_path=rel_path,
+            photo_hash=sha,
+            exif_json=json.dumps(exif_data, ensure_ascii=False) if exif_data else None,
+            captured_at=captured_at_iso,
+            capture_nonce_valid=1 if nonce_ok else 0,
+            veracity_score=0.0,
+            relevance_score=0.0,
+            priority=0.0,
+            status="descartado",
+        )
+        db.add(rep)
+        db.flush()
+        return IngestResult(
+            report=rep,
+            explanation=["gate=duplicate_photo — foto já utilizada em outro reporte"],
+        )
+
     v_score, signals = compute_veracity(
         lat=lat,
         lon=lon,
@@ -81,38 +191,76 @@ def ingest_report(
         captured_at_iso=captured_at_iso,
         nonce_valid=nonce_ok,
         reputation=user_reputation,
+        offline_capture=offline_capture,
     )
 
-    # Relevância.
-    highway = _highway_for(lat, lon)
-    r = compute_relevance(
-        category=category,
-        magnitude=magnitude,
-        n_confirmations=cluster.confirmations,
-        captured_at_iso=captured_at_iso,
-        highway=highway,
-    )
-    r_score = r.value()
-    priority = v_score * r_score
+    cluster = None
+    r_score = 0.0
+    priority = 0.0
+    valid_to_dt: datetime | None = None
+    affected_edge: str | None = None
+    explanation: list[str] = [s.line() for s in signals]
 
-    # Status.
-    if v_score < settings.auto_discard_threshold:
-        status = "descartado"
-    elif v_score < settings.auto_publish_threshold:
-        status = "em_moderacao"
+    if itype == "manifestacao":
+        leg = compute_legitimacy(veracity=v_score, description=description)
+        r_score = leg.score
+        priority = leg.score
+        from .moderation_policy import get_active_policy
+
+        policy = get_active_policy(db)
+        status = _status_for_manifestation(leg.score, policy)
+        valid_to_dt = datetime.now(timezone.utc) + timedelta(days=180)
+        explanation.extend(leg.explain() + [f"status = {status}"])
     else:
-        status = "validado"
+        if category not in EVENT_CATEGORIES:
+            category = "outro"
+        cluster = find_or_create_cluster(db, category=category, lat=lat, lon=lon)
+        highway = _highway_for(lat, lon)
+        r = compute_relevance(
+            category=category,
+            magnitude=magnitude,
+            n_confirmations=cluster.confirmations,
+            captured_at_iso=captured_at_iso,
+            highway=highway,
+        )
+        r_score = r.value()
+        priority = v_score * r_score
+        from .moderation_policy import get_active_policy
 
-    # Validade (TTL por categoria).
-    valid_to_dt = datetime.now(timezone.utc) + timedelta(hours=ttl_for(category))
-
-    affected_edge = _osm_id_for(lat, lon)
+        policy = get_active_policy(db)
+        status = _status_for_event(
+            v_score=v_score,
+            category=category,
+            policy=policy,
+            offline=offline_capture,
+            cluster_confirmations=cluster.confirmations,
+        )
+        valid_to_dt = datetime.now(timezone.utc) + timedelta(hours=ttl_for(category))
+        affected_edge = _osm_id_for(lat, lon)
+        # Renovação por confirmação: novas confirmações no mesmo ponto estendem a
+        # validade dos reportes ativos do cluster. Silêncio (sem novos reportes)
+        # deixa o evento expirar sozinho pelo valid_to.
+        if cluster is not None and cluster.confirmations > 1:
+            db.execute(
+                update(Report)
+                .where(
+                    Report.cluster_id == cluster.id,
+                    Report.status.in_(("publicado", "validado", "em_moderacao")),
+                )
+                .values(valid_to=valid_to_dt.isoformat())
+            )
+        explanation.extend(r.explain() + [
+            f"P = V·R = {priority:.2f}",
+            f"status = {status}",
+            f"bloqueante = {is_blocking(category, priority)}",
+        ])
 
     rep = Report(
         id=rid,
         client_id=client_id,
+        interaction_type=itype,
         category=category,
-        magnitude=magnitude,
+        magnitude=magnitude or "normal",
         description=(description or None),
         lat=lat,
         lon=lon,
@@ -128,23 +276,20 @@ def ingest_report(
         relevance_score=r_score,
         priority=priority,
         status=status,
-        cluster_id=cluster.id,
-        valid_to=valid_to_dt.isoformat(),
+        cluster_id=cluster.id if cluster else None,
+        valid_to=valid_to_dt.isoformat() if valid_to_dt else None,
         affected_edges_json=json.dumps([affected_edge]) if affected_edge else None,
     )
     db.add(rep)
     db.flush()
-
-    explanation = [s.line() for s in signals] + r.explain() + [
-        f"P = V·R = {priority:.2f}",
-        f"status = {status}",
-        f"bloqueante = {is_blocking(category, priority)}",
-    ]
     return IngestResult(report=rep, explanation=explanation)
 
 
 def report_to_feature(r: Report) -> dict[str, Any]:
-    blocking = is_blocking(r.category, r.priority)
+    blocking = (
+        r.interaction_type == "evento_trafego"
+        and is_blocking(r.category, r.priority)
+    )
     coords = [r.lon, r.lat]
     geom: dict[str, Any] = {"type": "Point", "coordinates": coords}
     if r.geometry_geojson:
@@ -163,17 +308,33 @@ def report_to_feature(r: Report) -> dict[str, Any]:
         "geometry": geom,
         "properties": {
             "id": r.id,
+            "interaction_type": r.interaction_type,
             "category": r.category,
             "magnitude": r.magnitude,
+            "description": r.description,
             "veracity": round(r.veracity_score, 3),
             "relevance": round(r.relevance_score, 3),
             "priority": round(r.priority, 3),
             "status": r.status,
             "blocking": blocking,
+            "cluster_id": r.cluster_id,
             "affected_edges": affected,
             "valid_from": r.valid_from,
             "valid_to": r.valid_to,
             "captured_at": r.captured_at,
+            "received_at": r.received_at,
             "photo_url": photo_svc.public_url_for(r.photo_path),
         },
     }
+
+
+def active_public_reports_stmt(*, interaction_type: str | None = None):
+    now_iso = datetime.now(timezone.utc).isoformat()
+    stmt = (
+        select(Report)
+        .where(Report.status.in_(tuple(PUBLIC_STATUSES)))
+        .where((Report.valid_to.is_(None)) | (Report.valid_to > now_iso))
+    )
+    if interaction_type:
+        stmt = stmt.where(Report.interaction_type == interaction_type)
+    return stmt

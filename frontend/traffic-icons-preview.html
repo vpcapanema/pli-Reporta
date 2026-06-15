@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Ícones rodoviários — prévia</title>
+  <style>
+    :root {
+      --bg: #f5f7fa; --surface: #fff; --ink: #003b5a;
+      --muted: #5a6573; --border: #d7dee6; --accent: #3ec26e;
+      --miss: #e8f0fe; --miss-border: #4285f4;
+      --gutter: 2.5%;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
+    header { padding: 18px var(--gutter); background: #003b5a; color: #fff; border-bottom: 4px solid var(--accent); }
+    header h1 { margin: 0 0 4px; font-size: 20px; text-transform: uppercase; letter-spacing: .04em; }
+    header p  { margin: 0; color: rgba(255,255,255,.75); font-size: 13px; }
+    main { width: calc(100% - var(--gutter) * 2); margin: 24px var(--gutter) 48px auto; }
+
+    .legend { display: flex; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .dot-ok   { background: #003b5a; }
+    .dot-miss { background: var(--miss-border); }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+
+    /* ─── Cartão ─────────────────────────────────────── */
+    .card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px; display: grid; grid-template-columns: 76px 1fr; gap: 12px; align-items: center;
+    }
+    .card.missing { background: var(--miss); border-color: var(--miss-border); }
+
+    /* ─── Marcador losangular ─────────────────────────── */
+    .marker-wrap { display: flex; align-items: center; justify-content: center; }
+    .marker {
+      width: 56px; height: 56px; transform: rotate(45deg);
+      border: 2.5px solid var(--ink); background: var(--surface);
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    .card.missing .marker { border-color: var(--miss-border); background: var(--miss); }
+    .marker-inner { transform: rotate(-45deg); line-height: 0; }
+    .marker-inner img {
+      width: 34px; height: 34px; object-fit: contain; display: block;
+      /* converte preto → #003b5a (azul do sistema) */
+      filter: brightness(0) saturate(100%) invert(14%) sepia(60%) saturate(700%) hue-rotate(175deg) brightness(80%);
+    }
+
+    /* ícone placeholder (categorias sem PNG) */
+    .marker-inner .placeholder {
+      width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
+      font-size: 20px; color: var(--miss-border);
+    }
+
+    h2 { margin: 0 0 3px; font-size: 14px; font-weight: 700; }
+    code { font-family: "Cascadia Mono", Consolas, monospace; font-size: 11px; color: var(--muted);
+      background: #eef3f7; border-radius: 3px; padding: 1px 5px; }
+    .desc  { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .badge-miss { display: inline-block; margin-top: 5px; font-size: 11px; font-weight: 600;
+      color: var(--miss-border); background: #d2e3fc; border-radius: 4px; padding: 1px 7px; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Ícones rodoviários</h1>
+  <p>Prévia dos marcadores losangulares — usando os PNGs fornecidos + placeholders para os faltantes.</p>
+</header>
+<main>
+  <div class="legend">
+    <div class="legend-item"><span class="dot dot-ok"></span>PNG fornecido</div>
+    <div class="legend-item"><span class="dot dot-miss"></span>Aguardando ícone</div>
+  </div>
+  <div class="grid" id="grid"></div>
+</main>
+
+<script>
+  /* img: caminho relativo do PNG (null = pendente) */
+  const items = [
+    { label: 'Acidente',             id: 'acidente',             img: 'img/icons/acidente.png',              desc: 'Colisão entre veículos' },
+    { label: 'Alagamento',          id: 'alagamento',           img: 'img/icons/alagamento.png',            desc: 'Lâmina d\'água cobrindo a via' },
+    { label: 'Bloqueio total',      id: 'bloqueio_total',       img: 'img/icons/bloqueio_total.png',        desc: 'Via completamente interditada' },
+    { label: 'Lentidão',           id: 'lentidao_corredor',    img: 'img/icons/lentidao_corredor.png',     desc: 'Congestionamento / tráfego lento' },
+    { label: 'Obra',               id: 'obra_grande',          img: 'img/icons/obra_grande.png',           desc: 'Obra viária com sinalização' },
+    { label: 'Queda de árvore',    id: 'queda_arvore',         img: 'img/icons/queda_arvore.png',          desc: 'Árvore tombada sobre a via' },
+    { label: 'Sinalização',        id: 'sinalizacao_quebrada', img: 'img/icons/sinalizacao_quebrada.png',  desc: 'Dispositivo de sinalização danificado' },
+    { label: 'Buraco',             id: 'buraco',               img: 'img/icons/buraco.svg',                desc: 'Buraco no pavimento (FA: road-circle-exclamation)' },
+    { label: 'Incêndio',           id: 'incendio',             img: 'img/icons/incendio.svg',              desc: 'Carro em chamas (FA: car-burst)' },
+    { label: 'Animal na pista',    id: 'animal_na_pista',      img: 'img/icons/animal_na_pista.svg',       desc: 'Animal na via (FA: cow)' },
+    { label: 'Objeto na pista',    id: 'objeto_na_pista',      img: 'img/icons/objeto_na_pista.svg',       desc: 'Barreira / obstáculo (FA: road-barrier)' },
+    { label: 'Veículo quebrado',   id: 'veiculo_quebrado',     img: 'img/icons/veiculo_quebrado.svg',      desc: 'Veículo em pane (FA: car-battery)' },
+    { label: 'Outro',              id: 'outro',                img: 'img/icons/outro.svg',                 desc: 'Ocorrência indeterminada (FA: circle-question)' },
+  ];
+
+  function markerContent(item) {
+    if (item.img) {
+      return `<img src="${item.img}" alt="${item.label}"/>`;
+    }
+    return `<span class="placeholder" title="PNG pendente">?</span>`;
+  }
+
+  document.getElementById('grid').innerHTML = items.map(item => `
+    <article class="card${item.img ? '' : ' missing'}">
+      <div class="marker-wrap">
+        <div class="marker">
+          <div class="marker-inner">${markerContent(item)}</div>
+        </div>
+      </div>
+      <div>
+        <h2>${item.label}</h2>
+        <code>${item.id}</code>
+        <p class="desc">${item.desc}</p>
+        ${item.img ? '' : '<span class="badge-miss">⬤ PNG pendente</span>'}
+      </div>
+    </article>
+  `).join('');
+</script>
+</body>
+</html>

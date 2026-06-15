@@ -40,15 +40,12 @@ def bbox_filter(features: Iterable[dict], bbox: tuple[float, float, float, float
 # Mantemos um cache em memória.
 # --------------------------------------------------------------------------- #
 
-_ROADS_CACHE: dict[str, list[dict]] | None = None
+_ROADS_CACHE: dict[str, list[dict]] = {}
 
 
 def _load_roads(path: str) -> list[dict]:
-    global _ROADS_CACHE
-    if _ROADS_CACHE is not None and path in _ROADS_CACHE:
+    if path in _ROADS_CACHE:
         return _ROADS_CACHE[path]
-    if _ROADS_CACHE is None:
-        _ROADS_CACHE = {}
     p = Path(path)
     if not p.exists():
         _ROADS_CACHE[path] = []

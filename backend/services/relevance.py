@@ -11,10 +11,15 @@ from datetime import datetime, timezone
 # Tabelas em alinhamento literal com METODOLOGIA §4.1
 SEVERITY_BASE: dict[str, float] = {
     "bloqueio_total": 1.00,
+    "incendio": 0.95,
     "acidente": 0.85,
     "alagamento": 0.85,
+    "queda_arvore": 0.75,
+    "animal_na_pista": 0.70,
     "obra_grande": 0.70,
+    "objeto_na_pista": 0.65,
     "lentidao_corredor": 0.65,
+    "veiculo_quebrado": 0.55,
     "sinalizacao_quebrada": 0.50,
     "buraco": 0.40,
     "outro": 0.30,
@@ -22,8 +27,13 @@ SEVERITY_BASE: dict[str, float] = {
 
 TTL_HOURS: dict[str, float] = {
     "bloqueio_total": 6,
+    "incendio": 4,
     "acidente": 2,
     "alagamento": 12,
+    "animal_na_pista": 3,
+    "objeto_na_pista": 6,
+    "queda_arvore": 24,
+    "veiculo_quebrado": 3,
     "obra_grande": 24 * 30,
     "lentidao_corredor": 1,
     "sinalizacao_quebrada": 24 * 14,
@@ -31,7 +41,7 @@ TTL_HOURS: dict[str, float] = {
     "outro": 24 * 7,
 }
 
-BLOCKING_CATEGORIES = {"bloqueio_total", "alagamento"}
+BLOCKING_CATEGORIES = {"bloqueio_total", "alagamento", "incendio"}
 
 MAGNITUDE_FACTOR: dict[str, float] = {"leve": 0.7, "normal": 1.0, "grave": 1.2}
 

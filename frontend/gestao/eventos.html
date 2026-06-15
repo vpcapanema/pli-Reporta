@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>PLI Reporta — Eventos</title>
+  <link rel="icon" href="/static/icons/icon-192.png"/>
+  <link rel="stylesheet" href="/static/styles.css"/>
+</head>
+<body class="gestao-page" data-page="eventos">
+  <p class="gestao-mobile-warn">Este módulo foi projetado para uso em computador. Para a melhor experiência, acesse em tela larga.</p>
+  <aside class="gestao-sidebar">
+    <div class="gestao-brand">
+      <img src="/static/icons/icon-192.png" alt="" width="40" height="40"/>
+      <div><strong>PLI Reporta</strong><span class="muted">Gestão</span></div>
+    </div>
+    <nav id="gestao-nav" class="gestao-nav"></nav>
+    <div class="gestao-sidebar-foot">
+      <span id="gestao-user" class="muted"></span>
+      <button type="button" id="btn-gestao-logout" class="secondary">Sair</button>
+    </div>
+  </aside>
+  <main class="gestao-main gestao-main-list">
+    <header class="gestao-header">
+      <div>
+        <h1>Eventos de tráfego</h1>
+        <p class="muted">Todos os reportes de eventos, em qualquer status</p>
+      </div>
+      <div class="gestao-toolbar">
+        <label>Status
+          <select id="filter-status">
+            <option value="">Todos</option>
+          </select>
+        </label>
+        <button type="button" id="btn-reload">Atualizar</button>
+      </div>
+    </header>
+    <p id="gestao-table-meta" class="muted"></p>
+    <div class="gestao-table-wrap">
+      <table class="gestao-table">
+        <thead>
+          <tr>
+            <th>ID</th><th>Categoria</th><th>Status</th><th>Recebido</th><th>Coordenadas</th><th>Descrição</th>
+          </tr>
+        </thead>
+        <tbody id="gestao-table-body"></tbody>
+      </table>
+    </div>
+    <div class="gestao-pagination">
+      <button type="button" id="btn-prev" class="secondary">Anterior</button>
+      <button type="button" id="btn-next" class="secondary">Próxima</button>
+    </div>
+  </main>
+  <script type="module" src="/static/js/gestao-list.js"></script>
+</body>
+</html>

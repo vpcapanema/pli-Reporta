@@ -24,6 +24,9 @@ data/*.geojson
 # Ambiente
 .env
 .env.local
+.sigma-postgres-tunnel.pid
+.sigma-tunnel-keeper.pid
+.sigma-tunnel-keeper.status
 
 # IDE
 .vscode/

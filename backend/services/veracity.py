@@ -130,7 +130,7 @@ def _signal_user_reputation(reputation: float) -> Signal:
     return Signal("user_reputation", rep, WEIGHTS["user_reputation"], detail)
 
 
-def _signal_temporal_plausibility(captured_at_iso: str) -> Signal:
+def _signal_temporal_plausibility(captured_at_iso: str, *, offline_capture: bool = False) -> Signal:
     cap = _parse_iso(captured_at_iso)
     if cap is None:
         return Signal(
@@ -148,6 +148,21 @@ def _signal_temporal_plausibility(captured_at_iso: str) -> Signal:
             0.2,
             WEIGHTS["temporal_plausibility"],
             "captura no futuro?",
+        )
+    if offline_capture:
+        if age_s < 86400:
+            return Signal(
+                "temporal_plausibility", 1.0, WEIGHTS["temporal_plausibility"],
+                "captura offline ≤ 24 h",
+            )
+        if age_s < settings.capture_nonce_offline_ttl_seconds:
+            return Signal(
+                "temporal_plausibility", 0.7, WEIGHTS["temporal_plausibility"],
+                "captura offline ≤ 48 h",
+            )
+        return Signal(
+            "temporal_plausibility", 0.3, WEIGHTS["temporal_plausibility"],
+            "captura offline muito antiga",
         )
     if age_s < 1800:
         return Signal("temporal_plausibility", 1.0, WEIGHTS["temporal_plausibility"], "≤ 30 min")
@@ -167,6 +182,7 @@ def compute_veracity(
     captured_at_iso: str,
     nonce_valid: bool,
     reputation: float = 0.0,
+    offline_capture: bool = False,
 ) -> tuple[float, list[Signal]]:
     signals = [
         _signal_geo_browser(accuracy_m, lat, lon),
@@ -175,7 +191,7 @@ def compute_veracity(
         _signal_road_snap(lat, lon),
         _signal_image_integrity(exif),
         _signal_user_reputation(reputation),
-        _signal_temporal_plausibility(captured_at_iso),
+        _signal_temporal_plausibility(captured_at_iso, offline_capture=offline_capture),
     ]
     total_w = sum(s.weight for s in signals) or 1.0
     score = sum(s.value * s.weight for s in signals) / total_w

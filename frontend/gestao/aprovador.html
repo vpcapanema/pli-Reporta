@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>PLI Reporta — Aprovador automático</title>
+  <link rel="icon" href="/static/icons/icon-192.png"/>
+  <link rel="stylesheet" href="/static/styles.css"/>
+</head>
+<body class="gestao-page">
+  <p class="gestao-mobile-warn">Este módulo foi projetado para uso em computador. Para a melhor experiência, acesse em tela larga.</p>
+  <aside class="gestao-sidebar">
+    <div class="gestao-brand">
+      <img src="/static/icons/icon-192.png" alt="" width="40" height="40"/>
+      <div><strong>PLI Reporta</strong><span class="muted">Gestão</span></div>
+    </div>
+    <nav id="gestao-nav" class="gestao-nav"></nav>
+    <div class="gestao-sidebar-foot">
+      <span id="gestao-user" class="muted"></span>
+      <button type="button" id="btn-gestao-logout" class="secondary">Sair</button>
+    </div>
+  </aside>
+
+  <main class="gestao-main gestao-main-policy">
+    <header class="gestao-header">
+      <div>
+        <h1>Aprovador automático</h1>
+        <p id="policy-intro" class="muted"></p>
+      </div>
+      <button type="button" id="btn-save-policy">Salvar alterações</button>
+    </header>
+    <p id="policy-save-msg" class="gestao-feedback" hidden></p>
+
+    <div class="gestao-policy-grid">
+
+      <!-- ── 1. Perfil geral ────────────────────────────────────────────── -->
+      <section class="gestao-policy-section gestao-policy-full">
+        <h2>Perfil geral</h2>
+        <p class="muted">Escolha um ponto de partida — você pode ajustar os detalhes abaixo.</p>
+        <div id="policy-presets" class="gestao-presets"></div>
+      </section>
+
+      <!-- ── 2. Eventos de tráfego ──────────────────────────────────────── -->
+      <section class="gestao-policy-section gestao-policy-full">
+        <h2>Eventos de tráfego</h2>
+        <p class="muted">
+          Cada reporte recebe uma pontuação de <strong>0 a 100 pontos</strong>,
+          calculada a partir dos critérios abaixo. A pontuação determina se o sistema
+          age sozinho ou encaminha para você revisar.
+        </p>
+
+        <h3 class="gestao-gloss-sub">Critérios de pontuação</h3>
+        <div id="sinais-evento" class="policy-signals-grid"></div>
+
+        <h3 class="gestao-gloss-sub">Quando o sistema age sozinho</h3>
+        <div class="policy-zone-wrap" id="event-zone-wrap">
+          <!-- Zona colorida — renderizada pelo JS -->
+        </div>
+
+        <h3 class="gestao-gloss-sub">Exceções — sempre encaminhar para você</h3>
+        <fieldset class="gestao-checkboxes">
+          <legend>Sempre enviar para você revisar</legend>
+          <label><input type="checkbox" id="rev-bloqueio"/> Bloqueio total, incêndio ou alagamento</label>
+          <label><input type="checkbox" id="rev-offline"/> Enviado offline (sincronizado depois)</label>
+          <label><input type="checkbox" id="rev-primeiro"/> Primeiro reporte nessa área</label>
+          <label><input type="checkbox" id="rev-outro"/> Categoria «outro»</label>
+        </fieldset>
+      </section>
+
+      <!-- ── 3. Manifestações cidadãs ───────────────────────────────────── -->
+      <section class="gestao-policy-section gestao-policy-full">
+        <h2>Manifestações cidadãs</h2>
+        <p class="muted">
+          Comentários (elogios, sugestões e reclamações) usam uma pontuação combinada:
+          a confiança na localização e foto é multiplicada pela qualidade do texto.
+        </p>
+
+        <h3 class="gestao-gloss-sub">Como a pontuação é calculada</h3>
+        <div id="sinais-manif" class="policy-signals-grid"></div>
+
+        <h3 class="gestao-gloss-sub">Quando o sistema age sozinho</h3>
+        <div class="policy-zone-wrap" id="manif-zone-wrap">
+          <!-- Zona colorida — renderizada pelo JS -->
+        </div>
+      </section>
+
+      <!-- ── 4. Decisões imediatas ──────────────────────────────────────── -->
+      <section class="gestao-policy-section gestao-policy-full">
+        <h2>Decisões tomadas imediatamente</h2>
+        <p class="muted">Alguns casos não passam pela pontuação — o sistema decide na hora:</p>
+        <ul id="policy-auto-list" class="gestao-considera"></ul>
+      </section>
+
+      <!-- ── 5. Simulação ───────────────────────────────────────────────── -->
+      <section class="gestao-policy-section gestao-policy-full">
+        <h2>Simular com reportes recentes</h2>
+        <p class="muted">Veja quantos reportes teriam ido para a sua fila com a configuração atual.</p>
+        <button type="button" id="btn-simulate" class="secondary">Simular últimos 7 dias</button>
+        <div id="policy-sim-result" class="gestao-sim-box"></div>
+      </section>
+
+    </div>
+  </main>
+  <script type="module" src="/static/js/gestao-aprovador.js"></script>
+</body>
+</html>

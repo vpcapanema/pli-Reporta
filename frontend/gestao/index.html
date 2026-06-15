@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="theme-color" content="#003b5a"/>
+  <title>PLI Reporta — Gestão</title>
+  <link rel="icon" href="/static/icons/icon-192.png"/>
+  <link rel="stylesheet" href="/static/styles.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+</head>
+<body class="gestao-page">
+  <p class="gestao-mobile-warn">Este módulo foi projetado para uso em computador. Para a melhor experiência, acesse em tela larga.</p>
+  <aside class="gestao-sidebar">
+    <div class="gestao-brand">
+      <img src="/static/icons/icon-192.png" alt="" width="40" height="40"/>
+      <div>
+        <strong>PLI Reporta</strong>
+        <span class="muted">Gestão</span>
+      </div>
+    </div>
+    <nav id="gestao-nav" class="gestao-nav"></nav>
+    <div class="gestao-sidebar-foot">
+      <span id="gestao-user" class="muted"></span>
+      <button type="button" id="btn-gestao-logout" class="secondary">Sair</button>
+    </div>
+  </aside>
+  <main class="gestao-main">
+    <header class="gestao-header">
+      <div>
+        <h1>Painel de gestão</h1>
+        <p class="muted">Mapa operacional e fila de casos que precisam da sua análise</p>
+      </div>
+      <button type="button" id="btn-gestao-refresh">Atualizar</button>
+    </header>
+    <section class="gestao-stats">
+      <article><span class="gestao-stat-label">Sua fila</span><strong id="stat-fila">—</strong></article>
+      <article><span class="gestao-stat-label">Publicados</span><strong id="stat-publicados">—</strong></article>
+      <article><span class="gestao-stat-label">Arquivados</span><strong id="stat-arquivados">—</strong></article>
+      <article><span class="gestao-stat-label">Total</span><strong id="stat-total">—</strong></article>
+    </section>
+    <div class="gestao-split">
+      <section class="gestao-panel gestao-queue-panel">
+        <h2>Precisa da sua análise <span id="gestao-fila-count" class="gestao-badge">0</span></h2>
+        <div id="gestao-queue" class="gestao-queue"></div>
+      </section>
+      <section class="gestao-panel gestao-map-panel">
+        <div id="gestao-map"></div>
+        <aside id="gestao-legend" class="gestao-legend"></aside>
+      </section>
+    </div>
+  </main>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script type="module" src="/static/js/gestao-dashboard.js"></script>
+</body>
+</html>

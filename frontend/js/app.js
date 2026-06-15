@@ -1,13 +1,18 @@
 // Orquestrador da tela de captura.
-import { getOrCreateClientId, enqueue, listQueue, dequeue, newLocalId } from './db.js';
+import { getOrCreateClientId, enqueue, listQueue, dequeue, newLocalId, queueSize } from './db.js';
 import { getCaptureNonce, postReport } from './api.js';
 import { startCamera, stopCamera, captureFrame, getPositionOnce } from './camera.js';
 import { createPickMap } from './map-pick.js';
 
-const CATEGORIES = [
+const EVENT_CATEGORIES = [
   { id: 'buraco',                 ico: 'BU', label: 'Buraco' },
   { id: 'alagamento',             ico: 'AL', label: 'Alagamento' },
   { id: 'acidente',               ico: 'AC', label: 'Acidente' },
+  { id: 'incendio',               ico: 'IN', label: 'Incêndio' },
+  { id: 'animal_na_pista',        ico: 'AN', label: 'Animal na pista' },
+  { id: 'objeto_na_pista',        ico: 'OP', label: 'Objeto na pista' },
+  { id: 'queda_arvore',           ico: 'AR', label: 'Queda de árvore' },
+  { id: 'veiculo_quebrado',       ico: 'VQ', label: 'Veículo quebrado' },
   { id: 'bloqueio_total',         ico: 'BL', label: 'Bloqueio total' },
   { id: 'obra_grande',            ico: 'OB', label: 'Obra' },
   { id: 'lentidao_corredor',      ico: 'LE', label: 'Lentidão' },
@@ -15,9 +20,15 @@ const CATEGORIES = [
   { id: 'outro',                  ico: 'OU', label: 'Outro' },
 ];
 
+const MANIF_TYPES = [
+  { id: 'elogio',     ico: 'EL', label: 'Elogio' },
+  { id: 'sugestao',   ico: 'SG', label: 'Sugestão' },
+  { id: 'reclamacao', ico: 'RC', label: 'Reclamação' },
+];
+
 const state = {
+  interactionType: null,
   category: null,
-  magnitude: 'normal',
   description: '',
   position: null,
   accuracy: null,
@@ -27,6 +38,7 @@ const state = {
   nonce: null,
   stream: null,
   pickMap: null,
+  mapInitialized: false,
 };
 
 const clientId = getOrCreateClientId();
@@ -34,6 +46,10 @@ const clientId = getOrCreateClientId();
 function $(sel) { return document.querySelector(sel); }
 function show(id) { $(id).hidden = false; }
 function hide(id) { $(id).hidden = true; }
+function hideAllSteps() {
+  ['#step-0', '#step-1-evento', '#step-1-manifestacao', '#step-2', '#step-3', '#step-4']
+    .forEach((id) => hide(id));
+}
 
 function toast(msg, type) {
   const t = $('#toast');
@@ -42,43 +58,99 @@ function toast(msg, type) {
   setTimeout(() => t.classList.remove('show'), 3500);
 }
 
-function renderCategories() {
+async function updateQueueBadge() {
+  const n = await queueSize();
+  const badge = $('#queue-badge');
+  if (n > 0) {
+    badge.hidden = false;
+    badge.textContent = `${n} na fila`;
+  } else {
+    badge.hidden = true;
+  }
+}
+
+function renderEventCategories() {
   const grid = $('#cat-grid');
   grid.innerHTML = '';
-  for (const c of CATEGORIES) {
+  for (const c of EVENT_CATEGORIES) {
     const b = document.createElement('button');
     b.type = 'button';
     b.dataset.id = c.id;
     b.innerHTML = `<span class="ico">${c.ico}</span><span>${c.label}</span>`;
-    b.addEventListener('click', () => selectCategory(c.id));
+    b.addEventListener('click', () => selectEventCategory(c.id));
     grid.appendChild(b);
   }
 }
 
-function selectCategory(id) {
+function renderManifTypes() {
+  const grid = $('#manif-grid');
+  grid.innerHTML = '';
+  for (const c of MANIF_TYPES) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.dataset.id = c.id;
+    b.innerHTML = `<span class="ico">${c.ico}</span><span>${c.label}</span>`;
+    b.addEventListener('click', () => selectManifType(c.id));
+    grid.appendChild(b);
+  }
+}
+
+function selectEventCategory(id) {
   state.category = id;
   document.querySelectorAll('#cat-grid button').forEach((b) => {
     b.classList.toggle('selected', b.dataset.id === id);
   });
-  $('#btn-step1').disabled = false;
+  $('#btn-step1-evento').disabled = false;
 }
 
-async function step1Next() {
-  // Pede nonce e GPS em paralelo, depois inicia câmera.
-  show('#step-2'); hide('#step-1');
+function selectManifType(id) {
+  state.category = id;
+  document.querySelectorAll('#manif-grid button').forEach((b) => {
+    b.classList.toggle('selected', b.dataset.id === id);
+  });
+  validateManifStep();
+}
+
+function validateManifStep() {
+  const ok = state.category && $('#txt-manif').value.trim().length >= 15;
+  $('#btn-step1-manifestacao').disabled = !ok;
+}
+
+function startBranch(type) {
+  state.interactionType = type;
+  hideAllSteps();
+  if (type === 'evento_trafego') {
+    show('#step-1-evento');
+  } else {
+    show('#step-1-manifestacao');
+  }
+}
+
+async function openCameraStep() {
+  hideAllSteps();
+  show('#step-2');
   $('#status-line').textContent = 'Buscando GPS e preparando câmera…';
-  try {
-    const [nonceRes, pos] = await Promise.all([
-      getCaptureNonce(clientId).catch(() => null),
-      getPositionOnce().catch((e) => { throw e; }),
-    ]);
-    state.nonce = nonceRes ? nonceRes.nonce : null;
+
+  state.nonce = null;
+  state.position = null;
+  state.accuracy = null;
+
+  const gpsPromise = getPositionOnce().catch(() => null);
+  const noncePromise = navigator.onLine
+    ? getCaptureNonce(clientId).catch(() => null)
+    : Promise.resolve(null);
+
+  const [nonceRes, pos] = await Promise.all([noncePromise, gpsPromise]);
+
+  if (nonceRes) state.nonce = nonceRes.nonce;
+  if (pos) {
     state.position = { lat: pos.lat, lon: pos.lon };
     state.accuracy = pos.accuracy;
-    $('#gps-line').textContent = `GPS: ${pos.lat.toFixed(5)}, ${pos.lon.toFixed(5)} (±${Math.round(pos.accuracy)} m)`;
-  } catch (err) {
-    $('#gps-line').textContent = 'Não foi possível obter GPS. Você poderá ajustar no mapa.';
-    state.position = { lat: -23.55, lon: -46.63 }; // fallback SP
+    $('#gps-line').textContent =
+      `GPS: ${pos.lat.toFixed(5)}, ${pos.lon.toFixed(5)} (±${Math.round(pos.accuracy)} m)`;
+  } else {
+    $('#gps-line').textContent = 'GPS indisponível — ajuste no mapa depois da foto.';
+    state.position = { lat: -23.55, lon: -46.63 };
   }
 
   const video = $('#cam-video');
@@ -89,7 +161,7 @@ async function step1Next() {
     $('#btn-shoot').disabled = false;
     $('#fallback-input').hidden = true;
   } else {
-    $('#cam-status').textContent = 'Câmera não disponível, use o botão abaixo.';
+    $('#cam-status').textContent = 'Câmera indisponível — use o botão abaixo.';
     $('#btn-shoot').disabled = true;
     $('#fallback-input').hidden = false;
   }
@@ -111,37 +183,59 @@ function onPhoto(blob) {
   if (state.photoPreviewUrl) URL.revokeObjectURL(state.photoPreviewUrl);
   state.photoPreviewUrl = URL.createObjectURL(blob);
   $('#preview-img').src = state.photoPreviewUrl;
-  show('#step-3'); hide('#step-2');
+
+  const isEvent = state.interactionType === 'evento_trafego';
+  $('#magnitude-wrap').hidden = !isEvent;
+  $('#extras-details').open = false;
+
+  hideAllSteps();
+  show('#step-3');
   stopCamera(state.stream);
   state.stream = null;
-  initPickMap();
+  initPickMapLazy();
 }
 
-function initPickMap() {
-  if (state.pickMap) return;
+function initPickMapLazy() {
+  if (state.mapInitialized) return;
   state.pickMap = createPickMap('pickmap', state.position, (pt) => {
     state.position = pt;
-    $('#picked-line').textContent = `Local ajustado: ${pt.lat.toFixed(5)}, ${pt.lon.toFixed(5)}`;
+    $('#picked-line').textContent =
+      `Local ajustado: ${pt.lat.toFixed(5)}, ${pt.lon.toFixed(5)}`;
   });
+  state.mapInitialized = true;
 }
 
-async function submit() {
-  $('#btn-submit').disabled = true;
-  const payload = {
+function buildPayload() {
+  const isManif = state.interactionType === 'manifestacao';
+  let description = $('#txt-desc').value.trim();
+  if (isManif) {
+    description = state.description || $('#txt-manif').value.trim();
+    if ($('#txt-desc').value.trim()) {
+      description = description + '\n' + $('#txt-desc').value.trim();
+    }
+  }
+  return {
     photoBlob: state.photoBlob,
     lat: state.position.lat,
     lon: state.position.lon,
     accuracy: state.accuracy,
     category: state.category,
-    magnitude: $('#sel-magnitude').value,
-    description: $('#txt-desc').value.trim(),
+    interactionType: state.interactionType,
+    magnitude: isManif ? 'normal' : ($('#sel-magnitude').value || 'normal'),
+    description,
     capturedAt: state.capturedAt,
     captureNonce: state.nonce,
     clientId,
   };
+}
+
+async function submit() {
+  $('#btn-submit').disabled = true;
+  const payload = buildPayload();
 
   if (!navigator.onLine) {
     await enqueueOffline(payload);
+    $('#btn-submit').disabled = false;
     return;
   }
 
@@ -157,71 +251,88 @@ async function submit() {
 }
 
 async function enqueueOffline(payload) {
-  // Converte Blob em ArrayBuffer para guardar em IndexedDB.
   const buf = await payload.photoBlob.arrayBuffer();
   await enqueue({
     localId: newLocalId(),
     photoBuffer: buf,
     payload: { ...payload, photoBlob: undefined },
     queuedAt: new Date().toISOString(),
+    retries: 0,
   });
-  toast('Sem conexão — reporte salvo na fila e enviará quando voltar.', 'warn');
-  resetForNext();
+  await updateQueueBadge();
+  toast('Salvo no celular — enviará quando houver internet.', 'warn');
+  showOfflineResult();
+  registerBackgroundSync();
+}
 
-  // Tenta registrar background sync.
+function showOfflineResult() {
+  hideAllSteps();
+  show('#step-4');
+  $('#result-message').textContent =
+    'Salvo no celular. Enviaremos automaticamente quando você estiver online.';
+  $('#result-id').textContent = 'pendente';
+}
+
+function showResult(res) {
+  hideAllSteps();
+  show('#step-4');
+  $('#result-message').textContent =
+    res.message || 'Estamos analisando. Você pode fechar o app.';
+  $('#result-id').textContent = res.id;
+}
+
+function resetForNext() {
+  state.interactionType = null;
+  state.category = null;
+  state.description = '';
+  state.photoBlob = null;
+  if (state.photoPreviewUrl) URL.revokeObjectURL(state.photoPreviewUrl);
+  state.photoPreviewUrl = null;
+  state.nonce = null;
+  state.mapInitialized = false;
+  state.pickMap = null;
+  $('#txt-desc').value = '';
+  $('#txt-manif').value = '';
+  $('#btn-step1-evento').disabled = true;
+  $('#btn-step1-manifestacao').disabled = true;
+  document.querySelectorAll('.cat-grid button').forEach((b) => b.classList.remove('selected'));
+  hideAllSteps();
+  show('#step-0');
+}
+
+async function registerBackgroundSync() {
   if ('serviceWorker' in navigator && 'SyncManager' in window) {
     try {
       const reg = await navigator.serviceWorker.ready;
       await reg.sync.register('pli-reporta-flush');
-    } catch (_) {}
+    } catch (_) { /* iOS não suporta */ }
   }
 }
 
 async function flushQueue() {
   const items = await listQueue();
-  if (items.length === 0) return;
+  if (items.length === 0) {
+    await updateQueueBadge();
+    return;
+  }
+  let sent = 0;
   for (const it of items) {
     try {
       const blob = new Blob([it.photoBuffer], { type: 'image/jpeg' });
-      await postReport({ ...it.payload, photoBlob: blob });
+      await postReport({
+        ...it.payload,
+        photoBlob: blob,
+        offlineCapture: true,
+        queuedAt: it.queuedAt,
+      });
       await dequeue(it.localId);
+      sent++;
     } catch (e) {
-      // Falhou — para e tenta depois.
-      return;
+      console.warn('Fila: item falhou, continua depois', it.localId, e);
     }
   }
-  toast('Fila enviada com sucesso.', 'ok');
-}
-
-function showResult(res) {
-  hide('#step-3');
-  show('#step-4');
-  const badge = res.status === 'validado' ? 'ok'
-    : res.status === 'em_moderacao' ? 'warn' : 'err';
-  $('#result-status').className = 'badge ' + badge;
-  $('#result-status').textContent = res.status.replace('_', ' ');
-  $('#result-id').textContent = res.id;
-  $('#result-v').textContent = res.veracity_score.toFixed(2);
-  $('#result-r').textContent = res.relevance_score.toFixed(2);
-  $('#result-p').textContent = res.priority.toFixed(2);
-  const ul = $('#result-explain'); ul.innerHTML = '';
-  res.explanation.forEach((line) => {
-    const li = document.createElement('li');
-    li.textContent = line;
-    ul.appendChild(li);
-  });
-}
-
-function resetForNext() {
-  state.category = null;
-  state.photoBlob = null;
-  if (state.photoPreviewUrl) URL.revokeObjectURL(state.photoPreviewUrl);
-  state.photoPreviewUrl = null;
-  $('#cat-grid').querySelectorAll('button').forEach((b) => b.classList.remove('selected'));
-  $('#txt-desc').value = '';
-  $('#btn-step1').disabled = true;
-  hide('#step-2'); hide('#step-3'); hide('#step-4');
-  show('#step-1');
+  await updateQueueBadge();
+  if (sent > 0) toast(`${sent} reporte(s) enviado(s).`, 'ok');
 }
 
 function onFallbackFile(ev) {
@@ -231,16 +342,37 @@ function onFallbackFile(ev) {
 }
 
 function bindUI() {
-  renderCategories();
-  $('#btn-step1').addEventListener('click', step1Next);
+  renderEventCategories();
+  renderManifTypes();
+
+  $('#branch-evento').addEventListener('click', () => startBranch('evento_trafego'));
+  $('#branch-manifestacao').addEventListener('click', () => startBranch('manifestacao'));
+
+  $('#btn-back-0').addEventListener('click', resetForNext);
+  $('#btn-back-0b').addEventListener('click', resetForNext);
+
+  $('#btn-step1-evento').addEventListener('click', openCameraStep);
+  $('#btn-step1-manifestacao').addEventListener('click', () => {
+    state.description = $('#txt-manif').value.trim();
+    openCameraStep();
+  });
+
+  $('#txt-manif').addEventListener('input', validateManifStep);
+
   $('#btn-shoot').addEventListener('click', shoot);
   $('#fallback-input').addEventListener('change', onFallbackFile);
   $('#btn-submit').addEventListener('click', submit);
   $('#btn-new').addEventListener('click', resetForNext);
+
   $('#btn-back').addEventListener('click', () => {
     stopCamera(state.stream);
     state.stream = null;
-    hide('#step-2'); show('#step-1');
+    hideAllSteps();
+    if (state.interactionType === 'evento_trafego') {
+      show('#step-1-evento');
+    } else {
+      show('#step-1-manifestacao');
+    }
   });
 
   window.addEventListener('online', flushQueue);
@@ -258,5 +390,6 @@ function registerSW() {
 document.addEventListener('DOMContentLoaded', () => {
   bindUI();
   registerSW();
+  updateQueueBadge();
   flushQueue();
 });

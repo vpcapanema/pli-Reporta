@@ -9,6 +9,11 @@ from pydantic import BaseModel, ConfigDict, Field
 CategoryT = Literal[
     "bloqueio_total",
     "acidente",
+    "incendio",
+    "animal_na_pista",
+    "objeto_na_pista",
+    "queda_arvore",
+    "veiculo_quebrado",
     "alagamento",
     "obra_grande",
     "lentidao_corredor",
@@ -16,6 +21,8 @@ CategoryT = Literal[
     "buraco",
     "outro",
 ]
+ManifestationT = Literal["elogio", "sugestao", "reclamacao"]
+InteractionT = Literal["evento_trafego", "manifestacao"]
 MagnitudeT = Literal["leve", "normal", "grave"]
 
 
@@ -27,6 +34,8 @@ class CaptureNonceResponse(BaseModel):
 class ReportCreated(BaseModel):
     id: str
     status: str
+    interaction_type: str
+    message: str
     veracity_score: float
     relevance_score: float
     priority: float
@@ -56,3 +65,43 @@ class ReportPublic(BaseModel):
 class ModerationDecision(BaseModel):
     decision: Literal["publicar", "descartar"]
     note: str | None = None
+
+
+class LoginRequest(BaseModel):
+    username: str = Field(min_length=3, max_length=255)
+    password: str = Field(min_length=6, max_length=128)
+
+
+class LoginResponse(BaseModel):
+    token: str
+    expires_in: int
+    username: str
+
+
+class AuthFieldHint(BaseModel):
+    label: str
+    placeholder: str
+    hint: str
+
+
+class SigmaAuthLinks(BaseModel):
+    cadastro: str
+    cadastro_sigma: str
+    recuperar_senha: str
+    login_gestor: str
+    login_sigma: str
+    selecionar_perfil: str
+
+
+class AuthContextResponse(BaseModel):
+    sigma_configured: bool
+    profile: str
+    identifier: AuthFieldHint
+    password: AuthFieldHint
+    sigma_links: SigmaAuthLinks | None = None
+
+
+class ModerationPolicyUpdate(BaseModel):
+    preset: str | None = None
+    eventos: dict | None = None
+    manifestacoes: dict | None = None

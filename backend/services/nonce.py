@@ -20,11 +20,16 @@ def issue_nonce(client_id: str | None = None) -> str:
     return _serializer().dumps(payload)
 
 
-def verify_nonce(nonce: str | None) -> bool:
+def verify_nonce(nonce: str | None, *, offline: bool = False) -> bool:
     if not nonce:
         return False
+    max_age = (
+        settings.capture_nonce_offline_ttl_seconds
+        if offline
+        else settings.capture_nonce_ttl_seconds
+    )
     try:
-        _serializer().loads(nonce, max_age=settings.capture_nonce_ttl_seconds)
+        _serializer().loads(nonce, max_age=max_age)
         return True
     except (SignatureExpired, BadSignature):
         return False

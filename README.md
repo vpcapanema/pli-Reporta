@@ -28,7 +28,7 @@ Abra:
 
 - `http://localhost:8080/`            — PWA de reporte (mobile-first)
 - `http://localhost:8080/mapa`        — visualizador público
-- `http://localhost:8080/moderar`     — painel de moderação (faixa cinza)
+- `http://localhost:8080/acesso`        — acesso restrito (login gestor / moderação)
 - `http://localhost:8080/docs`        — OpenAPI / Swagger
 - `http://localhost:8080/api/v1/incidents.geojson` — feed para o roteador
 
@@ -49,7 +49,7 @@ pli_reporta/
 ├── frontend/               PWA vanilla + MapLibre GL
 │   ├── index.html          tela de captura
 │   ├── viewer.html         mapa público
-│   ├── moderation.html     painel de moderação
+│   ├── acesso.html         login e painel de moderação
 │   ├── manifest.webmanifest
 │   ├── sw.js               service worker (offline + background sync)
 │   └── js/                 módulos
@@ -80,21 +80,12 @@ Sem emojis em qualquer artefato visual; categorias usam marcadores tipográficos
 (BU, AL, AC, BL, OB, LE, SI, OU). Para ajustes finos basta sobrescrever os tokens em
 `frontend/styles.css`.
 
-## Acesso à moderação
+## Acesso restrito
 
-A página `/moderar` está visível no menu superior de todas as telas. Ao abrir, ela
-pede a `MODERATOR_API_KEY` (definida no `.env` do servidor) e a guarda no
-`localStorage` do navegador. Sem chave válida o backend devolve `401`.
+A rota `/acesso` (link **Acesso Restrito** no menu) concentra login de gestores e moderação.
+A rota legada `/moderar` redireciona para `/acesso`.
 
-Gerar uma chave local:
-
-```cmd
-venv\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(32))"
-```
-
-Cole o valor em `MODERATOR_API_KEY` no `.env` e reinicie o `uvicorn`.
-
-
+Autenticação via SIGMA-PLI (`SIGMA_API_BASE_URL`) ou credenciais locais de dev (`MODERATOR_USERNAME` / `MODERATOR_PASSWORD`).
 
 | Tema | Escolha | Por quê |
 |---|---|---|

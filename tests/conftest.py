@@ -16,7 +16,11 @@ os.environ.setdefault("PHOTO_STORAGE_DIR", str(_TMP / "photos"))
 os.environ.setdefault("SECRET_KEY", "test-secret-very-long-enough-string")
 os.environ.setdefault("AUTO_PUBLISH_THRESHOLD", "0.70")
 os.environ.setdefault("AUTO_DISCARD_THRESHOLD", "0.30")
-os.environ.setdefault("MODERATOR_API_KEY", "test-mod-key")
+os.environ["SIGMA_POSTGRES_PASSWORD"] = ""
+os.environ["SIGMA_POSTGRES_HOST"] = ""
+os.environ["SIGMA_API_BASE_URL"] = ""
+os.environ.setdefault("MODERATOR_USERNAME", "test-admin")
+os.environ.setdefault("MODERATOR_PASSWORD", "test-pass")
 Path(os.environ["PHOTO_STORAGE_DIR"]).mkdir(parents=True, exist_ok=True)
 
 import pytest  # noqa: E402

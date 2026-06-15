@@ -51,6 +51,11 @@ export async function listQueue() {
   });
 }
 
+export async function queueSize() {
+  const items = await listQueue();
+  return items.length;
+}
+
 export function newLocalId() {
   return 'q_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
 }

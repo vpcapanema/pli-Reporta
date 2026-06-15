@@ -8,16 +8,22 @@
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.5.0/dist/maplibre-gl.css"/>
   <link rel="stylesheet" href="/static/styles.css"/>
 </head>
-<body style="margin:0">
+<body class="public-page viewer-page">
   <header class="topbar">
-    <h1>Mapa de incidentes</h1>
+    <h1>Mapa público</h1>
     <nav>
-      <span style="font-size:13px; opacity:0.85; margin-right:14px">Ativos: <span id="count">…</span></span>
+      <span class="viewer-count">
+        Eventos: <span id="count-events">…</span> · Manifestações: <span id="count-manif">…</span>
+      </span>
       <a href="/">Reportar</a>
       <a href="/mapa">Mapa</a>
-      <a href="/moderar">Moderar</a>
+      <a href="/acesso">Acesso Restrito</a>
     </nav>
   </header>
+  <div class="map-toolbar">
+    <label><input type="checkbox" id="layer-events" checked/> Eventos de tráfego</label>
+    <label><input type="checkbox" id="layer-manif" checked/> Manifestações cidadãs</label>
+  </div>
   <div id="viewer-map"></div>
   <script src="https://unpkg.com/maplibre-gl@4.5.0/dist/maplibre-gl.js"></script>
   <script type="module" src="/static/js/viewer.js"></script>
