@@ -24,8 +24,8 @@
   <main class="gestao-main gestao-main-policy">
     <header class="gestao-header">
       <div>
-        <h1>Aprovador automático</h1>
-        <p id="policy-intro" class="muted"></p>
+        <h1><span class="gestao-header-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></span>Aprovador automático — Parâmetros</h1>
+        <p class="muted">Todos os valores que o sistema considera para aprovar, encaminhar ou descartar reportes.</p>
       </div>
       <button type="button" id="btn-save-policy">Salvar alterações</button>
     </header>
@@ -33,70 +33,217 @@
 
     <div class="gestao-policy-grid">
 
-      <!-- ── 1. Perfil geral ────────────────────────────────────────────── -->
+      <!-- ══ SEÇÃO 1: Limiares de decisão ══════════════════════════════════ -->
       <section class="gestao-policy-section gestao-policy-full">
-        <h2>Perfil geral</h2>
-        <p class="muted">Escolha um ponto de partida — você pode ajustar os detalhes abaixo.</p>
-        <div id="policy-presets" class="gestao-presets"></div>
-      </section>
-
-      <!-- ── 2. Eventos de tráfego ──────────────────────────────────────── -->
-      <section class="gestao-policy-section gestao-policy-full">
-        <h2>Eventos de tráfego</h2>
-        <p class="muted">
-          Cada reporte recebe uma pontuação de <strong>0 a 100 pontos</strong>,
-          calculada a partir dos critérios abaixo. A pontuação determina se o sistema
-          age sozinho ou encaminha para você revisar.
+        <h2 class="policy-section-title">
+          <span class="policy-section-num">1</span>
+          Limiares de decisão automática
+        </h2>
+        <p class="muted policy-section-desc">
+          O aprovador calcula um <strong>Score de Veracidade V</strong> (0–100 pts) para cada reporte de evento,
+          e um <strong>Score de Legitimidade L</strong> para manifestações. Com base nesses valores decide:
+          publicar automaticamente, encaminhar para revisão humana, ou descartar.
         </p>
 
-        <h3 class="gestao-gloss-sub">Critérios de pontuação</h3>
-        <div id="sinais-evento" class="policy-signals-grid"></div>
+        <div class="policy-decision-grid">
+          <div class="policy-decision-col">
+            <h3 class="policy-col-title">Eventos de tráfego</h3>
+            <div class="policy-decision-row">
+              <div class="policy-global-block">
+                <span class="policy-global-label">Publicar automaticamente se V ≥</span>
+                <div class="policy-num-wrap">
+                  <input type="number" id="g-event-pub" min="1" max="99" step="1"/>
+                  <span class="policy-num-unit">pts</span>
+                </div>
+                <small class="muted">Abaixo disto vai para revisão humana</small>
+              </div>
+              <div class="policy-global-block">
+                <span class="policy-global-label">Descartar automaticamente se V &lt;</span>
+                <div class="policy-num-wrap">
+                  <input type="number" id="g-event-disc" min="1" max="99" step="1"/>
+                  <span class="policy-num-unit">pts</span>
+                </div>
+                <small class="muted">Reporte ignorado sem revisão</small>
+              </div>
+            </div>
+          </div>
 
-        <h3 class="gestao-gloss-sub">Quando o sistema age sozinho</h3>
-        <div class="policy-zone-wrap" id="event-zone-wrap">
-          <!-- Zona colorida — renderizada pelo JS -->
+          <div class="policy-decision-col">
+            <h3 class="policy-col-title">Manifestações cidadãs</h3>
+            <div class="policy-decision-row">
+              <div class="policy-global-block">
+                <span class="policy-global-label">Publicar automaticamente se L ≥</span>
+                <div class="policy-num-wrap">
+                  <input type="number" id="g-manif-pub" min="1" max="99" step="1"/>
+                  <span class="policy-num-unit">pts</span>
+                </div>
+                <small class="muted">Score L = confiança × qualidade do texto</small>
+              </div>
+              <div class="policy-global-block">
+                <span class="policy-global-label">Descartar automaticamente se L &lt;</span>
+                <div class="policy-num-wrap">
+                  <input type="number" id="g-manif-disc" min="1" max="99" step="1"/>
+                  <span class="policy-num-unit">pts</span>
+                </div>
+                <small class="muted">Manifestação ignorada sem revisão</small>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <h3 class="gestao-gloss-sub">Exceções — sempre encaminhar para você</h3>
-        <fieldset class="gestao-checkboxes">
-          <legend>Sempre enviar para você revisar</legend>
-          <label><input type="checkbox" id="rev-bloqueio"/> Bloqueio total, incêndio ou alagamento</label>
-          <label><input type="checkbox" id="rev-offline"/> Enviado offline (sincronizado depois)</label>
-          <label><input type="checkbox" id="rev-primeiro"/> Primeiro reporte nessa área</label>
-          <label><input type="checkbox" id="rev-outro"/> Categoria «outro»</label>
-        </fieldset>
-      </section>
-
-      <!-- ── 3. Manifestações cidadãs ───────────────────────────────────── -->
-      <section class="gestao-policy-section gestao-policy-full">
-        <h2>Manifestações cidadãs</h2>
-        <p class="muted">
-          Comentários (elogios, sugestões e reclamações) usam uma pontuação combinada:
-          a confiança na localização e foto é multiplicada pela qualidade do texto.
+        <h3 class="policy-col-title" style="margin-top:var(--space-lg)">Revisão obrigatória — exceções</h3>
+        <p class="muted" style="margin-bottom:var(--space-sm)">
+          Mesmo que o score esteja acima do limiar de publicação, estas condições forçam revisão humana.
         </p>
-
-        <h3 class="gestao-gloss-sub">Como a pontuação é calculada</h3>
-        <div id="sinais-manif" class="policy-signals-grid"></div>
-
-        <h3 class="gestao-gloss-sub">Quando o sistema age sozinho</h3>
-        <div class="policy-zone-wrap" id="manif-zone-wrap">
-          <!-- Zona colorida — renderizada pelo JS -->
+        <div class="policy-flags-grid">
+          <label class="policy-flag-item">
+            <input type="checkbox" id="g-blocking"/>
+            <span class="flag-text">
+              <strong>Categorias bloqueantes</strong>
+              <small class="muted">Bloqueio total, Alagamento, Incêndio — sempre revisados</small>
+            </span>
+          </label>
+          <label class="policy-flag-item">
+            <input type="checkbox" id="g-offline"/>
+            <span class="flag-text">
+              <strong>Envios offline</strong>
+              <small class="muted">Captura sem nonce — foto pode ter sido tirada antes do evento</small>
+            </span>
+          </label>
+          <label class="policy-flag-item">
+            <input type="checkbox" id="g-first-area"/>
+            <span class="flag-text">
+              <strong>Primeiro reporte em área nova</strong>
+              <small class="muted">Nenhuma confirmação de outros usuários ainda — requer cautela</small>
+            </span>
+          </label>
+          <label class="policy-flag-item">
+            <input type="checkbox" id="g-other"/>
+            <span class="flag-text">
+              <strong>Categoria "Outro"</strong>
+              <small class="muted">Categoria genérica — sistema prefere não decidir sozinho</small>
+            </span>
+          </label>
         </div>
       </section>
 
-      <!-- ── 4. Decisões imediatas ──────────────────────────────────────── -->
+      <!-- ══ SEÇÃO 2: Pesos dos sinais de veracidade ════════════════════════ -->
       <section class="gestao-policy-section gestao-policy-full">
-        <h2>Decisões tomadas imediatamente</h2>
-        <p class="muted">Alguns casos não passam pela pontuação — o sistema decide na hora:</p>
-        <ul id="policy-auto-list" class="gestao-considera"></ul>
+        <h2 class="policy-section-title">
+          <span class="policy-section-num">2</span>
+          Score de Veracidade V — pesos dos sinais
+        </h2>
+        <p class="muted policy-section-desc">
+          O score V é a <strong>média ponderada de 7 sinais</strong> (0–100 pts cada).
+          Os pesos abaixo determinam quanto cada sinal influencia no resultado final.
+          Soma dos pesos deve ser 100 — o sistema normaliza automaticamente ao salvar.
+        </p>
+        <div class="policy-table-wrap">
+          <table class="policy-table">
+            <thead>
+              <tr>
+                <th class="col-signal">Sinal</th>
+                <th class="col-signal-desc">O que verifica</th>
+                <th class="col-weight">Peso atual <span id="lbl-weight-total" class="muted"></span></th>
+              </tr>
+            </thead>
+            <tbody id="tbody-signals"></tbody>
+          </table>
+        </div>
       </section>
 
-      <!-- ── 5. Simulação ───────────────────────────────────────────────── -->
+      <!-- ══ SEÇÃO 3: Parâmetros por categoria de evento ════════════════════ -->
       <section class="gestao-policy-section gestao-policy-full">
-        <h2>Simular com reportes recentes</h2>
-        <p class="muted">Veja quantos reportes teriam ido para a sua fila com a configuração atual.</p>
+        <h2 class="policy-section-title">
+          <span class="policy-section-num">3</span>
+          Eventos de tráfego — parâmetros por categoria
+        </h2>
+        <p class="muted policy-section-desc">
+          <strong>Severidade</strong> (0–100) influencia a prioridade do evento no mapa.
+          <strong>Vida útil</strong> define em quantas horas o evento expira automaticamente.
+          <strong>Publicar / Descartar</strong>: limiar específico para esta categoria —
+          badge <span class="global-badge">G</span> indica que está usando o padrão global da Seção 1.
+        </p>
+        <div class="policy-table-wrap">
+          <table class="policy-table">
+            <thead>
+              <tr>
+                <th class="col-cat">Categoria</th>
+                <th class="col-sev">Severidade</th>
+                <th class="col-ttl">Vida útil</th>
+                <th class="col-thresh">Publicar ≥ <small id="lbl-event-pub" class="muted"></small></th>
+                <th class="col-thresh">Descartar &lt; <small id="lbl-event-disc" class="muted"></small></th>
+                <th class="col-rev">Revisar sempre</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-eventos"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ══ SEÇÃO 4: Fatores de relevância por tipo de via ═════════════════ -->
+      <section class="gestao-policy-section gestao-policy-full">
+        <h2 class="policy-section-title">
+          <span class="policy-section-num">4</span>
+          Relevância — fator de afetação por tipo de via
+        </h2>
+        <p class="muted policy-section-desc">
+          O score de Relevância R multiplica a severidade do evento pelo <strong>fator do tipo de via</strong>
+          onde ele ocorre (obtido da malha rodoviária estadual).
+          100 = plena relevância; 0 = via irrelevante para o serviço.
+          O fator R_afetação entra na fórmula: <code>R = R_sev × R_confirm × R_persist × R_afet</code>.
+        </p>
+        <div class="policy-table-wrap">
+          <table class="policy-table">
+            <thead>
+              <tr>
+                <th class="col-highway-id">Tipo de via</th>
+                <th class="col-highway-label">Descrição</th>
+                <th class="col-weight">Fator (0–100)</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-highway"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ══ SEÇÃO 5: Manifestações cidadãs por tipo ════════════════════════ -->
+      <section class="gestao-policy-section gestao-policy-full">
+        <h2 class="policy-section-title">
+          <span class="policy-section-num">5</span>
+          Manifestações cidadãs — parâmetros por tipo
+        </h2>
+        <p class="muted policy-section-desc">
+          Score L = legitimidade, calculado com base na veracidade e na qualidade/comprimento do texto.
+          Limiares sem valor usam o padrão global da Seção 1.
+        </p>
+        <div class="policy-table-wrap">
+          <table class="policy-table">
+            <thead>
+              <tr>
+                <th class="col-cat">Tipo</th>
+                <th class="col-thresh">Publicar ≥ <small id="lbl-manif-pub" class="muted"></small></th>
+                <th class="col-thresh">Descartar &lt; <small id="lbl-manif-disc" class="muted"></small></th>
+                <th class="col-rev">Revisar sempre</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-manif"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ══ Simular ════════════════════════════════════════════════════════ -->
+      <section class="gestao-policy-section gestao-policy-full">
+        <h2 class="policy-section-title">
+          <span class="policy-section-num">↺</span>
+          Simular com reportes recentes
+        </h2>
+        <p class="muted policy-section-desc">
+          Com os parâmetros <em>atualmente salvos</em>, quantos reportes dos últimos 7 dias
+          teriam sido publicados, encaminhados para sua fila ou descartados.
+        </p>
         <button type="button" id="btn-simulate" class="secondary">Simular últimos 7 dias</button>
-        <div id="policy-sim-result" class="gestao-sim-box"></div>
+        <div id="policy-sim-result" class="gestao-sim-box" hidden></div>
       </section>
 
     </div>

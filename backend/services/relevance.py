@@ -107,10 +107,11 @@ def _r_persistence(captured_at_iso: str, ttl_h: float, now: datetime | None = No
     return math.exp(-age_h / max(0.1, ttl_h))
 
 
-def _r_afetacao(highway: str | None) -> float:
+def _r_afetacao(highway: str | None, hw_factors: dict[str, float] | None = None) -> float:
     if not highway:
         return 0.5  # neutro quando não há base de vias
-    return HIGHWAY_FACTOR.get(highway, 0.4)
+    factors = hw_factors if hw_factors is not None else HIGHWAY_FACTOR
+    return factors.get(highway, 0.4)
 
 
 def ttl_for(category: str) -> float:
@@ -128,10 +129,11 @@ def compute_relevance(
     n_confirmations: int,
     captured_at_iso: str,
     highway: str | None,
+    hw_factors: dict[str, float] | None = None,
 ) -> RelevanceBreakdown:
     return RelevanceBreakdown(
         severity=_r_severity(category, magnitude),
         confirmation=_r_confirmation(n_confirmations),
         persistence=_r_persistence(captured_at_iso, ttl_for(category)),
-        afetacao=_r_afetacao(highway),
+        afetacao=_r_afetacao(highway, hw_factors),
     )

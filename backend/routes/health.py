@@ -17,10 +17,10 @@ router = APIRouter()
 def healthz(db: Session = Depends(get_session)) -> dict:
     now_iso = datetime.now(timezone.utc).isoformat()
     queue_size = db.execute(
-        select(func.count()).select_from(Report).where(Report.status == "em_moderacao")
+        select(func.count()).select_from(Report).where(Report.status == "em_moderacao")  # pylint: disable=not-callable
     ).scalar_one()
     active = db.execute(
-        select(func.count()).select_from(Report).where(
+        select(func.count()).select_from(Report).where(  # pylint: disable=not-callable
             Report.status.in_(("validado", "publicado")),
             (Report.valid_to.is_(None)) | (Report.valid_to > now_iso),
         )

@@ -28,12 +28,20 @@
       <span class="label">O que você quer reportar?</span>
       <div class="branch-grid">
         <button type="button" id="branch-evento" class="branch-btn">
-          <span class="branch-title">Evento de Tráfego</span>
-          <span class="branch-desc">Buraco, alagamento, acidente, bloqueio…</span>
+          <span class="branch-btn-icon">🚧</span>
+          <span class="branch-btn-body">
+            <span class="branch-title">Evento de Tráfego</span>
+            <span class="branch-desc">Buraco, alagamento, acidente, bloqueio…</span>
+          </span>
+          <span class="branch-btn-arrow">›</span>
         </button>
         <button type="button" id="branch-manifestacao" class="branch-btn">
-          <span class="branch-title">Manifestação Cidadã</span>
-          <span class="branch-desc">Elogio, sugestão ou reclamação</span>
+          <span class="branch-btn-icon">💬</span>
+          <span class="branch-btn-body">
+            <span class="branch-title">Manifestação Cidadã</span>
+            <span class="branch-desc">Elogio, sugestão ou reclamação</span>
+          </span>
+          <span class="branch-btn-arrow">›</span>
         </button>
       </div>
     </section>
@@ -56,6 +64,18 @@
       <label class="label" for="txt-manif" style="margin-top:12px">Descreva (obrigatório)</label>
       <textarea id="txt-manif" class="field" maxlength="500" minlength="15"
         placeholder="Conte o que você elogiou, sugere ou reclama"></textarea>
+
+      <div class="photo-toggle-wrap">
+        <button type="button" id="btn-toggle-photo" class="photo-toggle-btn" aria-pressed="false">
+          <span class="photo-toggle-icon" id="photo-toggle-icon">📷</span>
+          <span class="photo-toggle-body">
+            <span class="photo-toggle-title">Enviar registro fotográfico</span>
+            <span class="photo-toggle-desc" id="photo-toggle-desc">Clique para abrir a câmera ao continuar</span>
+          </span>
+          <span class="photo-toggle-pill" id="photo-toggle-pill">Não</span>
+        </button>
+      </div>
+
       <div class="row" style="margin-top:14px">
         <button class="secondary" id="btn-back-0b">Voltar</button>
         <button id="btn-step1-manifestacao" disabled>Continuar</button>
@@ -79,6 +99,10 @@
     <!-- Etapa 3: confirmação e envio -->
     <section id="step-3" class="card" hidden>
       <span class="label">Confirme e envie</span>
+      <div id="no-photo-notice" class="no-photo-notice" hidden>
+        <span>📋</span>
+        <span>Sem registro fotográfico — apenas texto e coordenada GPS.</span>
+      </div>
       <img id="preview-img" class="preview" alt="prévia" style="margin-bottom:10px"/>
 
       <details id="extras-details" class="extras">

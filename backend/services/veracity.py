@@ -183,7 +183,9 @@ def compute_veracity(
     nonce_valid: bool,
     reputation: float = 0.0,
     offline_capture: bool = False,
+    weight_overrides: dict[str, float] | None = None,
 ) -> tuple[float, list[Signal]]:
+    active_w = {**WEIGHTS, **(weight_overrides or {})}
     signals = [
         _signal_geo_browser(accuracy_m, lat, lon),
         _signal_exif_match(exif, lat, lon, captured_at_iso),
@@ -193,6 +195,9 @@ def compute_veracity(
         _signal_user_reputation(reputation),
         _signal_temporal_plausibility(captured_at_iso, offline_capture=offline_capture),
     ]
+    # Aplica pesos customizados
+    for s in signals:
+        s.weight = active_w.get(s.name, s.weight)
     total_w = sum(s.weight for s in signals) or 1.0
     score = sum(s.value * s.weight for s in signals) / total_w
     return score, signals

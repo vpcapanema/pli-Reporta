@@ -5,7 +5,8 @@ import json
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
-from sqlalchemy import func, select
+from sqlalchemy import select
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..database import get_session
@@ -14,6 +15,7 @@ from ..schemas import ModerationDecision, ModerationPolicyUpdate
 from ..services import auth as auth_svc
 from ..services import photos as photo_svc
 from ..services.moderation_policy import (
+    ensure_default_policy,
     friendly_policy_payload,
     get_active_policy,
     simulate_policy,
@@ -92,10 +94,10 @@ def moderation_stats(
     _moderator: auth_svc.ModeratorSession = Depends(require_moderator),
 ) -> dict:
     rows = db.execute(
-        select(Report.status, func.count())
+        select(Report.status, func.count())  # pylint: disable=not-callable
         .group_by(Report.status)
     ).all()
-    by_status = {status: int(count) for status, count in rows}
+    by_status = {status: int(n) for status, n in rows}
     fila = by_status.get("em_moderacao", 0)
     return {
         "fila": fila,
@@ -111,8 +113,9 @@ def get_policy(
     db: Session = Depends(get_session),
     _moderator: auth_svc.ModeratorSession = Depends(require_moderator),
 ) -> dict:
+    row = ensure_default_policy(db)
     active = get_active_policy(db)
-    return friendly_policy_payload(active)
+    return friendly_policy_payload(active, row)
 
 
 @router.patch("/moderation/policy")
@@ -122,8 +125,53 @@ def patch_policy(
     moderator: auth_svc.ModeratorSession = Depends(require_moderator),
 ) -> dict:
     actor = f"moderator:{moderator.user_id}:{moderator.username}"
-    active = update_policy(db, payload=body.model_dump(exclude_none=True), actor=actor)
-    return friendly_policy_payload(active)
+    raw = body.model_dump(exclude_none=True)
+
+    # Normaliza payload legado → novo formato
+    payload: dict = {}
+    if raw.get("global_config"):
+        payload["global"] = raw["global_config"]
+    if raw.get("sinais_veracidade"):
+        payload["sinais_veracidade"] = raw["sinais_veracidade"]
+    if raw.get("fatores_via"):
+        payload["fatores_via"] = raw["fatores_via"]
+    if raw.get("categorias_evento"):
+        payload["categorias_evento"] = raw["categorias_evento"]
+    if raw.get("categorias_manif"):
+        payload["categorias_manif"] = raw["categorias_manif"]
+
+    # Legado: preset
+    if raw.get("preset"):
+        payload["preset"] = raw["preset"]
+        from ..services.moderation_policy import PRESET_THRESHOLDS
+        t = PRESET_THRESHOLDS.get(raw["preset"], {})
+        if t:
+            g = payload.setdefault("global", {})
+            g.update({
+                "event_publish_min":  int(t["event_publish_min"] * 100),
+                "event_discard_below": int(t["event_discard_below"] * 100),
+                "manif_publish_min":  int(t["manif_publish_min"] * 100),
+                "manif_discard_below": int(t["manif_discard_below"] * 100),
+            })
+
+    # Legado: eventos / manifestacoes
+    if raw.get("eventos"):
+        ev = raw["eventos"]
+        g = payload.setdefault("global", {})
+        if "publicar_sozinho" in ev:
+            g["event_publish_min"] = int(ev["publicar_sozinho"])
+        if "arquivar_sozinho" in ev:
+            g["event_discard_below"] = int(ev["arquivar_sozinho"])
+    if raw.get("manifestacoes"):
+        mn = raw["manifestacoes"]
+        g = payload.setdefault("global", {})
+        if "publicar_sozinho" in mn:
+            g["manif_publish_min"] = int(mn["publicar_sozinho"])
+        if "arquivar_sozinho" in mn:
+            g["manif_discard_below"] = int(mn["arquivar_sozinho"])
+
+    active, row = update_policy(db, payload=payload, actor=actor)
+    return friendly_policy_payload(active, row)
 
 
 @router.post("/moderation/policy/simulate")
@@ -132,8 +180,9 @@ def policy_simulate(
     _moderator: auth_svc.ModeratorSession = Depends(require_moderator),
     days: int = Query(default=7, ge=1, le=90),
 ) -> dict:
+    row = ensure_default_policy(db)
     active = get_active_policy(db)
-    return simulate_policy(db, active, days=days)
+    return simulate_policy(db, active, days=days, row=row)
 
 
 @router.get("/moderation/reports")
@@ -151,7 +200,7 @@ def list_reports(
     if status:
         filters.append(Report.status == status)
     total = db.execute(
-        select(func.count()).select_from(Report).where(*filters)
+        select(func.count()).select_from(Report).where(*filters)  # pylint: disable=not-callable
     ).scalar_one()
     rows = db.execute(
         select(Report)

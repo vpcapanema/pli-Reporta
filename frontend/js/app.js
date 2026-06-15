@@ -39,6 +39,7 @@ const state = {
   stream: null,
   pickMap: null,
   mapInitialized: false,
+  withPhoto: false,
 };
 
 const clientId = getOrCreateClientId();
@@ -126,6 +127,83 @@ function startBranch(type) {
   }
 }
 
+/** Gera imagem 1×1 cinza como placeholder quando não há foto. */
+async function createPlaceholderPhoto() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1;
+  canvas.height = 1;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#cccccc';
+  ctx.fillRect(0, 0, 1, 1);
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.5);
+  });
+}
+
+/** Fluxo sem câmera: captura GPS, gera placeholder e vai direto para confirmação. */
+async function openConfirmDirectly() {
+  const btn = $('#btn-step1-manifestacao');
+  btn.disabled = true;
+  btn.textContent = 'Buscando GPS…';
+
+  try {
+    state.nonce = null;
+    state.capturedAt = new Date().toISOString();
+
+    const [nonceRes, pos] = await Promise.all([
+      navigator.onLine ? getCaptureNonce(clientId).catch(() => null) : Promise.resolve(null),
+      getPositionOnce().catch(() => null),
+    ]);
+
+    if (nonceRes) state.nonce = nonceRes.nonce;
+    if (pos) {
+      state.position = { lat: pos.lat, lon: pos.lon };
+      state.accuracy = pos.accuracy;
+    } else {
+      state.position = { lat: -23.55, lon: -46.63 };
+      state.accuracy = null;
+    }
+
+    state.photoBlob = await createPlaceholderPhoto();
+    if (state.photoPreviewUrl) URL.revokeObjectURL(state.photoPreviewUrl);
+    state.photoPreviewUrl = null;
+
+    $('#preview-img').hidden = true;
+    $('#no-photo-notice').hidden = false;
+    $('#magnitude-wrap').hidden = true;
+    $('#extras-details').open = true;
+
+    hideAllSteps();
+    show('#step-3');
+    initPickMapLazy();
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Continuar';
+    validateManifStep();
+  }
+}
+
+function togglePhotoOption() {
+  state.withPhoto = !state.withPhoto;
+  const btn  = $('#btn-toggle-photo');
+  const pill = $('#photo-toggle-pill');
+  const ico  = $('#photo-toggle-icon');
+  const desc = $('#photo-toggle-desc');
+
+  btn.classList.toggle('active', state.withPhoto);
+  btn.setAttribute('aria-pressed', String(state.withPhoto));
+
+  if (state.withPhoto) {
+    pill.textContent = 'Sim';
+    ico.textContent  = '✓';
+    if (desc) desc.textContent = 'Câmera será aberta ao continuar';
+  } else {
+    pill.textContent = 'Não';
+    ico.textContent  = '📷';
+    if (desc) desc.textContent = 'Clique para abrir a câmera ao continuar';
+  }
+}
+
 async function openCameraStep() {
   hideAllSteps();
   show('#step-2');
@@ -183,6 +261,8 @@ function onPhoto(blob) {
   if (state.photoPreviewUrl) URL.revokeObjectURL(state.photoPreviewUrl);
   state.photoPreviewUrl = URL.createObjectURL(blob);
   $('#preview-img').src = state.photoPreviewUrl;
+  $('#preview-img').hidden = false;
+  $('#no-photo-notice').hidden = true;
 
   const isEvent = state.interactionType === 'evento_trafego';
   $('#magnitude-wrap').hidden = !isEvent;
@@ -286,6 +366,7 @@ function resetForNext() {
   state.category = null;
   state.description = '';
   state.photoBlob = null;
+  state.withPhoto = false;
   if (state.photoPreviewUrl) URL.revokeObjectURL(state.photoPreviewUrl);
   state.photoPreviewUrl = null;
   state.nonce = null;
@@ -295,6 +376,21 @@ function resetForNext() {
   $('#txt-manif').value = '';
   $('#btn-step1-evento').disabled = true;
   $('#btn-step1-manifestacao').disabled = true;
+  // Reset toggle de foto
+  const toggleBtn = $('#btn-toggle-photo');
+  if (toggleBtn) {
+    toggleBtn.classList.remove('active');
+    toggleBtn.setAttribute('aria-pressed', 'false');
+  }
+  const pill = $('#photo-toggle-pill');
+  if (pill) pill.textContent = 'Não';
+  const ico = $('#photo-toggle-icon');
+  if (ico) ico.textContent = '📷';
+  const desc = $('#photo-toggle-desc');
+  if (desc) desc.textContent = 'Clique para abrir a câmera ao continuar';
+  // Reset preview
+  $('#preview-img').hidden = false;
+  $('#no-photo-notice').hidden = true;
   document.querySelectorAll('.cat-grid button').forEach((b) => b.classList.remove('selected'));
   hideAllSteps();
   show('#step-0');
@@ -354,10 +450,15 @@ function bindUI() {
   $('#btn-step1-evento').addEventListener('click', openCameraStep);
   $('#btn-step1-manifestacao').addEventListener('click', () => {
     state.description = $('#txt-manif').value.trim();
-    openCameraStep();
+    if (state.withPhoto) {
+      openCameraStep();
+    } else {
+      openConfirmDirectly();
+    }
   });
 
   $('#txt-manif').addEventListener('input', validateManifStep);
+  $('#btn-toggle-photo').addEventListener('click', togglePhotoOption);
 
   $('#btn-shoot').addEventListener('click', shoot);
   $('#fallback-input').addEventListener('change', onFallbackFile);

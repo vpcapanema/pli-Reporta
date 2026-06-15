@@ -20,6 +20,7 @@ backend/storage/photos/*
 !backend/storage/photos/.gitkeep
 data/*.geojson
 !data/.gitkeep
+data/shp_tmp/
 
 # Ambiente
 .env

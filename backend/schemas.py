@@ -102,6 +102,19 @@ class AuthContextResponse(BaseModel):
 
 
 class ModerationPolicyUpdate(BaseModel):
+    """Payload de atualização da política do aprovador automático."""
+    global_config: dict | None = Field(
+        default=None,
+        alias="global",
+    )  # event_publish_min, event_discard_below, etc.
+    sinais_veracidade: list[dict] | None = None
+    fatores_via: list[dict] | None = None
+    categorias_evento: list[dict] | None = None  # overrides por categoria de evento
+    categorias_manif: list[dict] | None = None   # overrides por tipo de manifestação
+
+    # Legado — aceito para compatibilidade mas mapeado internamente
     preset: str | None = None
     eventos: dict | None = None
     manifestacoes: dict | None = None
+
+    model_config = ConfigDict(populate_by_name=True)

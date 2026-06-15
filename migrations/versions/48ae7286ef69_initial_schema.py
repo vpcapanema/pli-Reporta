@@ -5,6 +5,8 @@ Revises:
 Create Date: 2026-06-14 19:16:55.473440
 
 """
+# flake8: noqa  (arquivo auto-gerado pelo Alembic)
+# pylint: disable=invalid-name,no-member  # arquivo/membros gerados pelo Alembic
 from typing import Sequence, Union
 
 from alembic import op

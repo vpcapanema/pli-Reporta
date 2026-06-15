@@ -1,4 +1,5 @@
 """Testa conexão SIGMA e lista gestores ativos (sem expor senhas)."""
+# pylint: disable=import-error  # backend resolvido via sys.path.insert abaixo
 import os
 import sys
 

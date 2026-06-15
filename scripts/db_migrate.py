@@ -10,7 +10,7 @@ Uso:
     python scripts/db_migrate.py
 """
 from __future__ import annotations
-
+# pylint: disable=import-error  # imports do backend resolvidos via sys.path.insert abaixo
 import sys
 from pathlib import Path
 

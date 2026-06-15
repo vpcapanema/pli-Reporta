@@ -68,6 +68,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.middleware("http")
+async def no_cache_static(request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return response
+
 # API
 app.include_router(reports.router, prefix="/api/v1", tags=["reports"])
 app.include_router(auth_router, prefix="/api/v1", tags=["auth"])

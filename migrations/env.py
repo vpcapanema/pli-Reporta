@@ -4,8 +4,8 @@ A URL do banco vem de `backend.config.settings.database_url`, garantindo uma
 única fonte de verdade (a mesma usada pela aplicação). O metadata-alvo é o
 `Base.metadata` da aplicação, com todos os modelos importados.
 """
-# pylint: disable=no-member
-# (alembic.context tem membros injetados em runtime — falso-positivo do Pylint)
+# pylint: disable=no-member,import-error
+# (alembic.context tem membros injetados em runtime; backend importado via PYTHONPATH)
 from __future__ import annotations
 
 from logging.config import fileConfig

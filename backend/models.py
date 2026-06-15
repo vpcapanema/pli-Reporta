@@ -98,5 +98,8 @@ class ModerationPolicy(Base):
     always_review_offline: Mapped[int] = mapped_column(Integer, default=1)
     always_review_first_in_area: Mapped[int] = mapped_column(Integer, default=0)
     always_review_other: Mapped[int] = mapped_column(Integer, default=1)
+    category_overrides_json: Mapped[str | None] = mapped_column(Text, default=None)
+    veracity_weights_json: Mapped[str | None] = mapped_column(Text, default=None)
+    highway_factors_json: Mapped[str | None] = mapped_column(Text, default=None)
     updated_at: Mapped[str] = mapped_column(String(32), default=_utcnow_iso)
     updated_by: Mapped[str | None] = mapped_column(String(128))

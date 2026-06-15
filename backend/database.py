@@ -51,6 +51,18 @@ def _migrate_schema() -> None:
             conn, "clusters", "resolve_votes",
             "resolve_votes INTEGER DEFAULT 0 NOT NULL",
         )
+        _sqlite_add_column_if_missing(
+            conn, "moderation_policy", "category_overrides_json",
+            "category_overrides_json TEXT",
+        )
+        _sqlite_add_column_if_missing(
+            conn, "moderation_policy", "veracity_weights_json",
+            "veracity_weights_json TEXT",
+        )
+        _sqlite_add_column_if_missing(
+            conn, "moderation_policy", "highway_factors_json",
+            "highway_factors_json TEXT",
+        )
 
 
 def init_db() -> None:
