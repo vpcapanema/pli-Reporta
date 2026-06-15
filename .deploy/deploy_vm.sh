@@ -44,19 +44,23 @@ if [[ -n "$TAR" ]]; then
     docker load -i "$SRC_DIR/$TAR"
     ok "imagem pli-reporta-app:latest disponivel"
 else
-    warn "sem tarball — compose fara build local (mais lento)"
+    warn "sem tarball - compose fara build local (mais lento)"
 fi
 
 step "instalando stack em $APP_DIR"
 sudo mkdir -p "$APP_DIR"
 sudo cp "$SRC_DIR/docker-compose.vm.yml" "$APP_DIR/docker-compose.vm.yml"
+sudo mkdir -p "$APP_DIR/.deploy"
 if [[ -f "$SRC_DIR/.env.vm" ]]; then
     sudo cp "$SRC_DIR/.env.vm" "$APP_DIR/.env.vm"
     sudo chmod 600 "$APP_DIR/.env.vm"
     ok ".env.vm instalado"
 else
-    warn "sem .env.vm — defina PLI_DB_PASSWORD e SECRET_KEY antes de subir"
+    warn "sem .env.vm - defina PLI_DB_PASSWORD e SECRET_KEY antes de subir"
 fi
+[[ -f "$SRC_DIR/update_vm.sh" ]] && sudo cp "$SRC_DIR/update_vm.sh" "$APP_DIR/.deploy/"
+[[ -f "$SRC_DIR/bootstrap_vm.sh" ]] && sudo cp "$SRC_DIR/bootstrap_vm.sh" "$APP_DIR/.deploy/"
+sudo chmod +x "$APP_DIR/.deploy/"*.sh 2>/dev/null || true
 sudo chown -R "$USER:$USER" "$APP_DIR"
 
 step "instalando virtual host no Nginx do host"
@@ -71,7 +75,7 @@ ok "nginx recarregado (sigma-pli intocado)"
 
 step "subindo container"
 cd "$APP_DIR"
-docker compose -f docker-compose.vm.yml up -d
+docker compose --env-file .env.vm -f docker-compose.vm.yml up -d --force-recreate
 ok "container subindo"
 
 step "aguardando healthcheck (max 90s)"

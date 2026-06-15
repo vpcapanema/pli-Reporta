@@ -13,6 +13,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
+. (Join-Path $PSScriptRoot 'vm-remote.ps1')
 
 function Step([string]$msg) { Write-Host "`n=== $msg ===" -ForegroundColor Cyan }
 
@@ -30,12 +31,14 @@ Rode: git push origin $Branch
 Write-Host "  OK  laptop e GitHub em $local" -ForegroundColor Green
 
 Step '2/3 Atualizando VM'
-$target = "${VmUser}@${VmHost}"
-ssh $target "bash $AppDir/.deploy/update_vm.sh"
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+$updateCmd = @"
+cd '$AppDir' && git fetch origin '$Branch' && git reset --hard 'origin/$Branch' && chmod +x .deploy/*.sh 2>/dev/null || true
+if [ -x '$AppDir/.deploy/update_vm.sh' ]; then bash '$AppDir/.deploy/update_vm.sh'; else echo 'update_vm.sh ausente'; exit 1; fi
+"@
+Invoke-VmRemote -VmHost $VmHost -VmUser $VmUser -Command $updateCmd
 
 Step '3/3 Conferindo versao na VM'
-$vmSha = (ssh $target "git -C $AppDir rev-parse HEAD 2>/dev/null || cat $AppDir/.deploy/last_deploy_sha").Trim()
+$vmSha = (Invoke-VmRemote -VmHost $VmHost -VmUser $VmUser -Command "git -C $AppDir rev-parse HEAD 2>/dev/null || cat $AppDir/.deploy/last_deploy_sha").Trim()
 if ($vmSha -eq $local) {
     Write-Host "  OK  VM alinhada com GitHub ($vmSha)" -ForegroundColor Green
 } else {

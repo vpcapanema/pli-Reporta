@@ -72,6 +72,11 @@ if [[ "$ACTUAL_REMOTE" != *"$EXPECTED_REPO_FRAGMENT"* ]]; then
 fi
 ok "repo verificado: $ACTUAL_REMOTE"
 
+if ! git diff --quiet || ! git diff --cached --quiet; then
+    warn "descartando alteracoes locais para alinhar com GitHub (.env.vm preservado)"
+    git reset --hard HEAD
+fi
+
 step "git pull (branch: $(git branch --show-current))"
 OLD_SHA=$(git rev-parse HEAD)
 git fetch --quiet origin
@@ -130,7 +135,7 @@ if [[ $DO_REBUILD -eq 1 ]]; then
     ok "imagem atualizada"
 
     step "recriando container"
-    docker compose -f "$COMPOSE_FILE" up -d --force-recreate
+    docker compose --env-file "$APP_DIR/.env.vm" -f "$COMPOSE_FILE" up -d --force-recreate
     ok "container recriado"
 else
     ok "imagem inalterada — container nao recriado"

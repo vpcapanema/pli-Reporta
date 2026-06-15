@@ -92,7 +92,7 @@ ok "nginx configurado"
 
 step "build e subida do container"
 docker compose -f docker-compose.vm.yml build
-docker compose -f docker-compose.vm.yml up -d
+docker compose --env-file .env.vm -f docker-compose.vm.yml up -d
 ok "container no ar"
 
 exec bash "$APP_DIR/.deploy/update_vm.sh"
