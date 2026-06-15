@@ -14,8 +14,8 @@ $ErrorActionPreference = 'Stop'
 $state = Get-SyncState -VmHost $VmHost -VmUser $VmUser -Branch $Branch -AppDir $AppDir
 Write-SyncStatus $state
 
-$runtimeOk = Test-RuntimeManifest -BaseUrl 'http://pli-reporta.56-125-163-194.sslip.io' -Label 'VM'
-$pageOk = Test-ApiPublicaPage -BaseUrl 'http://pli-reporta.56-125-163-194.sslip.io' -Label 'VM'
+$runtimeOk = Test-RuntimeManifest -BaseUrl 'https://pli-reporta.56-125-163-194.sslip.io' -Label 'VM'
+$pageOk = Test-ApiPublicaPage -BaseUrl 'https://pli-reporta.56-125-163-194.sslip.io' -Label 'VM'
 $runtimeOk = $runtimeOk -and $pageOk
 
 if ($state.IsSynced -and $runtimeOk) {

@@ -8,8 +8,8 @@ param(
     [string]$VmUser = 'ubuntu',
     [string]$Branch = 'main',
     [string]$AppDir = '/opt/pli-reporta',
-    [string]$VmBaseUrl = 'http://pli-reporta.56-125-163-194.sslip.io',
-    [string]$VmHealthUrl = 'http://pli-reporta.56-125-163-194.sslip.io/healthz'
+    [string]$VmBaseUrl = 'https://pli-reporta.56-125-163-194.sslip.io',
+    [string]$VmHealthUrl = 'https://pli-reporta.56-125-163-194.sslip.io/healthz'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -36,6 +36,9 @@ Rode: git push origin $Branch
 Write-Host "  OK  laptop e GitHub em $local" -ForegroundColor Green
 
 Step '2/5 VM — git pull e rebuild do container (update_vm.sh)'
+# git reset antes do update_vm: evita falha se o script local na VM estiver quebrado/desatualizado
+$pullCmd = "cd '$AppDir' && git fetch origin $Branch && git reset --hard origin/$Branch"
+Invoke-VmRemote -VmHost $VmHost -VmUser $VmUser -Command $pullCmd
 $updateCmd = "cd '$AppDir' && bash '$AppDir/.deploy/update_vm.sh'"
 Invoke-VmRemote -VmHost $VmHost -VmUser $VmUser -Command $updateCmd
 

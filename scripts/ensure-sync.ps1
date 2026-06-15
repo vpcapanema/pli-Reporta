@@ -6,8 +6,8 @@ param(
     [string]$VmUser = 'ubuntu',
     [string]$Branch = 'main',
     [string]$AppDir = '/opt/pli-reporta',
-    [string]$VmBaseUrl = 'http://pli-reporta.56-125-163-194.sslip.io',
-    [string]$VmHealthUrl = 'http://pli-reporta.56-125-163-194.sslip.io/healthz',
+    [string]$VmBaseUrl = 'https://pli-reporta.56-125-163-194.sslip.io',
+    [string]$VmHealthUrl = 'https://pli-reporta.56-125-163-194.sslip.io/healthz',
     [string]$CommitMessage = ''
 )
 
