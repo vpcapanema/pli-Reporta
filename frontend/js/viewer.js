@@ -41,6 +41,32 @@ function popupHtml(p) {
   const label = p.interaction_type === 'manifestacao'
     ? `Manifestação · ${p.category}`
     : p.category;
+  let roadBlock = '';
+  if (p.road_context) {
+    try {
+      const ctx = typeof p.road_context === 'string' ? JSON.parse(p.road_context) : p.road_context;
+      const lines = [];
+      if (ctx.scope_label) lines.push(`<strong>${ctx.scope_label}</strong>`);
+      if (ctx.rodovia && ctx.denominacao) {
+        lines.push(`${ctx.rodovia} — ${ctx.denominacao}`);
+      } else if (ctx.rodovia) {
+        lines.push(String(ctx.rodovia));
+      }
+      if (ctx.tipo_rodoviario) lines.push(`Tipo: ${ctx.tipo_rodoviario}`);
+      if (ctx.municipio) lines.push(`Município: ${ctx.municipio}`);
+      if (ctx.cod_regional || ctx.sede_regional) {
+        const reg = [ctx.cod_regional, ctx.sede_regional && `sede ${ctx.sede_regional}`].filter(Boolean).join(' · ');
+        lines.push(`Regional DER: ${reg}`);
+      }
+      if (ctx.residencia || ctx.sede_residencia) {
+        const res = [ctx.residencia && `residência ${ctx.residencia}`, ctx.sede_residencia].filter(Boolean).join(' · ');
+        lines.push(`Residência: ${res}`);
+      }
+      if (lines.length) {
+        roadBlock = `<div class="popup-road" style="margin:6px 0;padding:6px 8px;background:#eef3f7;border-radius:6px;font-size:12px;line-height:1.45">${lines.join('<br/>')}</div>`;
+      }
+    } catch (_) { /* ignora JSON inválido */ }
+  }
   const canResolve = p.interaction_type !== 'manifestacao' && p.cluster_id;
   const resolveBtn = canResolve
     ? `<button type="button" class="popup-resolver" data-cluster="${p.cluster_id}"
@@ -51,6 +77,7 @@ function popupHtml(p) {
     : '';
   return `
     <strong>${label}</strong>${p.magnitude ? ` · ${p.magnitude}` : ''}<br/>
+    ${roadBlock}
     ${p.description ? `<em>${p.description.slice(0, 120)}</em><br/>` : ''}
     <small>id ${p.id}</small><br/>
     ${p.photo_url ? `<img src="${p.photo_url}" style="max-width:200px;border-radius:6px;margin-top:6px"/>` : ''}

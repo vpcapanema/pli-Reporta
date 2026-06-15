@@ -53,6 +53,10 @@ class Report(Base):
 
     affected_edges_json: Mapped[str | None] = mapped_column(Text)
 
+    road_scope: Mapped[str | None] = mapped_column(String(24), index=True)
+    road_label: Mapped[str | None] = mapped_column(String(64))
+    road_context_json: Mapped[str | None] = mapped_column(Text)
+
 
 Index("ix_reports_status_validto", Report.status, Report.valid_to)
 Index("ix_reports_lat_lon", Report.lat, Report.lon)

@@ -64,6 +64,11 @@ STATUS_META = {
         "cor": "#ef4444",
         "descricao": "Não será exibido publicamente",
     },
+    "registro_municipal": {
+        "label": "Registro municipal",
+        "cor": "#0ea5e9",
+        "descricao": "Armazenado internamente para relatórios e exportação às prefeituras",
+    },
     "expirado": {
         "label": "Expirado",
         "cor": "#64748b",

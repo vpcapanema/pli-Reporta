@@ -13,7 +13,8 @@ from ..database import get_session
 from ..models import AuditLog, Report
 from ..schemas import ModerationDecision, ModerationPolicyUpdate
 from ..services import auth as auth_svc
-from ..services import photos as photo_svc
+from .moderation_helpers import report_detail as build_report_detail
+from .moderation_helpers import report_summary
 from ..services.moderation_policy import (
     ensure_default_policy,
     friendly_policy_payload,
@@ -23,8 +24,17 @@ from ..services.moderation_policy import (
 )
 from ..services.pipeline import report_to_feature
 from ..services.report_catalog import catalog_payload
+from ..services.road_context import MANAGER_REVIEW_SCOPES, STATUS_REGISTRO_MUNICIPAL
 
 router = APIRouter()
+
+
+def _manager_queue_filter():
+    """Fila do gestor: manifestações + eventos em rodovia estadual/federal."""
+    return (
+        (Report.interaction_type == "manifestacao")
+        | (Report.road_scope.in_(tuple(MANAGER_REVIEW_SCOPES)))
+    )
 
 
 def require_moderator(
@@ -39,46 +49,6 @@ def require_moderator(
     if not session:
         raise HTTPException(401, detail="Sessão expirada ou inválida.")
     return session
-
-
-def _report_summary(r: Report) -> dict:
-    return {
-        "id": r.id,
-        "interaction_type": r.interaction_type,
-        "category": r.category,
-        "magnitude": r.magnitude,
-        "description": r.description,
-        "lat": r.lat,
-        "lon": r.lon,
-        "status": r.status,
-        "veracity": round(r.veracity_score, 3),
-        "relevance": round(r.relevance_score, 3),
-        "priority": round(r.priority, 3),
-        "received_at": r.received_at,
-        "captured_at": r.captured_at,
-        "photo_url": photo_svc.public_url_for(r.photo_path),
-    }
-
-
-def _report_detail(r: Report, db: Session) -> dict:
-    signals = json.loads(r.veracity_signals_json or "{}")
-    logs = db.execute(
-        select(AuditLog)
-        .where(AuditLog.target_type == "report", AuditLog.target_id == r.id)
-        .order_by(AuditLog.id.desc())
-        .limit(20)
-    ).scalars().all()
-    return {
-        **_report_summary(r),
-        "signals": signals,
-        "exif": json.loads(r.exif_json) if r.exif_json else None,
-        "cluster_id": r.cluster_id,
-        "valid_to": r.valid_to,
-        "audit": [
-            {"ts": a.ts, "actor": a.actor, "action": a.action, "payload": a.payload_json}
-            for a in logs
-        ],
-    }
 
 
 @router.get("/moderation/catalog")
@@ -98,11 +68,16 @@ def moderation_stats(
         .group_by(Report.status)
     ).all()
     by_status = {status: int(n) for status, n in rows}
-    fila = by_status.get("em_moderacao", 0)
+    fila = db.execute(
+        select(func.count())  # pylint: disable=not-callable
+        .select_from(Report)
+        .where(Report.status == "em_moderacao", _manager_queue_filter())
+    ).scalar_one()
     return {
         "fila": fila,
         "publicados": by_status.get("publicado", 0),
         "arquivados": by_status.get("descartado", 0),
+        "registros_municipais": by_status.get(STATUS_REGISTRO_MUNICIPAL, 0),
         "total": sum(by_status.values()),
         "by_status": by_status,
     }
@@ -191,6 +166,7 @@ def list_reports(
     _moderator: auth_svc.ModeratorSession = Depends(require_moderator),
     interaction_type: str | None = Query(default=None),
     status: str | None = Query(default=None),
+    road_scope: str | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
 ) -> dict:
@@ -199,6 +175,8 @@ def list_reports(
         filters.append(Report.interaction_type == interaction_type)
     if status:
         filters.append(Report.status == status)
+    if road_scope:
+        filters.append(Report.road_scope == road_scope.strip().lower())
     total = db.execute(
         select(func.count()).select_from(Report).where(*filters)  # pylint: disable=not-callable
     ).scalar_one()
@@ -213,7 +191,7 @@ def list_reports(
         "total": int(total),
         "offset": offset,
         "limit": limit,
-        "items": [_report_summary(r) for r in rows],
+        "items": [report_summary(r) for r in rows],
     }
 
 
@@ -223,16 +201,64 @@ def reports_geojson(
     _moderator: auth_svc.ModeratorSession = Depends(require_moderator),
     interaction_type: str | None = Query(default=None),
     status: str | None = Query(default=None),
+    road_scope: str | None = Query(default=None),
 ) -> dict:
     stmt = select(Report).order_by(Report.received_at.desc()).limit(2000)
     if interaction_type:
         stmt = stmt.where(Report.interaction_type == interaction_type)
     if status:
         stmt = stmt.where(Report.status == status)
+    if road_scope:
+        stmt = stmt.where(Report.road_scope == road_scope.strip().lower())
     rows = db.execute(stmt).scalars().all()
     return {
         "type": "FeatureCollection",
         "features": [report_to_feature(r) for r in rows],
+    }
+
+
+@router.get("/moderation/municipal.geojson")
+def municipal_geojson(
+    db: Session = Depends(get_session),
+    _moderator: auth_svc.ModeratorSession = Depends(require_moderator),
+    since: str | None = Query(default=None, description="ISO 8601 — received_at mínimo"),
+    municipio: str | None = Query(default=None, description="Filtrar por nome do município"),
+    limit: int = Query(default=50000, ge=1, le=50000),
+) -> dict:
+    """Camada interna de eventos municipais para relatórios e exportação às prefeituras."""
+    stmt = (
+        select(Report)
+        .where(
+            Report.status == STATUS_REGISTRO_MUNICIPAL,
+            Report.interaction_type == "evento_trafego",
+        )
+        .order_by(Report.received_at.desc())
+        .limit(limit)
+    )
+    if since:
+        stmt = stmt.where(Report.received_at >= since)
+    rows = db.execute(stmt).scalars().all()
+    features = []
+    for r in rows:
+        if municipio:
+            ctx = {}
+            if r.road_context_json:
+                try:
+                    ctx = json.loads(r.road_context_json)
+                except (ValueError, TypeError):
+                    ctx = {}
+            mun = str(ctx.get("municipio") or r.road_label or "").strip().lower()
+            if municipio.strip().lower() not in mun:
+                continue
+        features.append(report_to_feature(r))
+    return {
+        "type": "FeatureCollection",
+        "features": features,
+        "meta": {
+            "scope": "municipal",
+            "status": STATUS_REGISTRO_MUNICIPAL,
+            "count": len(features),
+        },
     }
 
 
@@ -245,7 +271,7 @@ def report_detail(
     rep = db.get(Report, report_id)
     if not rep:
         raise HTTPException(404, detail="Reporte não encontrado.")
-    return _report_detail(rep, db)
+    return build_report_detail(rep, db)
 
 
 @router.get("/moderation/queue")
@@ -255,7 +281,7 @@ def queue(
 ) -> dict:
     rows = db.execute(
         select(Report)
-        .where(Report.status == "em_moderacao")
+        .where(Report.status == "em_moderacao", _manager_queue_filter())
         .order_by(Report.priority.desc(), Report.received_at.asc())
         .limit(100)
     ).scalars().all()
@@ -263,7 +289,7 @@ def queue(
     for r in rows:
         signals = json.loads(r.veracity_signals_json or "{}")
         items.append({
-            **_report_summary(r),
+            **report_summary(r),
             "signals": signals,
         })
     return {
@@ -286,6 +312,14 @@ def decide(
         raise HTTPException(404, detail="Reporte não encontrado.")
     if rep.status != "em_moderacao":
         raise HTTPException(409, detail=f"Status atual não permite decidir: {rep.status}")
+    if (
+        rep.interaction_type == "evento_trafego"
+        and (rep.road_scope or "").strip().lower() not in MANAGER_REVIEW_SCOPES
+    ):
+        raise HTTPException(
+            409,
+            detail="Este reporte não está na fila do gestor (escopo municipal ou sem malha DER).",
+        )
 
     rep.status = "publicado" if decision.decision == "publicar" else "descartado"
     db.add(AuditLog(

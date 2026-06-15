@@ -121,3 +121,84 @@ def nearest_road(
                 if best < max_m * 0.1:  # já bom o bastante
                     break
     return best, best_feat
+
+
+# --------------------------------------------------------------------------- #
+# Mancha urbana IBGE e limites municipais (point-in-polygon).
+# --------------------------------------------------------------------------- #
+
+_URBAN_CACHE: dict[str, tuple] = {}
+_MUNICIPIOS_CACHE: dict[str, tuple] = {}
+
+
+def _load_polygon_index(path: str, cache: dict) -> tuple:
+    from shapely.geometry import shape
+    from shapely.prepared import prep
+    from shapely.strtree import STRtree
+
+    if path in cache:
+        return cache[path]
+    p = Path(path)
+    if not p.exists():
+        cache[path] = (None, [], [])
+        return None, [], []
+    data = json.loads(p.read_text(encoding="utf-8"))
+    geoms = []
+    labels: list[str | None] = []
+    prepared: list = []
+    for f in data.get("features", []):
+        geom = f.get("geometry")
+        if not geom:
+            continue
+        try:
+            g = shape(geom)
+        except (ValueError, TypeError):
+            continue
+        if g.is_empty:
+            continue
+        geoms.append(g)
+        props = f.get("properties") or {}
+        labels.append(
+            str(props.get("nm_mun") or props.get("municipio") or props.get("name") or "").strip()
+            or None
+        )
+        prepared.append(prep(g))
+    if not geoms:
+        cache[path] = (None, [], [])
+        return None, [], []
+    tree = STRtree(geoms)
+    cache[path] = (tree, prepared, labels)
+    return tree, prepared, labels
+
+
+def point_in_urban_footprint(lat: float, lon: float, urban_path: str) -> bool:
+    """True se (lat, lon) cai dentro da mancha urbana IBGE."""
+    from shapely.geometry import Point
+
+    tree, prepared, _labels = _load_polygon_index(urban_path, _URBAN_CACHE)
+    if not tree or not prepared:
+        return False
+    pt = Point(lon, lat)
+    for idx in tree.query(pt):
+        if prepared[idx].contains(pt):
+            return True
+    return False
+
+
+def point_in_municipio(lat: float, lon: float) -> str | None:
+    """Nome do município IBGE que contém o ponto, se configurado."""
+    from shapely.geometry import Point
+
+    from ..config import settings
+
+    path = (settings.municipios_geojson_path or "").strip()
+    if not path:
+        return None
+    tree, prepared, labels = _load_polygon_index(path, _MUNICIPIOS_CACHE)
+    if not tree or not prepared:
+        return None
+    pt = Point(lon, lat)
+    for idx in tree.query(pt):
+        if prepared[idx].contains(pt):
+            return labels[idx]
+    return None

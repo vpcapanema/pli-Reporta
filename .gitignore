@@ -21,6 +21,7 @@ backend/storage/photos/*
 data/*.geojson
 !data/.gitkeep
 data/shp_tmp/
+data/ibge_tmp/
 
 # Ambiente
 .env

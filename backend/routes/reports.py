@@ -15,6 +15,7 @@ from ..database import get_session
 from ..models import Report
 from ..schemas import CaptureNonceResponse, ReportCreated
 from ..services import nonce as nonce_svc
+from ..services import scope as scope_svc
 from ..services.pipeline import (
     active_public_reports_stmt,
     ingest_report,
@@ -28,6 +29,10 @@ USER_MESSAGES = {
     "em_moderacao": "Recebemos seu reporte. Está em análise pela equipe.",
     "descartado": "Recebemos seu reporte, mas não pôde ser publicado.",
     "validado": "Recebemos seu reporte. Está em análise pela equipe.",
+    "registro_municipal": (
+        "Recebemos seu reporte. Registramos para encaminhamento à prefeitura "
+        "responsável — não será exibido no mapa de rodovias do PLI."
+    ),
 }
 
 
@@ -80,22 +85,25 @@ async def create_report(
         if len(desc) < 15:
             raise HTTPException(400, detail="Descrição obrigatória (mín. 15 caracteres).")
 
-    result = ingest_report(
-        db,
-        image_bytes=payload,
-        lat=lat,
-        lon=lon,
-        accuracy_m=accuracy_m,
-        category=category,
-        magnitude=magnitude,
-        description=description,
-        captured_at_iso=captured_at,
-        capture_nonce=capture_nonce,
-        client_id=client_id,
-        geometry_geojson=geometry,
-        interaction_type=interaction_type,
-        offline_capture=offline_capture,
-    )
+    try:
+        result = ingest_report(
+            db,
+            image_bytes=payload,
+            lat=lat,
+            lon=lon,
+            accuracy_m=accuracy_m,
+            category=category,
+            magnitude=magnitude,
+            description=description,
+            captured_at_iso=captured_at,
+            capture_nonce=capture_nonce,
+            client_id=client_id,
+            geometry_geojson=geometry,
+            interaction_type=interaction_type,
+            offline_capture=offline_capture,
+        )
+    except scope_svc.ScopeRejectedError as exc:
+        raise HTTPException(422, detail=exc.detail) from exc
     db.commit()
 
     rep = result.report
@@ -110,6 +118,8 @@ async def create_report(
         explanation=result.explanation,
         cluster_id=rep.cluster_id,
         valid_to=rep.valid_to,
+        road_scope=rep.road_scope,
+        road_label=rep.road_label,
     )
 
 

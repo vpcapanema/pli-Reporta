@@ -1,0 +1,19 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {"nm_mun": "Teste Urbano", "sigla_uf": "SP"},
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-46.70, -23.58],
+          [-46.58, -23.58],
+          [-46.58, -23.52],
+          [-46.70, -23.52],
+          [-46.70, -23.58]
+        ]]
+      }
+    }
+  ]
+}

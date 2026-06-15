@@ -80,7 +80,15 @@ export async function postReport({
   const res = await fetch(`${BASE}/api/v1/reports`, { method: 'POST', body: fd });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    throw new Error(`POST /reports failed: ${res.status} ${text}`);
+    let detail = text;
+    try {
+      const body = JSON.parse(text);
+      detail = body.detail || text;
+    } catch (_) {}
+    const err = new Error(`POST /reports failed: ${res.status} ${detail}`);
+    err.status = res.status;
+    err.detail = detail;
+    throw err;
   }
   return res.json();
 }

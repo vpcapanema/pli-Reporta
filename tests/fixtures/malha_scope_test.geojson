@@ -1,0 +1,45 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "bbox": [-47.07, -22.90, -47.06, -22.89],
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [[-47.07, -22.895], [-47.06, -22.895]]
+      },
+      "properties": {
+        "highway": "trunk",
+        "rodovia": "SP 330",
+        "denominacao": "Anhanguera",
+        "tipo_rodoviario": "Eixo",
+        "municipio": "Campinas",
+        "cod_regional": "DR 01",
+        "sede_regional": "Campinas",
+        "residencia": "01.01",
+        "sede_residencia": "Campinas",
+        "jurisdicao": "Estadual",
+        "administra": "DER"
+      }
+    },
+    {
+      "type": "Feature",
+      "bbox": [-46.50, -23.10, -46.49, -23.09],
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [[-46.50, -23.095], [-46.49, -23.095]]
+      },
+      "properties": {
+        "highway": "motorway",
+        "rodovia": "BR 116",
+        "denominacao": "Regis Bittencourt",
+        "tipo_rodoviario": "Eixo",
+        "municipio": "Sao Paulo",
+        "cod_regional": "DR 03",
+        "sede_regional": "Sao Paulo",
+        "jurisdicao": "Federal",
+        "administra": "DNIT"
+      }
+    }
+  ]
+}

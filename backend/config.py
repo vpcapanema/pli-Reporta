@@ -52,6 +52,9 @@ class Settings(BaseSettings):
     resolve_votes_threshold: int = 2  # contra-reportes p/ marcar evento resolvido
 
     roads_geojson_path: str = ""
+    urban_geojson_path: str = ""
+    municipios_geojson_path: str = ""
+    road_snap_max_m: float = 60.0
 
     allowed_origins: str = "*"
 

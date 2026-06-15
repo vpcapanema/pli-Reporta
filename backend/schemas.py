@@ -42,6 +42,8 @@ class ReportCreated(BaseModel):
     explanation: list[str]
     cluster_id: str | None
     valid_to: str | None
+    road_scope: str | None = None
+    road_label: str | None = None
 
 
 class ReportPublic(BaseModel):

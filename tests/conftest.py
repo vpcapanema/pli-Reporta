@@ -19,6 +19,10 @@ os.environ.setdefault("AUTO_DISCARD_THRESHOLD", "0.30")
 os.environ["SIGMA_POSTGRES_PASSWORD"] = ""
 os.environ["SIGMA_POSTGRES_HOST"] = ""
 os.environ["SIGMA_API_BASE_URL"] = ""
+# Desativa gate geográfico nos testes (fixtures em test_scope.py reativam quando necessário)
+os.environ["ROADS_GEOJSON_PATH"] = ""
+os.environ["URBAN_GEOJSON_PATH"] = ""
+os.environ["MUNICIPIOS_GEOJSON_PATH"] = ""
 os.environ.setdefault("MODERATOR_USERNAME", "test-admin")
 os.environ.setdefault("MODERATOR_PASSWORD", "test-pass")
 Path(os.environ["PHOTO_STORAGE_DIR"]).mkdir(parents=True, exist_ok=True)

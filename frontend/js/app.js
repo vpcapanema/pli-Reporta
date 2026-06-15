@@ -324,6 +324,10 @@ async function submit() {
     showResult(res);
   } catch (err) {
     console.error(err);
+    if (err.status === 422) {
+      toast(err.detail || err.message, 'err');
+      return;
+    }
     await enqueueOffline(payload);
   } finally {
     $('#btn-submit').disabled = false;

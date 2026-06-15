@@ -16,7 +16,7 @@ from pathlib import Path
 # ── Caminhos ──────────────────────────────────────────────────────────────────
 ROOT = Path(__file__).resolve().parent.parent
 SHP_PATH = ROOT / "data" / "shp_tmp" / "MALHA_RODOVIARIA.shp"
-PRJ_PATH = ROOT / "data" / "shp_tmp" / "MALHA_RODOVIARIA.prj"
+SHP_FALLBACK = ROOT / "data" / "Sistema Rodoviário Estadual" / "MALHA_RODOVIARIA.shp"
 OUT_PATH = ROOT / "data" / "malha_rodoviaria.geojson"
 
 
@@ -66,15 +66,23 @@ def convert() -> None:
     import shapefile                    # pyshp
     from pyproj import CRS, Transformer
 
-    if not SHP_PATH.exists():
+    if not SHP_PATH.exists() and SHP_FALLBACK.exists():
+        shp_base = SHP_FALLBACK
+    elif SHP_PATH.exists():
+        shp_base = SHP_PATH
+    else:
         sys.exit(f"Shapefile não encontrado: {SHP_PATH}\n"
-                 "Extraia o ZIP em data/shp_tmp/ primeiro.")
+                 "Extraia o ZIP em data/shp_tmp/ ou use data/Sistema Rodoviário Estadual/.")
 
-    src_crs = CRS.from_wkt(PRJ_PATH.read_text(encoding="utf-8"))
+    prj_path = shp_base.with_suffix(".prj")
+    if not prj_path.exists():
+        sys.exit(f"Arquivo .prj não encontrado ao lado de {shp_base}")
+
+    src_crs = CRS.from_wkt(prj_path.read_text(encoding="utf-8"))
     dst_crs = CRS.from_epsg(4326)       # WGS84
     tr = Transformer.from_crs(src_crs, dst_crs, always_xy=True)
 
-    reader = shapefile.Reader(str(SHP_PATH))
+    reader = shapefile.Reader(str(shp_base))
     field_names = [f[0] for f in reader.fields[1:]]
 
     features: list[dict] = []
@@ -125,6 +133,13 @@ def convert() -> None:
             "properties": {
                 "highway":           highway,
                 "rodovia":           str(rec.get("Rodovia", "") or ""),
+                "denominacao":       str(rec.get("Denominaca", "") or ""),
+                "tipo_rodoviario":   str(rec.get("TipoRodovi", "") or ""),
+                "municipio":         str(rec.get("Municipio", "") or ""),
+                "cod_regional":      str(rec.get("CodRegiona", "") or ""),
+                "sede_regional":     str(rec.get("SedeRegion", "") or ""),
+                "residencia":        str(rec.get("Residencia", "") or ""),
+                "sede_residencia":   str(rec.get("SedeReside", "") or ""),
                 "tipo_pista":        str(rec.get("TipoPista", "") or ""),
                 "perimetro_urbano":  str(rec.get("PerimetroU", "") or ""),
                 "administra":        str(rec.get("Administra", "") or ""),
@@ -138,7 +153,7 @@ def convert() -> None:
         json.dumps(geojson, ensure_ascii=False, separators=(",", ":")),
         encoding="utf-8",
     )
-    print(f"✓ {len(features)} features gravadas em {OUT_PATH}")
+    print(f"OK: {len(features)} features gravadas em {OUT_PATH}")
     if skipped:
         print(f"  ({skipped} geometrias sem pontos ignoradas)")
 

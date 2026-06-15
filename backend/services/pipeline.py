@@ -127,6 +127,19 @@ def _status_for_manifestation(l_score: float, policy) -> str:
     return "publicado"
 
 
+def _traffic_scope_at(
+    lat: float, lon: float,
+) -> tuple[str | None, str | None, dict | None, list[str]]:
+    """Classifica escopo viário (DER/IBGE) ou devolve vazios se gate desligado."""
+    from .scope import classify_traffic_scope, scope_gate_enabled
+
+    if not scope_gate_enabled():
+        return None, None, None, []
+    scope = classify_traffic_scope(lat, lon)
+    label = scope.rodovia or (scope.context or {}).get("municipio")
+    return scope.scope, label, scope.context, [scope.explanation]
+
+
 def ingest_report(
     db: Session,
     *,
@@ -145,14 +158,21 @@ def ingest_report(
     offline_capture: bool = False,
     user_reputation: float = 0.0,
 ) -> IngestResult:
+    itype = _normalize_interaction(interaction_type, category)
+    if itype == "manifestacao" and category not in MANIFESTATION_CATEGORIES:
+        category = "reclamacao"
+
+    road_scope: str | None = None
+    road_label: str | None = None
+    road_context: dict | None = None
+    scope_explanation: list[str] = []
+    if itype == "evento_trafego":
+        road_scope, road_label, road_context, scope_explanation = _traffic_scope_at(lat, lon)
+
     rid = new_ulid()
     rel_path, sha = photo_svc.save_photo(image_bytes, rid)
     exif_data = exif_svc.parse_exif(image_bytes)
     nonce_ok = verify_nonce(capture_nonce, offline=offline_capture)
-
-    itype = _normalize_interaction(interaction_type, category)
-    if itype == "manifestacao" and category not in MANIFESTATION_CATEGORIES:
-        category = "reclamacao"
 
     if _duplicate_photo(db, sha):
         rep = Report(
@@ -199,7 +219,7 @@ def ingest_report(
     priority = 0.0
     valid_to_dt: datetime | None = None
     affected_edge: str | None = None
-    explanation: list[str] = [s.line() for s in signals]
+    explanation: list[str] = scope_explanation + [s.line() for s in signals]
 
     if itype == "manifestacao":
         leg = compute_legitimacy(veracity=v_score, description=description)
@@ -235,6 +255,10 @@ def ingest_report(
             offline=offline_capture,
             cluster_confirmations=cluster.confirmations,
         )
+        from .road_context import ROAD_SCOPE_MUNICIPAL, STATUS_REGISTRO_MUNICIPAL
+
+        if road_scope == ROAD_SCOPE_MUNICIPAL:
+            status = STATUS_REGISTRO_MUNICIPAL
         valid_to_dt = datetime.now(timezone.utc) + timedelta(hours=ttl_for(category))
         affected_edge = _osm_id_for(lat, lon)
         # Renovação por confirmação: novas confirmações no mesmo ponto estendem a
@@ -254,6 +278,11 @@ def ingest_report(
             f"status = {status}",
             f"bloqueante = {is_blocking(category, priority)}",
         ])
+        if road_scope == ROAD_SCOPE_MUNICIPAL:
+            explanation.append(
+                "escopo municipal — registrado internamente para relatórios e exportação "
+                "(sem publicação no mapa PLI)"
+            )
 
     rep = Report(
         id=rid,
@@ -279,6 +308,9 @@ def ingest_report(
         cluster_id=cluster.id if cluster else None,
         valid_to=valid_to_dt.isoformat() if valid_to_dt else None,
         affected_edges_json=json.dumps([affected_edge]) if affected_edge else None,
+        road_scope=road_scope,
+        road_label=road_label,
+        road_context_json=json.dumps(road_context, ensure_ascii=False) if road_context else None,
     )
     db.add(rep)
     db.flush()
@@ -303,6 +335,12 @@ def report_to_feature(r: Report) -> dict[str, Any]:
             affected = [e for e in json.loads(r.affected_edges_json) if e]
         except (ValueError, TypeError):
             affected = []
+    road_context: dict | None = None
+    if r.road_context_json:
+        try:
+            road_context = json.loads(r.road_context_json)
+        except (ValueError, TypeError):
+            road_context = None
     return {
         "type": "Feature",
         "geometry": geom,
@@ -324,6 +362,9 @@ def report_to_feature(r: Report) -> dict[str, Any]:
             "captured_at": r.captured_at,
             "received_at": r.received_at,
             "photo_url": photo_svc.public_url_for(r.photo_path),
+            "road_scope": r.road_scope,
+            "road_label": r.road_label,
+            "road_context": road_context,
         },
     }
 

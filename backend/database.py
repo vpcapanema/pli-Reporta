@@ -63,6 +63,18 @@ def _migrate_schema() -> None:
             conn, "moderation_policy", "highway_factors_json",
             "highway_factors_json TEXT",
         )
+        _sqlite_add_column_if_missing(
+            conn, "reports", "road_scope",
+            "road_scope VARCHAR(24)",
+        )
+        _sqlite_add_column_if_missing(
+            conn, "reports", "road_label",
+            "road_label VARCHAR(64)",
+        )
+        _sqlite_add_column_if_missing(
+            conn, "reports", "road_context_json",
+            "road_context_json TEXT",
+        )
 
 
 def init_db() -> None:
