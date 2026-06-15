@@ -18,7 +18,10 @@ Set-Location $root
 function Step([string]$msg) { Write-Host "`n=== $msg ===" -ForegroundColor Cyan }
 
 Step '1/3 Verificando alinhamento local <-> GitHub'
+$prevEap = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
 git fetch origin $Branch 2>&1 | Out-Null
+$ErrorActionPreference = $prevEap
 $local = (git rev-parse HEAD).Trim()
 $remote = (git rev-parse "origin/$Branch" 2>$null).Trim()
 if (-not $remote) { throw "Branch origin/$Branch nao encontrada no remoto" }
@@ -31,10 +34,7 @@ Rode: git push origin $Branch
 Write-Host "  OK  laptop e GitHub em $local" -ForegroundColor Green
 
 Step '2/3 Atualizando VM'
-$updateCmd = @"
-cd '$AppDir' && git fetch origin '$Branch' && git reset --hard 'origin/$Branch' && chmod +x .deploy/*.sh 2>/dev/null || true
-if [ -x '$AppDir/.deploy/update_vm.sh' ]; then bash '$AppDir/.deploy/update_vm.sh'; else echo 'update_vm.sh ausente'; exit 1; fi
-"@
+$updateCmd = "cd '$AppDir' && git fetch origin '$Branch' && git reset --hard 'origin/$Branch' && chmod +x .deploy/*.sh 2>/dev/null || true && bash '$AppDir/.deploy/update_vm.sh'"
 Invoke-VmRemote -VmHost $VmHost -VmUser $VmUser -Command $updateCmd
 
 Step '3/3 Conferindo versao na VM'

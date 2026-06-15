@@ -24,9 +24,15 @@ function Invoke-VmRemote {
     )
     $remote = Get-VmPlink
     $target = "${VmUser}@${VmHost}"
-    $out = & $remote.Plink @remote.Args $target $Command 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        throw "Comando remoto falhou (exit $LASTEXITCODE): $out"
+    $plinkArgs = $remote.Args + @($target, $Command)
+    $prevEap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    $out = & $remote.Plink @plinkArgs 2>&1
+    $exit = $LASTEXITCODE
+    $ErrorActionPreference = $prevEap
+    if ($exit -ne 0) {
+        $text = if ($out -is [array]) { $out -join "`n" } else { [string]$out }
+        throw "Comando remoto falhou (exit $exit): $text"
     }
     if ($out -is [array]) { return ($out -join "`n") }
     return [string]$out
