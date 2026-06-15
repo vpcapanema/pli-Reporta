@@ -61,6 +61,19 @@ needs_rebuild() {
     return 1
 }
 
+runtime_matches_git() {
+    local sha="$1"
+    if [[ ! -f "$DEPLOY_MARKER" ]]; then
+        return 1
+    fi
+    local marker
+    marker=$(tr -d '[:space:]' < "$DEPLOY_MARKER")
+    [[ "$marker" == "$sha" ]] || return 1
+    curl -fsS http://127.0.0.1:8090/healthz >/dev/null 2>&1 || return 1
+    curl -fsS http://127.0.0.1:8090/api/public/ 2>/dev/null | grep -q '"simbologia"' || return 1
+    return 0
+}
+
 [[ "$APP_DIR" == "/opt/pli-reporta" ]] || die "APP_DIR fora do esperado: $APP_DIR"
 [[ -d "$APP_DIR/.git" ]] || die "$APP_DIR nao e clone git (rode bootstrap_vm.sh primeiro)"
 
@@ -93,18 +106,42 @@ fi
 
 DO_REBUILD=0
 DO_NGINX=0
+DEPLOYED_SHA=""
+if [[ -f "$DEPLOY_MARKER" ]]; then
+    DEPLOYED_SHA=$(tr -d '[:space:]' < "$DEPLOY_MARKER")
+fi
+
 if [[ ${#CHANGED_FILES[@]} -eq 0 ]]; then
-    if [[ "$OLD_SHA" == "$NEW_SHA" ]]; then
-        ok "nenhuma alteracao no GitHub — VM ja alinhada ($NEW_SHA)"
-        echo "$NEW_SHA" > "$DEPLOY_MARKER"
-        exit 0
+        if [[ "$OLD_SHA" == "$NEW_SHA" ]]; then
+        if runtime_matches_git "$NEW_SHA"; then
+            ok "git e runtime alinhados ($NEW_SHA)"
+            exit 0
+        fi
+        if [[ -n "$DEPLOYED_SHA" && "$DEPLOYED_SHA" != "$NEW_SHA" ]]; then
+            warn "git em ${NEW_SHA:0:7} mas runtime em ${DEPLOYED_SHA:0:7} — rebuild necessario"
+            mapfile -t CHANGED_FILES < <(git diff --name-only "$DEPLOYED_SHA" "$NEW_SHA" 2>/dev/null || true)
+        else
+            warn "marcador de deploy ausente — rebuild de seguranca"
+        fi
+        DO_REBUILD=1
+    else
+        DO_REBUILD=1
     fi
-    DO_REBUILD=1
 else
     for f in "${CHANGED_FILES[@]}"; do
         if needs_rebuild "$f"; then DO_REBUILD=1; fi
         if [[ "$f" == .deploy/nginx-host/* ]]; then DO_NGINX=1; fi
     done
+fi
+
+if [[ $DO_REBUILD -eq 0 && -n "$DEPLOYED_SHA" && "$DEPLOYED_SHA" != "$NEW_SHA" ]]; then
+    warn "commit mudou mas nenhum arquivo de runtime listado — rebuild forcado"
+    DO_REBUILD=1
+fi
+
+if [[ $DO_REBUILD -eq 0 && -z "$DEPLOYED_SHA" ]]; then
+    warn "sem marcador de deploy — rebuild forcado"
+    DO_REBUILD=1
 fi
 
 if [[ $DO_REBUILD -eq 0 && $DO_NGINX -eq 0 ]]; then
@@ -156,6 +193,12 @@ step "teste publico via Nginx"
 curl -s -o /dev/null -w "  status=%{http_code} time=%{time_total}s\n" \
     -H "Host: $PUBLIC_HOST" \
     http://127.0.0.1/healthz || true
+
+step "teste do manifesto (/api/public/)"
+if ! curl -fsS http://127.0.0.1:8090/api/public/ 2>/dev/null | grep -q '"simbologia"'; then
+    die "manifesto sem simbologia apos deploy — container desatualizado"
+fi
+ok "manifesto com simbologia"
 
 echo "$NEW_SHA" > "$DEPLOY_MARKER"
 

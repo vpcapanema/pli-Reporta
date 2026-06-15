@@ -1,23 +1,25 @@
-# Sincroniza a VM com o commit ja publicado no GitHub.
+# Sincroniza a VM: git pull, rebuild do container, acompanhamento e testes.
 # Uso: powershell -File scripts/sync-vm.ps1
 #
-# Pre-requisito: git push origin main (use push-and-sync-vm.ps1 para fazer os dois)
+# Pre-requisito: git push origin main (ou use ensure-sync.ps1)
 
 param(
     [string]$VmHost = '56.125.163.194',
     [string]$VmUser = 'ubuntu',
     [string]$Branch = 'main',
-    [string]$AppDir = '/opt/pli-reporta'
+    [string]$AppDir = '/opt/pli-reporta',
+    [string]$VmBaseUrl = 'http://pli-reporta.56-125-163-194.sslip.io',
+    [string]$VmHealthUrl = 'http://pli-reporta.56-125-163-194.sslip.io/healthz'
 )
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
-. (Join-Path $PSScriptRoot 'vm-remote.ps1')
+. (Join-Path $PSScriptRoot 'sync-lib.ps1')
 
 function Step([string]$msg) { Write-Host "`n=== $msg ===" -ForegroundColor Cyan }
 
-Step '1/3 Verificando alinhamento local <-> GitHub'
+Step '1/5 Verificando alinhamento local <-> GitHub'
 $prevEap = $ErrorActionPreference
 $ErrorActionPreference = 'Continue'
 git fetch origin $Branch 2>&1 | Out-Null
@@ -33,15 +35,30 @@ Rode: git push origin $Branch
 }
 Write-Host "  OK  laptop e GitHub em $local" -ForegroundColor Green
 
-Step '2/3 Atualizando VM'
-$updateCmd = "cd '$AppDir' && git fetch origin '$Branch' && git reset --hard 'origin/$Branch' && chmod +x .deploy/*.sh 2>/dev/null || true && bash '$AppDir/.deploy/update_vm.sh'"
+Step '2/5 VM — git pull e rebuild do container (update_vm.sh)'
+$updateCmd = "cd '$AppDir' && bash '$AppDir/.deploy/update_vm.sh'"
 Invoke-VmRemote -VmHost $VmHost -VmUser $VmUser -Command $updateCmd
 
-Step '3/3 Conferindo versao na VM'
-$vmSha = (Invoke-VmRemote -VmHost $VmHost -VmUser $VmUser -Command "git -C $AppDir rev-parse HEAD 2>/dev/null || cat $AppDir/.deploy/last_deploy_sha").Trim()
-if ($vmSha -eq $local) {
-    Write-Host "  OK  VM alinhada com GitHub ($vmSha)" -ForegroundColor Green
-} else {
-    Write-Host "  AVISO  VM=$vmSha  GitHub=$local" -ForegroundColor Yellow
+Step '3/5 Acompanhando subida do container'
+$runtimeOk = Test-VmRuntime -BaseUrl $VmBaseUrl -HealthUrl $VmHealthUrl -Label 'VM' -MaxAttempts 15 -DelaySeconds 5
+if (-not $runtimeOk) {
+    throw 'Container na VM respondeu, mas os testes de runtime falharam.'
 }
-Write-Host "`nURL: http://pli-reporta.56-125-163-194.sslip.io" -ForegroundColor Green
+
+Step '4/5 Conferindo commit na VM'
+$vmSha = (Invoke-VmRemote -VmHost $VmHost -VmUser $VmUser -Command "git -C $AppDir rev-parse HEAD 2>/dev/null || cat $AppDir/.deploy/last_deploy_sha").Trim()
+$deploySha = (Invoke-VmRemote -VmHost $VmHost -VmUser $VmUser -Command "tr -d '[:space:]' < $AppDir/.deploy/last_deploy_sha 2>/dev/null || echo MISSING").Trim()
+if ($vmSha -eq $local) {
+    Write-Host "  OK  git na VM: $vmSha" -ForegroundColor Green
+} else {
+    Write-Host "  AVISO  git VM=$vmSha  GitHub=$local" -ForegroundColor Yellow
+}
+if ($deploySha -eq $local) {
+    Write-Host "  OK  marcador de deploy: $deploySha" -ForegroundColor Green
+} else {
+    Write-Host "  AVISO  marcador deploy=$deploySha  GitHub=$local" -ForegroundColor Yellow
+}
+
+Step '5/5 Resumo'
+Write-Host "  URL publica: $VmBaseUrl/api-publica" -ForegroundColor Green
+Write-Host "  Manifesto:   $VmBaseUrl/api/public/" -ForegroundColor DarkGray

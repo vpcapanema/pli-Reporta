@@ -47,6 +47,93 @@ function Get-VmCommitSha {
     return ($raw -split [Environment]::NewLine)[-1].Trim()
 }
 
+function Test-RuntimeManifest {
+    param(
+        [string]$BaseUrl,
+        [string]$Label = 'Runtime',
+        [switch]$Quiet
+    )
+
+    $url = ($BaseUrl.TrimEnd('/') + '/api/public/')
+    try {
+        $manifest = Invoke-RestMethod -Uri $url -TimeoutSec 30
+        if ($manifest.PSObject.Properties.Name -contains 'simbologia') {
+            if (-not $Quiet) {
+                Write-Host ('  OK  ' + $Label + ' manifesto com simbologia (' + $url + ')') -ForegroundColor Green
+            }
+            return $true
+        }
+        if (-not $Quiet) {
+            Write-Host ('  !!  ' + $Label + ' manifesto sem simbologia — container desatualizado') -ForegroundColor Yellow
+        }
+        return $false
+    }
+    catch {
+        if (-not $Quiet) {
+            Write-Host ('  !!  ' + $Label + ' manifesto indisponivel: ' + $url) -ForegroundColor Yellow
+        }
+        return $false
+    }
+}
+
+function Test-ApiPublicaPage {
+    param(
+        [string]$BaseUrl,
+        [string]$Label = 'VM',
+        [switch]$Quiet
+    )
+
+    $url = ($BaseUrl.TrimEnd('/') + '/api-publica')
+    try {
+        $response = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 30
+        $hasSymbology = $response.Content -match 'id="simbologia"'
+        $hasLegend = $response.Content -match 'api-status-legend-body'
+        if ($hasSymbology -and $hasLegend) {
+            if (-not $Quiet) {
+                Write-Host ('  OK  ' + $Label + ' pagina /api-publica com simbologia (' + $url + ')') -ForegroundColor Green
+            }
+            return $true
+        }
+        if (-not $Quiet) {
+            Write-Host ('  !!  ' + $Label + ' pagina /api-publica desatualizada') -ForegroundColor Yellow
+        }
+        return $false
+    }
+    catch {
+        if (-not $Quiet) {
+            Write-Host ('  !!  ' + $Label + ' pagina /api-publica indisponivel: ' + $url) -ForegroundColor Yellow
+        }
+        return $false
+    }
+}
+
+function Test-VmRuntime {
+    param(
+        [string]$BaseUrl,
+        [string]$HealthUrl,
+        [string]$Label = 'VM',
+        [int]$MaxAttempts = 12,
+        [int]$DelaySeconds = 5
+    )
+
+    Write-Host ('  Acompanhando container ' + $Label + '...') -ForegroundColor Cyan
+    $null = Test-AppHealth -Url $HealthUrl -Label $Label -MaxAttempts $MaxAttempts -DelaySeconds $DelaySeconds
+
+    $manifestOk = Test-RuntimeManifest -BaseUrl $BaseUrl -Label $Label
+    if (-not $manifestOk) { return $false }
+
+    $pageOk = Test-ApiPublicaPage -BaseUrl $BaseUrl -Label $Label
+    return $pageOk
+}
+
+function Test-VmRuntimeStale {
+    param([string]$BaseUrl)
+
+    $manifestOk = Test-RuntimeManifest -BaseUrl $BaseUrl -Quiet
+    if (-not $manifestOk) { return $true }
+    return -not (Test-ApiPublicaPage -BaseUrl $BaseUrl -Quiet)
+}
+
 function Get-SyncState {
     param(
         [string]$VmHost = '56.125.163.194',

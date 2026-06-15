@@ -14,9 +14,18 @@ $ErrorActionPreference = 'Stop'
 $state = Get-SyncState -VmHost $VmHost -VmUser $VmUser -Branch $Branch -AppDir $AppDir
 Write-SyncStatus $state
 
-if ($state.IsSynced) {
-    Write-Host -ForegroundColor Green '  SINCRONIZADO - os tres ambientes no mesmo commit'
+$runtimeOk = Test-RuntimeManifest -BaseUrl 'http://pli-reporta.56-125-163-194.sslip.io' -Label 'VM'
+$pageOk = Test-ApiPublicaPage -BaseUrl 'http://pli-reporta.56-125-163-194.sslip.io' -Label 'VM'
+$runtimeOk = $runtimeOk -and $pageOk
+
+if ($state.IsSynced -and $runtimeOk) {
+    Write-Host -ForegroundColor Green '  SINCRONIZADO - git alinhado e container testado'
     exit 0
+}
+
+if ($state.IsSynced -and -not $runtimeOk) {
+    Write-Host -ForegroundColor Yellow '  GIT OK mas CONTAINER DESATUALIZADO - rode a task "Sincronizar ambientes"'
+    exit 1
 }
 
 if ($state.Local -ne $state.GitHub) {
