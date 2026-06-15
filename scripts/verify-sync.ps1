@@ -13,32 +13,76 @@ $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 . (Join-Path $PSScriptRoot 'vm-remote.ps1')
 
-$prevEap = $ErrorActionPreference
-$ErrorActionPreference = 'Continue'
-git fetch origin $Branch 2>&1 | Out-Null
-$ErrorActionPreference = $prevEap
-
-$local  = (git rev-parse HEAD).Trim()
-$github = (git rev-parse "origin/$Branch").Trim()
-$vmRaw  = Invoke-VmRemote -VmHost $VmHost -VmUser $VmUser -Command "if [ -d '$AppDir/.git' ]; then git -C '$AppDir' rev-parse HEAD; elif [ -f '$AppDir/.deploy/last_deploy_sha' ]; then cat '$AppDir/.deploy/last_deploy_sha'; else echo MISSING; fi"
-$vm = ($vmRaw -split "`n")[-1].Trim()
-
-function Short([string]$sha) { if ($sha.Length -ge 7) { $sha.Substring(0, 7) } else { $sha } }
-
-Write-Host ""
-Write-Host "  Laptop : $(Short $local)  $local"
-Write-Host "  GitHub : $(Short $github)  $github"
-Write-Host "  VM     : $(Short $vm)  $vm"
-Write-Host ""
-
-if ($local -eq $github -and $github -eq $vm) {
-    Write-Host "  SINCRONIZADO - os tres ambientes no mesmo commit" -ForegroundColor Green
-    exit 0
+function Get-ShortSha {
+    param([string]$Sha)
+    if ($Sha.Length -ge 7) {
+        return $Sha.Substring(0, 7)
+    }
+    return $Sha
 }
-if ($local -ne $github) {
-    Write-Host "  DESALINHADO - rode: git push origin $Branch" -ForegroundColor Yellow
+
+function Get-VmCommitSha {
+    param(
+        [string]$HostName,
+        [string]$UserName,
+        [string]$AppPath
+    )
+
+    $bashParts = @(
+        'if [ -d ''', $AppPath, '/.git'' ]; then git -C ''', $AppPath, ''' rev-parse HEAD; ',
+        'elif [ -f ''', $AppPath, '/.deploy/last_deploy_sha'' ]; then cat ''', $AppPath, '/.deploy/last_deploy_sha''; ',
+        'else echo MISSING; fi'
+    )
+    $bashCmd = -join $bashParts
+    $raw = Invoke-VmRemote -VmHost $HostName -VmUser $UserName -Command $bashCmd
+    return ($raw -split [Environment]::NewLine)[-1].Trim()
 }
-if ($github -ne $vm) {
-    Write-Host "  DESALINHADO — rode: powershell -File scripts/sync-vm.ps1" -ForegroundColor Yellow
+
+function Test-RepoSync {
+    param(
+        [string]$HostName,
+        [string]$UserName,
+        [string]$BranchName,
+        [string]$AppPath
+    )
+
+    $prevEap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    git fetch origin $BranchName 2>&1 | Out-Null
+    $ErrorActionPreference = $prevEap
+
+    $localSha = (git rev-parse HEAD).Trim()
+    $githubSha = (git rev-parse ('origin/' + $BranchName)).Trim()
+    $vmSha = Get-VmCommitSha -HostName $HostName -UserName $UserName -AppPath $AppPath
+
+    $shortLocal = Get-ShortSha $localSha
+    $shortGithub = Get-ShortSha $githubSha
+    $shortVm = Get-ShortSha $vmSha
+
+    Write-Host ''
+    Write-Host ('  Laptop : ' + $shortLocal + '  ' + $localSha)
+    Write-Host ('  GitHub : ' + $shortGithub + '  ' + $githubSha)
+    Write-Host ('  VM     : ' + $shortVm + '  ' + $vmSha)
+    Write-Host ''
+
+    if ($localSha -eq $githubSha -and $githubSha -eq $vmSha) {
+        Write-Host -ForegroundColor Green '  SINCRONIZADO - os tres ambientes no mesmo commit'
+        return 0
+    }
+
+    $status = 0
+    if ($localSha -ne $githubSha) {
+        $pushMsg = '  DESALINHADO - rode: git push origin ' + $BranchName
+        Write-Host -ForegroundColor Yellow $pushMsg
+        $status = 1
+    }
+    if ($githubSha -ne $vmSha) {
+        $syncMsg = '  DESALINHADO - rode: powershell -File scripts/sync-vm.ps1'
+        Write-Host -ForegroundColor Yellow $syncMsg
+        $status = 1
+    }
+    return $status
 }
-exit 1
+
+$code = Test-RepoSync -HostName $VmHost -UserName $VmUser -BranchName $Branch -AppPath $AppDir
+exit $code
