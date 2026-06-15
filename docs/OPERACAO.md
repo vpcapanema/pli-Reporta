@@ -194,6 +194,20 @@ powershell -File scripts/verify-sync.ps1
 
 Mostra o SHA do laptop, GitHub e VM. Os tres devem ser iguais.
 
+### Sincronizar automaticamente (Git central)
+
+```powershell
+powershell -File scripts/ensure-sync.ps1
+```
+
+Ou no Cursor/VS Code: **Terminal > Run Task > PLI Reporta: Sincronizar ambientes (Git central)** (`Ctrl+Shift+B` se for a task de teste padrao).
+
+O script:
+1. Compara laptop, GitHub e VM
+2. Faz `git push` ou `git pull --ff-only` se o laptop estiver desatualizado
+3. Roda `sync-vm.ps1` se a VM estiver desatualizada
+4. Valida `/healthz` no ambiente que foi atualizado
+
 ### Primeira instalacao na VM (uma vez)
 
 ```bash
