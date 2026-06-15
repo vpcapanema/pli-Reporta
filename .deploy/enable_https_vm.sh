@@ -39,7 +39,7 @@ sudo certbot certonly --webroot \
     --non-interactive --agree-tos -m "$EMAIL" \
     --deploy-hook "systemctl reload nginx"
 
-[[ -f "/etc/letsencrypt/live/$PUBLIC_HOST/fullchain.pem" ]] \
+sudo test -f "/etc/letsencrypt/live/$PUBLIC_HOST/fullchain.pem" \
     || die "Certificado nao encontrado apos certbot"
 
 step "ativando virtual host HTTPS"

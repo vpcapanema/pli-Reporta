@@ -25,12 +25,12 @@ set -euo pipefail
 
 APP_DIR="/opt/pli-reporta"
 COMPOSE_FILE="$APP_DIR/docker-compose.vm.yml"
+EXPECTED_REPO_FRAGMENT="vpcapanema/pli-Reporta"
+PUBLIC_HOST="pli-reporta.56-125-163-194.sslip.io"
 NGINX_SRC="$APP_DIR/.deploy/nginx-host/pli-reporta"
 NGINX_SRC_HTTPS="$APP_DIR/.deploy/nginx-host/pli-reporta-https"
 CERT_PATH="/etc/letsencrypt/live/$PUBLIC_HOST/fullchain.pem"
 NGINX_DST="/etc/nginx/sites-available/pli-reporta"
-EXPECTED_REPO_FRAGMENT="vpcapanema/pli-Reporta"
-PUBLIC_HOST="pli-reporta.56-125-163-194.sslip.io"
 DEPLOY_MARKER="$APP_DIR/.deploy/last_deploy_sha"
 
 # Arquivos que exigem rebuild da imagem Docker
