@@ -221,6 +221,39 @@ function buildPayload() {
   };
 }
 
+function isLikelyNetworkError(err) {
+  if (!err) return false;
+  if (err.name === 'TypeError') return true;
+  const msg = String(err.message || '').toLowerCase();
+  return msg.includes('failed to fetch')
+    || msg.includes('networkerror')
+    || msg.includes('network')
+    || msg.includes('load failed');
+}
+
+function validateSubmissionPayload(payload) {
+  if (!payload.photoBlob || payload.photoBlob.size === 0) {
+    throw new Error('Foto do reporte ausente. Volte e tente novamente.');
+  }
+  if (!payload.capturedAt) {
+    throw new Error('Data de captura ausente. Volte e tente novamente.');
+  }
+  if (payload.lat == null || payload.lon == null || Number.isNaN(payload.lat) || Number.isNaN(payload.lon)) {
+    throw new Error('Localização GPS ausente. Ajuste o ponto no mapa.');
+  }
+  if (payload.interactionType === 'manifestacao') {
+    const desc = (payload.description || '').trim();
+    if (desc.length < 15) {
+      throw new Error('Descrição obrigatória (mínimo 15 caracteres).');
+    }
+  }
+}
+
+function setResultHeader(title) {
+  const label = document.querySelector('#step-4 .label');
+  if (label) label.textContent = title;
+}
+
 /** Ajusta visibilidade dos blocos do step-3 conforme o fluxo. */
 function configureConfirmStep(mode) {
   const isManifTextOnly = mode === 'manifestacao-text-only';
@@ -440,6 +473,7 @@ async function submit() {
     await prepareDescriptionsForSubmit();
     btn.textContent = 'Enviando…';
     const payload = buildPayload();
+    validateSubmissionPayload(payload);
 
     if (!navigator.onLine) {
       await enqueueOffline(payload);
@@ -448,6 +482,9 @@ async function submit() {
 
     try {
       const res = await postReport(payload);
+      if (!res?.id) {
+        throw new Error('Servidor não confirmou o reporte (sem ID).');
+      }
       showResult(res);
     } catch (err) {
       console.error(err);
@@ -455,8 +492,19 @@ async function submit() {
         toast(err.detail || err.message, 'err');
         return;
       }
-      await enqueueOffline(payload);
+      if (err.status >= 400 && err.status < 500) {
+        toast(err.detail || err.message || 'Envio rejeitado pelo servidor.', 'err');
+        return;
+      }
+      if (isLikelyNetworkError(err)) {
+        await enqueueOffline(payload);
+        return;
+      }
+      toast(err.message || 'Falha ao enviar o reporte.', 'err');
     }
+  } catch (err) {
+    console.error(err);
+    toast(err.message || 'Não foi possível preparar o envio.', 'err');
   } finally {
     btn.textContent = 'Enviar';
     btn.disabled = false;
@@ -481,16 +529,18 @@ async function enqueueOffline(payload) {
 function showOfflineResult() {
   hideAllSteps();
   show('#step-4');
+  setResultHeader('Salvo neste aparelho');
   $('#result-message').textContent =
-    'Salvo no celular. Enviaremos automaticamente quando você estiver online.';
-  $('#result-id').textContent = 'pendente';
+    'Ainda não chegou ao servidor. Mantenha esta página aberta ou volte com internet no mesmo aparelho para envio automático.';
+  $('#result-id').textContent = 'pendente (fila local)';
 }
 
 function showResult(res) {
   hideAllSteps();
   show('#step-4');
+  setResultHeader('Reporte recebido');
   $('#result-message').textContent =
-    res.message || 'Estamos analisando. Você pode fechar o app.';
+    res.message || 'Registrado no servidor. Você pode fechar o app.';
   $('#result-id').textContent = res.id;
 }
 
@@ -555,23 +605,29 @@ async function flushQueue() {
     return;
   }
   let sent = 0;
+  let failed = 0;
   for (const it of items) {
     try {
       const blob = new Blob([it.photoBuffer], { type: 'image/jpeg' });
-      await postReport({
+      const res = await postReport({
         ...it.payload,
         photoBlob: blob,
         offlineCapture: true,
         queuedAt: it.queuedAt,
       });
+      if (!res?.id) throw new Error('sem ID na resposta');
       await dequeue(it.localId);
       sent++;
     } catch (e) {
+      failed++;
       console.warn('Fila: item falhou, continua depois', it.localId, e);
     }
   }
   await updateQueueBadge();
-  if (sent > 0) toast(`${sent} reporte(s) enviado(s).`, 'ok');
+  if (sent > 0) toast(`${sent} reporte(s) enviado(s) ao servidor.`, 'ok');
+  if (failed > 0 && sent === 0) {
+    toast('Há reportes na fila local aguardando conexão com o servidor.', 'warn');
+  }
 }
 
 async function onFallbackFile(ev) {

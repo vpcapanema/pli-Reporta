@@ -1,0 +1,43 @@
+# Teste local da imagem (container isolado, sem Nginx).
+# Uso: docker compose up --build
+# Acesso: http://localhost:8081/
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pli-reporta-app:local
+    container_name: pli_reporta_local
+    ports:
+      - "127.0.0.1:8081:8090"
+    env_file:
+      - path: .env.docker
+        required: false
+    environment:
+      PORT: "8090"
+      APP_ENV: production
+      PUBLIC_BASE_URL: http://localhost:8081
+      PHOTO_STORAGE_DIR: /app/backend/storage/photos
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - pli_reporta_photos_local:/app/backend/storage/photos
+      - pli_reporta_camadas_local:/app/data/camadas-do-sistema
+    networks:
+      - pli_reporta_local_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8090/healthz"]
+      interval: 20s
+      timeout: 8s
+      retries: 5
+      start_period: 50s
+
+networks:
+  pli_reporta_local_net:
+    name: pli_reporta_local_net
+
+volumes:
+  pli_reporta_photos_local:
+  pli_reporta_camadas_local:

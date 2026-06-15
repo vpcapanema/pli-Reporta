@@ -1,0 +1,71 @@
+# =============================================================================
+# PLI Reporta - virtual host para o Nginx do HOST da VM
+#
+# Local final: /etc/nginx/sites-available/pli-reporta
+# Symlink em:  /etc/nginx/sites-enabled/pli-reporta
+#
+# IMPORTANTE: este arquivo e ADITIVO - sigma-pli e pli-hazardtrack nao sao tocados.
+#
+# Hostname: pli-reporta.56-125-163-194.sslip.io
+# =============================================================================
+
+upstream pli_reporta_app {
+    server 127.0.0.1:8090;
+    keepalive 32;
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+
+    server_name pli-reporta.56-125-163-194.sslip.io;
+
+    client_max_body_size 16m;
+    proxy_connect_timeout  10s;
+    proxy_send_timeout     120s;
+    proxy_read_timeout     120s;
+    send_timeout           120s;
+
+    access_log /var/log/nginx/pli-reporta.access.log;
+    error_log  /var/log/nginx/pli-reporta.error.log warn;
+
+    location = /healthz {
+        proxy_pass http://pli_reporta_app;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Connection "";
+        access_log off;
+    }
+
+    location /media/ {
+        proxy_pass http://pli_reporta_app;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header Connection "";
+        expires 7d;
+        add_header Cache-Control "public, max-age=604800";
+    }
+
+    location ~* ^/static/.+\.(?:css|js|svg|png|jpg|jpeg|ico|woff2?|webmanifest)$ {
+        proxy_pass http://pli_reporta_app;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header Connection "";
+        expires 1h;
+        add_header Cache-Control "public, max-age=3600";
+        access_log off;
+    }
+
+    location / {
+        proxy_pass http://pli_reporta_app;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Connection "";
+    }
+}

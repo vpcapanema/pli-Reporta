@@ -42,8 +42,11 @@ def main() -> int:
     # (fora do venv) e ficar preso em codigo antigo — desliga reload aqui.
     use_reload = sys.platform != "win32"
 
+    # 0.0.0.0 permite testar no celular na mesma rede (LAN).
+    host = os.environ.get("PLI_DEV_HOST", "0.0.0.0")
+
     run_kwargs: dict = {
-        "host": "127.0.0.1",
+        "host": host,
         "port": port,
         "log_level": "info",
     }
@@ -60,8 +63,27 @@ def main() -> int:
             ],
         )
 
+    _print_dev_urls(port, host)
     uvicorn.run("backend.main:app", **run_kwargs)
     return 0
+
+
+def _print_dev_urls(port: int, host: str) -> None:
+    print(f"[pli-reporta] http://127.0.0.1:{port}/  (este computador)")
+    if host in ("0.0.0.0", "::"):
+        try:
+            import socket
+
+            seen: set[str] = set()
+            for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+                ip = info[4][0]
+                if ip.startswith("127.") or ip in seen:
+                    continue
+                seen.add(ip)
+                print(f"[pli-reporta] http://{ip}:{port}/  (celular na mesma rede Wi‑Fi)")
+        except OSError:
+            pass
+    print(f"[pli-reporta] host={host} port={port}")
 
 
 if __name__ == "__main__":

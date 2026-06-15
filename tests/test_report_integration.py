@@ -301,3 +301,31 @@ class TestReportIntegrationManifestacao:
         assert row.cluster_id is None
         assert row.road_scope is None
         assert row.relevance_score == pytest.approx(row.priority)
+
+    def test_manifestacao_sem_foto_placeholder_1x1_persiste(self, app_client):
+        """Fluxo celular: manifestação sem câmera envia JPEG 1×1 placeholder."""
+        from PIL import Image
+
+        buf = BytesIO()
+        Image.new("RGB", (1, 1), (204, 204, 204)).save(buf, format="JPEG", quality=50)
+        placeholder = buf.getvalue()
+
+        nonce = app_client.get("/api/capture-nonce").json()["nonce"]
+        files = {"photo": ("capture.jpg", placeholder, "image/jpeg")}
+        data = {
+            "lat": str(COORD_ESTADUAL[0]),
+            "lon": str(COORD_ESTADUAL[1]),
+            "category": "sugestao",
+            "interaction_type": "manifestacao",
+            "description": "Sugestão enviada pelo fluxo móvel sem registro fotográfico.",
+            "captured_at": _now_iso(),
+            "capture_nonce": nonce,
+            "client_id": "integ-mobile-placeholder",
+        }
+        r = app_client.post("/api/reports", files=files, data=data)
+        assert r.status_code == 201, r.text
+        rid = r.json()["id"]
+        row = _get_report(rid)
+        assert row.interaction_type == "manifestacao"
+        assert row.category == "sugestao"
+        assert len(row.description or "") >= 15

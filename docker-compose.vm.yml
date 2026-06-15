@@ -1,0 +1,89 @@
+# =============================================================================
+# PLI Reporta — stack de producao para a VM AWS (sa-east-1)
+#
+# Arquitetura (igual ao PLI-HazardTrack):
+#   [publico :80] -> Nginx do host (arquivo novo, sigma-pli intocado)
+#                 -> 127.0.0.1:8090 -> container app (uvicorn)
+#
+# Hostname: pli-reporta.56-125-163-194.sslip.io
+#
+# Subir:    docker compose -f docker-compose.vm.yml up -d
+# Logs:     docker compose -f docker-compose.vm.yml logs -f --tail=200
+# Parar:    docker compose -f docker-compose.vm.yml down
+# =============================================================================
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pli-reporta-app:latest
+    container_name: pli_reporta_app
+    restart: unless-stopped
+
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+          cpus: "1.0"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
+    mem_limit: 1024m
+    mem_reservation: 256m
+    cpus: 1.0
+
+    env_file:
+      - path: .env.vm
+        required: false
+
+    environment:
+      PORT: "8090"
+      APP_ENV: production
+      PHOTO_STORAGE_DIR: /app/backend/storage/photos
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://pli-reporta.56-125-163-194.sslip.io}
+      DATABASE_URL: postgresql+psycopg://pli_user:${PLI_DB_PASSWORD}@sigma_pli_db:5432/pli_reporta
+      SIGMA_API_BASE_URL: ${SIGMA_API_BASE_URL:-http://host.docker.internal}
+      SECRET_KEY: ${SECRET_KEY:-}
+      ALLOWED_ORIGINS: "*"
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    # So loopback — quem fala com a app e o Nginx do host
+    ports:
+      - "127.0.0.1:8090:8090"
+
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8090/healthz"]
+      interval: 30s
+      timeout: 10s
+      start_period: 50s
+      retries: 3
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+    volumes:
+      - pli_reporta_photos:/app/backend/storage/photos
+      - pli_reporta_camadas:/app/data/camadas-do-sistema
+
+    networks:
+      - pli_reporta_net
+      - sigma-backend-network
+
+networks:
+  pli_reporta_net:
+    name: pli_reporta_net
+    driver: bridge
+  sigma-backend-network:
+    external: true
+
+volumes:
+  pli_reporta_photos:
+    name: pli_reporta_photos
+  pli_reporta_camadas:
+    name: pli_reporta_camadas

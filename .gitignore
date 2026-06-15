@@ -26,6 +26,8 @@ data/ibge_tmp/
 # Ambiente
 .env
 .env.local
+.env.docker
+.env.vm
 .sigma-postgres-tunnel.pid
 .sigma-tunnel-keeper.pid
 .sigma-tunnel-keeper.status

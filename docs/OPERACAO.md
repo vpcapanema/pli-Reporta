@@ -115,3 +115,44 @@ Endpoint `/healthz` retorna:
 - `RESOLVER_API_KEY` — autoridade marca incidentes como resolvidos.
 
 Gerar com `python -c "import secrets; print(secrets.token_urlsafe(32))"`.
+
+## Deploy Docker na VM (container isolado)
+
+Mesmo padrao do **PLI-HazardTrack**: container proprio, porta local dedicada e URL
+publica via Nginx do host (sem alterar o sigma-pli).
+
+| Item | Valor |
+|------|-------|
+| Container | `pli_reporta_app` |
+| Rede propria | `pli_reporta_net` |
+| Porta host (loopback) | `127.0.0.1:8090` |
+| URL publica | `http://pli-reporta.56-125-163-194.sslip.io` |
+| Postgres | `sigma_pli_db:5432` via rede `sigma-backend-network` |
+| Banco | `pli_reporta` / usuario `pli_user` |
+
+### Build local (Windows)
+
+```powershell
+powershell -File scripts/build-docker.ps1          # gera pli-reporta-app-arm64.tar
+powershell -File scripts/docker-test.ps1           # testa container isolado em :8081
+```
+
+### Deploy na VM
+
+```bash
+# Na sua maquina: copiar tarball + compose + nginx + .env.vm
+scp pli-reporta-app-arm64.tar docker-compose.vm.yml \
+    .deploy/nginx-host/pli-reporta .deploy/deploy_vm.sh .env.vm \
+    ubuntu@56.125.163.194:/tmp/pli-reporta/
+
+# Na VM
+cd /tmp/pli-reporta && bash deploy_vm.sh
+```
+
+Rollback (nao mexe no sigma-pli):
+
+```bash
+docker compose -f /opt/pli-reporta/docker-compose.vm.yml down
+sudo rm /etc/nginx/sites-enabled/pli-reporta
+sudo systemctl reload nginx
+```

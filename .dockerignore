@@ -1,0 +1,48 @@
+# Python / ambiente local
+__pycache__/
+*.py[cod]
+.Python
+venv/
+env/
+.venv/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+.env
+.env.docker
+
+# Git / IDE
+.git/
+.gitignore
+.vscode/
+.idea/
+.kiro/
+*.code-workspace
+
+# Banco e mídia local (montados como volume em produção)
+*.db
+*.sqlite
+*.sqlite3
+backend/storage/photos/*
+!backend/storage/photos/.gitkeep
+
+# Dados pesados — montar na VM se necessário (malha/IBGE/shapefiles)
+data/Sistema Rodoviário Estadual/
+data/dradt_mvw_lml_municipio_a_2021/
+data/RESIDENCIAS_CONSERVA_POLIGONOS/
+data/shp_tmp/
+data/ibge_tmp/
+data/*.geojson
+
+# Documentação e testes (não necessários na imagem)
+tests/
+docs/
+*.md
+!data/camadas-do-sistema/README.md
+
+# Scripts de dev / tunel
+.sigma-postgres-tunnel.pid
+.sigma-tunnel-keeper.pid
+.sigma-tunnel-keeper.status
+PLI Reporta (VM 5433).session.sql
