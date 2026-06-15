@@ -46,6 +46,7 @@
             <a href="#visao">Visão geral</a>
             <a href="#endpoint-principal">Endpoint principal</a>
             <a href="#camadas">Camadas por categoria</a>
+            <a href="#simbologia">Simbologia</a>
             <a href="#parametros">Parâmetros</a>
             <a href="#exemplos">Como utilizar</a>
             <a href="#campos">Campos GeoJSON</a>
@@ -128,6 +129,58 @@
           </div>
         </section>
 
+        <section id="simbologia" class="gestao-policy-section gestao-policy-full">
+          <h2>Simbologia oficial (eventos de tráfego)</h2>
+          <p>
+            A API expõe <strong>uma única simbologia</strong>, idêntica à página
+            <em>Funcionalidades do sistema</em> na gestão: losango com borda fixa
+            <code>#003b5a</code> e ícone interno da categoria tingido pela cor do status.
+          </p>
+          <ul class="api-publica-fields">
+            <li><code>GET /api/public/</code> e <code>GET /api/public/catalog</code> — bloco <code>simbologia</code></li>
+            <li>Cada feature GeoJSON inclui <code>marker_shape</code>, <code>marker_border_color</code>, <code>symbol_color</code>, <code>icon_url</code></li>
+            <li>Ícones em <code>/static/img/icons/{category_id}.png</code> ou <code>.svg</code></li>
+            <li><code>simbologia.legenda_status</code> — relação cor/status da legenda</li>
+          </ul>
+          <h3>Relação cor / status (legenda)</h3>
+          <p class="muted">
+            A cor do ícone interno do losango segue o <code>status</code> de cada feature
+            (<code>symbol_color</code>). A API pública expõe apenas status com
+            <code>export_publico</code> — demais entradas servem de referência para integradores.
+          </p>
+          <div class="api-publica-table-wrap">
+            <table class="api-publica-table api-publica-legend-table">
+              <thead>
+                <tr>
+                  <th>Cor</th>
+                  <th>Status</th>
+                  <th>Rótulo</th>
+                  <th>Descrição</th>
+                  <th>Na API pública</th>
+                </tr>
+              </thead>
+              <tbody id="api-status-legend-body">
+                <tr><td colspan="5" class="muted">Carregando legenda de status…</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h3>Ícones por categoria</h3>
+          <div class="api-publica-table-wrap">
+            <table class="api-publica-table">
+              <thead>
+                <tr>
+                  <th>Categoria</th>
+                  <th>Ícone</th>
+                  <th>Formato</th>
+                </tr>
+              </thead>
+              <tbody id="api-symbology-body">
+                <tr><td colspan="3" class="muted">Carregando simbologia…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
         <section id="parametros" class="gestao-policy-section gestao-policy-full">
           <h2>Parâmetros de consulta</h2>
           <p>Disponíveis em todos os endpoints <code>*.geojson</code>:</p>
@@ -172,6 +225,8 @@
           <p>Cada feature inclui, entre outros:</p>
           <ul class="api-publica-fields">
             <li><code>id</code>, <code>category</code>, <code>category_label</code>, <code>status</code></li>
+            <li><code>marker_shape</code>, <code>marker_border_color</code>, <code>symbol_color</code>, <code>status_label</code></li>
+            <li><code>icon_format</code>, <code>icon_path</code>, <code>icon_url</code></li>
             <li><code>description</code>, <code>magnitude</code>, <code>priority</code></li>
             <li><code>veracity</code>, <code>relevance</code>, <code>blocking</code></li>
             <li><code>valid_from</code>, <code>valid_to</code>, <code>captured_at</code></li>

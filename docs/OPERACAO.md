@@ -204,9 +204,12 @@ Ou no Cursor/VS Code: **Terminal > Run Task > PLI Reporta: Sincronizar ambientes
 
 O script:
 1. Compara laptop, GitHub e VM
-2. Faz `git push` ou `git pull --ff-only` se o laptop estiver desatualizado
-3. Roda `sync-vm.ps1` se a VM estiver desatualizada
-4. Valida `/healthz` no ambiente que foi atualizado
+2. **Commita automaticamente** alteracoes locais pendentes (`git add -A` + `git commit`)
+3. Faz `git push` ou `git pull --ff-only` se o laptop estiver desatualizado
+4. Roda `sync-vm.ps1` se a VM estiver desatualizada
+5. Valida `/healthz` no ambiente que foi atualizado
+
+Mensagem do commit: informe no prompt da task ou deixe vazio para gerar automaticamente (`sync: publica N arquivos locais`).
 
 ### Primeira instalacao na VM (uma vez)
 

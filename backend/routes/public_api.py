@@ -10,7 +10,11 @@ from ..database import get_session
 from ..services.export_reports import validate_layer
 from ..services.layer_feed import feature_collection
 from ..services.public_api_spec import api_manifest
-from ..services.report_catalog import EVENT_CATEGORIES, catalog_payload
+from ..services.report_catalog import catalog_payload
+from ..services.traffic_symbology import (
+    traffic_event_symbology_payload,
+    traffic_feature_symbology,
+)
 
 router = APIRouter()
 
@@ -31,6 +35,24 @@ def _parse_bbox(bbox: str | None) -> tuple[float, float, float, float] | None:
     except ValueError as exc:
         raise HTTPException(400, detail="bbox inválido (minLon,minLat,maxLon,maxLat).") from exc
     raise HTTPException(400, detail="bbox inválido (minLon,minLat,maxLon,maxLat).")
+
+
+def _enrich_public_traffic_fc(fc: dict, *, base_url: str) -> dict:
+    """Inclui simbologia oficial em cada feature e no metadata."""
+    symbology = traffic_event_symbology_payload(base_url=base_url)
+    fc.setdefault("metadata", {})["simbologia"] = symbology
+    for feature in fc.get("features", []):
+        props = feature.get("properties") or {}
+        if props.get("interaction_type") != "evento_trafego":
+            continue
+        props.update(
+            traffic_feature_symbology(
+                props.get("category", "outro"),
+                props.get("status", "publicado"),
+                base_url=base_url,
+            )
+        )
+    return fc
 
 
 def _public_events_fc(
@@ -70,18 +92,21 @@ def public_api_root(request: Request) -> dict:
 
 
 @router.get("/catalog")
-def public_api_catalog() -> dict:
+def public_api_catalog(request: Request) -> dict:
     """Catálogo reduzido — somente categorias de eventos de tráfego."""
+    base = _base_url(request)
     full = catalog_payload()
+    symbology = traffic_event_symbology_payload(base_url=base)
     return {
         "interaction_types": [
             t for t in full["interaction_types"] if t["id"] == "evento_trafego"
         ],
-        "event_categories": EVENT_CATEGORIES,
+        "event_categories": symbology["categories"],
         "statuses": {
             k: v for k, v in full["statuses"].items() if v.get("export_publico")
         },
         "status_visibility_matrix": full["status_visibility_matrix"],
+        "simbologia": symbology,
     }
 
 
@@ -105,7 +130,7 @@ def public_all_traffic_events(
         "interaction_type": "evento_trafego",
         "manifest": f"{_base_url(request)}/api/public/",
     }
-    return _geojson_response(fc)
+    return _geojson_response(_enrich_public_traffic_fc(fc, base_url=_base_url(request)))
 
 
 @router.get("/eventos-trafego/{category_id}.geojson")
@@ -138,4 +163,4 @@ def public_traffic_layer(
         "category_label": meta["label"],
         "manifest": f"{_base_url(request)}/api/public/",
     }
-    return _geojson_response(fc)
+    return _geojson_response(_enrich_public_traffic_fc(fc, base_url=_base_url(request)))

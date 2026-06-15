@@ -130,24 +130,34 @@ GLOSSARY = [
         ],
     },
     {
-        "titulo": "Sigla no marcador",
-        "itens": [f"{c['sigla']} = {c['label']}" for c in EVENT_CATEGORIES + MANIF_CATEGORIES],
+        "titulo": "Ícone no marcador (eventos de tráfego)",
+        "itens": [
+            f"{c['label']} → ícone {c['id']}" for c in EVENT_CATEGORIES
+        ],
     },
     {
-        "titulo": "Cor da borda",
+        "titulo": "Sigla no marcador (manifestações)",
+        "itens": [f"{c['sigla']} = {c['label']}" for c in MANIF_CATEGORIES],
+    },
+    {
+        "titulo": "Cor do símbolo interno",
         "itens": [f"{m['label']} → cor {m['cor']}" for m in STATUS_META.values()],
     },
 ]
 
 
 def catalog_payload() -> dict:
+    from .traffic_symbology import traffic_event_symbology_payload
+
+    symbology = traffic_event_symbology_payload()
     return {
         "interaction_types": INTERACTION_TYPES,
-        "event_categories": EVENT_CATEGORIES,
+        "event_categories": symbology["categories"],
         "manifestation_categories": MANIF_CATEGORIES,
         "statuses": STATUS_META,
         "status_visibility_matrix": status_visibility_matrix(),
         "glossary": GLOSSARY,
+        "traffic_symbology": symbology,
     }
 
 

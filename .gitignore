@@ -35,6 +35,7 @@ data/ibge_tmp/
 # IDE
 .vscode/
 !.vscode/tasks.json
+!.vscode/start-app.ps1
 .idea/
 .kiro/
 *.swp

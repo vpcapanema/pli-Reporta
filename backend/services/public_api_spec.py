@@ -3,7 +3,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from .report_catalog import EVENT_CATEGORIES, STATUS_META, status_visibility_matrix
+from .report_catalog import STATUS_META, status_visibility_matrix
+from .traffic_symbology import traffic_event_symbology_payload
 
 # Status incluídos na API pública de compartilhamento (= export_publico na matriz).
 PUBLIC_SHARE_STATUS_KEY = "export_publico"
@@ -29,10 +30,14 @@ def api_manifest(*, base_url: str) -> dict[str, Any]:
             "category_id": c["id"],
             "label": c["label"],
             "sigla": c["sigla"],
+            "icon_format": c["icon_format"],
+            "icon_path": c["icon_path"],
+            "icon_url": c["icon_url"],
             "geojson_url": f"{prefix}/eventos-trafego/{c['id']}.geojson",
         }
-        for c in EVENT_CATEGORIES
+        for c in traffic_event_symbology_payload(base_url=base)["categories"]
     ]
+    symbology = traffic_event_symbology_payload(base_url=base)
     return {
         "name": "PLI Reporta — API pública",
         "version": "1",
@@ -54,6 +59,7 @@ def api_manifest(*, base_url: str) -> dict[str, Any]:
             "camada_por_categoria": f"{prefix}/eventos-trafego/{{category_id}}.geojson",
         },
         "layers": layers,
+        "simbologia": symbology,
         "parametros_geojson": {
             "bbox": "minLon,minLat,maxLon,maxLat — filtro espacial opcional",
             "since": "ISO 8601 — capturados a partir desta data",

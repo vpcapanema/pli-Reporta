@@ -1829,6 +1829,41 @@ body.api-publica-page .gestao-policy-section h3:first-of-type {
   border-radius: var(--radius);
 }
 
+.api-publica-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  margin-right: 8px;
+  vertical-align: middle;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.api-publica-legend-table tr.api-publica-legend-public td {
+  background: #f0fdf4;
+}
+
+.api-publica-legend-yes,
+.api-publica-legend-no {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.api-publica-legend-yes {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.api-publica-legend-no {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
 .api-publica-table {
   width: 100%;
   border-collapse: collapse;

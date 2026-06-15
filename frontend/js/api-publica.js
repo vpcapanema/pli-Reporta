@@ -12,6 +12,42 @@ function setCode(el, text) {
   code.textContent = text;
 }
 
+function renderStatusLegend(items) {
+  const legendBody = $('#api-status-legend-body');
+  if (!legendBody || !items?.length) return;
+  legendBody.innerHTML = items.map((item) => {
+    const inApi = item.export_publico === true;
+    const rowClass = inApi ? ' class="api-publica-legend-public"' : '';
+    const badge = inApi
+      ? '<span class="api-publica-legend-yes">Sim</span>'
+      : '<span class="api-publica-legend-no">Não</span>';
+    const desc = item.descricao || '—';
+    return `
+        <tr${rowClass}>
+          <td>
+            <span class="api-publica-swatch" style="background-color:${item.symbol_color}" title="${item.symbol_color}"></span>
+            <code>${item.symbol_color}</code>
+          </td>
+          <td><code>${item.status}</code></td>
+          <td>${item.label}</td>
+          <td class="muted">${desc}</td>
+          <td>${badge}</td>
+        </tr>`;
+  }).join('');
+}
+
+/** Fallback estático (mesmo STATUS_META do backend) se o manifesto falhar. */
+const STATUS_LEGEND_FALLBACK = [
+  { status: 'submetido', label: 'Recém-chegado', symbol_color: '#475569', descricao: 'Ainda em processamento inicial', export_publico: false },
+  { status: 'em_moderacao', label: 'Precisa da sua análise', symbol_color: '#c2410c', descricao: 'O sistema preferiu não decidir sozinho', export_publico: false },
+  { status: 'validado', label: 'Aprovado internamente', symbol_color: '#1d4ed8', descricao: 'Validado, aguardando publicação no mapa público', export_publico: false },
+  { status: 'publicado', label: 'Publicado', symbol_color: '#15803d', descricao: 'Visível no mapa público', export_publico: true },
+  { status: 'descartado', label: 'Arquivado', symbol_color: '#b91c1c', descricao: 'Não será exibido publicamente', export_publico: false },
+  { status: 'registro_municipal', label: 'Registro municipal', symbol_color: '#0369a1', descricao: 'Armazenado internamente para relatórios', export_publico: false },
+  { status: 'expirado', label: 'Expirado', symbol_color: '#334155', descricao: 'Perdeu validade temporal', export_publico: false },
+  { status: 'resolvido', label: 'Resolvido', symbol_color: '#7e22ce', descricao: 'Encerrado pela autoridade', export_publico: true },
+];
+
 async function loadManifest() {
   const origin = location.origin;
   const base = `${origin}/api/public`;
@@ -57,6 +93,23 @@ async function loadManifest() {
         </tr>`).join('');
     }
 
+    const symBody = $('#api-symbology-body');
+    const categories = data.simbologia?.categories || data.layers || [];
+    if (symBody && categories.length) {
+      symBody.innerHTML = categories.map((cat) => `
+        <tr>
+          <td>${cat.label}</td>
+          <td><img src="${cat.icon_url || cat.icon_path}" alt="" width="28" height="28" loading="lazy"/></td>
+          <td><code>${cat.icon_format || 'svg'}</code></td>
+        </tr>`).join('');
+    }
+
+    const legendItems =
+      data.simbologia?.legenda_status?.todos_status ||
+      data.simbologia?.legenda_status?.mapa_publico ||
+      [];
+    renderStatusLegend(legendItems);
+
   } catch (e) {
     console.warn('Manifesto da API indisponível', e);
     const warn = $('#api-manifest-warn');
@@ -64,6 +117,11 @@ async function loadManifest() {
     const tbody = $('#api-layers-body');
     if (tbody) {
       tbody.innerHTML = '<tr><td colspan="3" class="muted">Manifesto indisponível — reinicie o backend.</td></tr>';
+    }
+    renderStatusLegend(STATUS_LEGEND_FALLBACK);
+    const symBody = $('#api-symbology-body');
+    if (symBody) {
+      symBody.innerHTML = '<tr><td colspan="3" class="muted">Simbologia indisponível offline.</td></tr>';
     }
   }
 }
