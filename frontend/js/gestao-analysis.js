@@ -14,7 +14,7 @@ let loadedReportId = null;
 
 const ANALYSIS_EMPTY_HTML = `
   <div class="gestao-analysis-empty">
-    <p class="muted">Selecione um reporte na fila acima ou volte à aba Registros e clique no status do reporte.</p>
+    <p class="muted">Na aba Registros, clique em <strong>Precisa da sua análise</strong> (ou outro status revisável) para abrir o reporte aqui.</p>
   </div>
 `;
 

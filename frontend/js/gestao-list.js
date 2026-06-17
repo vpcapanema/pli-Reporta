@@ -1,7 +1,6 @@
-/** Listagens de eventos e manifestações + fila e análise. */
+/** Listagens de eventos e manifestações + análise. */
 import { fetchManagementReports, fetchModerationCatalog } from './api.js';
 import { bindAnalysisTabs, openAnalysis } from './gestao-analysis.js';
-import { loadQueue } from './gestao-queue.js';
 import {
   $,
   bindLogout,
@@ -87,10 +86,7 @@ async function loadList() {
 }
 
 async function refreshAll() {
-  await Promise.all([
-    loadList(),
-    loadQueue(catalog, { interactionType: INTERACTION, onRefresh: refreshAll }),
-  ]);
+  await loadList();
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -99,10 +95,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderSidebar(PAGE);
   bindLogout();
   tabsApi = bindAnalysisTabs();
-
-  document.addEventListener('gestao:open-analysis', (ev) => {
-    selectReport(ev.detail?.id);
-  });
 
   try {
     catalog = await fetchModerationCatalog(session.token);
