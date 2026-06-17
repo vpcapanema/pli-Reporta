@@ -79,7 +79,14 @@ app.add_middleware(
 @app.middleware("http")
 async def no_cache_static(request, call_next):
     response = await call_next(request)
-    if request.url.path.startswith("/static/"):
+    path = request.url.path
+    if path.startswith("/static/") and (
+        path.endswith(".js") or path.endswith(".css")
+    ):
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    elif path.startswith("/gestao"):
         response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     return response
 
