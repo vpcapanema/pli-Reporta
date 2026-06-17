@@ -31,26 +31,20 @@
     <header class="gestao-header">
       <div>
         <h1><span class="gestao-header-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>Manifestação Cidadã</h1>
-        <p class="muted">Fila de análise, listagem e revisão de elogios, sugestões e reclamações</p>
+        <p class="muted">Listagem e revisão de elogios, sugestões e reclamações</p>
       </div>
       <div class="gestao-toolbar">
-        <label>Status
-          <select id="filter-status">
-            <option value="">Todos</option>
-          </select>
-        </label>
         <button type="button" id="btn-reload">Atualizar</button>
       </div>
     </header>
 
-    <nav class="gestao-view-tabs" aria-label="Visualização">
-      <button type="button" id="gestao-tab-lista" class="active">Registros</button>
-      <button type="button" id="gestao-tab-analise">Análise</button>
+    <nav class="gestao-view-tabs" role="tablist" aria-label="Visualização">
+      <button type="button" id="gestao-tab-lista" class="active" role="tab" aria-selected="true" aria-controls="gestao-panel-lista">Registros</button>
+      <button type="button" id="gestao-tab-analise" role="tab" aria-selected="false" aria-controls="gestao-panel-analise">Análise</button>
     </nav>
 
     <div id="gestao-panels" class="gestao-panels">
-      <div id="gestao-panel-lista">
-        <p id="gestao-table-meta" class="muted"></p>
+      <div id="gestao-panel-lista" class="gestao-tab-panel is-active" role="tabpanel" aria-labelledby="gestao-tab-lista">
         <div class="gestao-table-wrap">
           <table class="gestao-table">
             <thead>
@@ -61,14 +55,22 @@
             <tbody id="gestao-table-body"></tbody>
           </table>
         </div>
-        <div class="gestao-pagination">
-          <button type="button" id="btn-prev" class="secondary">Anterior</button>
-          <button type="button" id="btn-next" class="secondary">Próxima</button>
-        </div>
+        <footer class="gestao-lista-foot">
+          <p id="gestao-table-meta" class="muted"></p>
+          <div class="gestao-pagination">
+            <label class="gestao-lista-filter">Status
+              <select id="filter-status">
+                <option value="">Todos</option>
+              </select>
+            </label>
+            <button type="button" id="btn-prev" class="secondary">Anterior</button>
+            <button type="button" id="btn-next" class="secondary">Próxima</button>
+          </div>
+        </footer>
       </div>
 
-      <section id="gestao-panel-analise" hidden>
-        <section class="gestao-list-queue">
+      <section id="gestao-panel-analise" class="gestao-tab-panel" role="tabpanel" aria-labelledby="gestao-tab-analise" hidden>
+        <section class="gestao-list-queue" aria-label="Fila de moderação">
           <h2>Precisa da sua análise <span id="gestao-fila-count" class="gestao-badge">0</span></h2>
           <div id="gestao-queue" class="gestao-queue gestao-queue-horizontal"></div>
         </section>

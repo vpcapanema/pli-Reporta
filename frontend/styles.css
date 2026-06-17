@@ -3580,31 +3580,85 @@ body.gestao-page code {
 .gestao-panels {
   flex: 1;
   min-height: 0;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  overflow: hidden;
+}
+
+.gestao-tab-panel {
+  grid-area: 1 / 1;
+  display: none;
+  min-height: 0;
   flex-direction: column;
   overflow: hidden;
+}
+
+.gestao-tab-panel.is-active {
+  display: flex;
+  flex-direction: column;
+}
+
+.gestao-tab-panel[hidden] {
+  display: none !important;
 }
 
 #gestao-panel-lista {
-  flex: 1;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
 }
 
 #gestao-panel-analise {
-  flex: 1;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
 }
 
 #gestao-panel-analise > .gestao-analysis-panel {
   flex: 1;
   min-height: 0;
   margin: 0 var(--page-gutter) var(--space-xl);
+}
+
+.gestao-lista-foot {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--page-gutter) var(--space-md);
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.gestao-lista-foot #gestao-table-meta {
+  margin: 0;
+  font-size: 12px;
+}
+
+.gestao-lista-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.gestao-lista-filter select {
+  font: inherit;
+  font-size: 13px;
+  padding: 7px var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  min-width: 160px;
+}
+
+.gestao-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
 }
 
 .gestao-status-link {
@@ -3825,13 +3879,6 @@ body.gestao-page code {
   border-top: 1px solid var(--border);
 }
 
-.gestao-main-list #gestao-table-meta {
-  flex-shrink: 0;
-  padding: var(--space-sm) var(--page-gutter) 0;
-  margin: 0;
-  font-size: 12px;
-}
-
 .gestao-table-wrap {
   flex: 1;
   min-height: 0;
@@ -3881,15 +3928,6 @@ body.gestao-page code {
 
 .gestao-table tbody tr:last-child td {
   border-bottom: none;
-}
-
-.gestao-pagination {
-  flex-shrink: 0;
-  padding: var(--space-md) var(--page-gutter) var(--space-lg);
-  display: flex;
-  gap: var(--space-md);
-  border-top: 1px solid var(--border);
-  background: var(--surface);
 }
 
 /* Página do aprovador automático */

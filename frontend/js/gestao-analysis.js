@@ -195,7 +195,6 @@ export function bindAnalysisTabs() {
   const panelLista = $('#gestao-panel-lista');
   const panelAnalise = $('#gestao-panel-analise');
   const analysisEl = $('#gestao-analysis');
-  const filterWrap = $('#filter-status')?.closest('label');
 
   renderAnalysisEmpty(analysisEl);
 
@@ -205,9 +204,10 @@ export function bindAnalysisTabs() {
     tabAnalise?.classList.toggle('active', isAnalise);
     tabLista?.setAttribute('aria-selected', String(!isAnalise));
     tabAnalise?.setAttribute('aria-selected', String(isAnalise));
+    panelLista?.classList.toggle('is-active', !isAnalise);
+    panelAnalise?.classList.toggle('is-active', isAnalise);
     if (panelLista) panelLista.hidden = isAnalise;
     if (panelAnalise) panelAnalise.hidden = !isAnalise;
-    if (filterWrap) filterWrap.hidden = isAnalise;
     if (isAnalise && analysisEl && !loadedReportId && !analysisEl.querySelector('.gestao-analysis-header')) {
       renderAnalysisEmpty(analysisEl);
     }
