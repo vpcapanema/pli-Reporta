@@ -146,6 +146,14 @@ if [[ $DO_REBUILD -eq 0 && -z "$DEPLOYED_SHA" ]]; then
     DO_REBUILD=1
 fi
 
+NGINX_WANT="$NGINX_SRC"
+if [[ -f "$CERT_PATH" && -f "$NGINX_SRC_HTTPS" ]]; then
+    NGINX_WANT="$NGINX_SRC_HTTPS"
+fi
+if [[ -f "$NGINX_WANT" ]] && ! sudo cmp -s "$NGINX_WANT" "$NGINX_DST" 2>/dev/null; then
+    DO_NGINX=1
+fi
+
 if [[ $DO_REBUILD -eq 0 && $DO_NGINX -eq 0 ]]; then
     ok "somente docs/testes alterados — runtime inalterado ($NEW_SHA)"
     echo "$NEW_SHA" > "$DEPLOY_MARKER"
