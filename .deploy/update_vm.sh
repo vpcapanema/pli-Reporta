@@ -33,6 +33,10 @@ CERT_PATH="/etc/letsencrypt/live/$PUBLIC_HOST/fullchain.pem"
 NGINX_DST="/etc/nginx/sites-available/pli-reporta"
 DEPLOY_MARKER="$APP_DIR/.deploy/last_deploy_sha"
 
+has_tls_cert() {
+    sudo test -f "$CERT_PATH"
+}
+
 # Arquivos que exigem rebuild da imagem Docker
 REBUILD_PATTERNS=(
     'Dockerfile'
@@ -147,7 +151,7 @@ if [[ $DO_REBUILD -eq 0 && -z "$DEPLOYED_SHA" ]]; then
 fi
 
 NGINX_WANT="$NGINX_SRC"
-if [[ -f "$CERT_PATH" && -f "$NGINX_SRC_HTTPS" ]]; then
+if has_tls_cert && [[ -f "$NGINX_SRC_HTTPS" ]]; then
     NGINX_WANT="$NGINX_SRC_HTTPS"
 fi
 if [[ -f "$NGINX_WANT" ]] && ! sudo cmp -s "$NGINX_WANT" "$NGINX_DST" 2>/dev/null; then
@@ -163,7 +167,7 @@ fi
 if [[ $DO_NGINX -eq 1 || ! -f "$NGINX_DST" ]]; then
     step "atualizando Nginx do host"
     NGINX_ACTIVE="$NGINX_SRC"
-    if [[ -f "$CERT_PATH" && -f "$NGINX_SRC_HTTPS" ]]; then
+    if has_tls_cert && [[ -f "$NGINX_SRC_HTTPS" ]]; then
         NGINX_ACTIVE="$NGINX_SRC_HTTPS"
         ok "certificado TLS encontrado — config HTTPS"
     else
