@@ -50,30 +50,32 @@
 
     <nav class="gestao-view-tabs" aria-label="Visualização">
       <button type="button" id="gestao-tab-lista" class="active">Registros</button>
-      <button type="button" id="gestao-tab-analise" disabled>Análise</button>
+      <button type="button" id="gestao-tab-analise">Análise</button>
     </nav>
 
-    <div id="gestao-panel-lista">
-      <p id="gestao-table-meta" class="muted"></p>
-      <div class="gestao-table-wrap">
-        <table class="gestao-table">
-          <thead>
-            <tr>
-              <th>ID</th><th>Categoria</th><th>Status</th><th>Recebido</th><th>Coordenadas</th><th>Descrição</th>
-            </tr>
-          </thead>
-          <tbody id="gestao-table-body"></tbody>
-        </table>
+    <div id="gestao-panels" class="gestao-panels">
+      <div id="gestao-panel-lista">
+        <p id="gestao-table-meta" class="muted"></p>
+        <div class="gestao-table-wrap">
+          <table class="gestao-table">
+            <thead>
+              <tr>
+                <th>ID</th><th>Categoria</th><th>Status</th><th>Recebido</th><th>Coordenadas</th><th>Descrição</th>
+              </tr>
+            </thead>
+            <tbody id="gestao-table-body"></tbody>
+          </table>
+        </div>
+        <div class="gestao-pagination">
+          <button type="button" id="btn-prev" class="secondary">Anterior</button>
+          <button type="button" id="btn-next" class="secondary">Próxima</button>
+        </div>
       </div>
-      <div class="gestao-pagination">
-        <button type="button" id="btn-prev" class="secondary">Anterior</button>
-        <button type="button" id="btn-next" class="secondary">Próxima</button>
-      </div>
-    </div>
 
-    <section id="gestao-panel-analise" hidden>
-      <div id="gestao-analysis" class="gestao-analysis-panel"></div>
-    </section>
+      <section id="gestao-panel-analise" hidden>
+        <div id="gestao-analysis" class="gestao-analysis-panel"></div>
+      </section>
+    </div>
   </main>
   <script type="module" src="/static/js/gestao-list.js"></script>
 </body>

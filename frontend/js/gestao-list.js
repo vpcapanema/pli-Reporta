@@ -60,7 +60,7 @@ function renderTable(data) {
 }
 
 async function selectReport(id) {
-  tabsApi?.enableAnalysisTab?.();
+  if (!id) return;
   tabsApi?.showTab('analise');
   await openAnalysis(id, catalog, {
     onDecided: refreshAll,

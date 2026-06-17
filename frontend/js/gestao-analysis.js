@@ -9,6 +9,14 @@ import {
   statusLabel,
 } from './gestao-common.js';
 
+let loadedReportId = null;
+
+const ANALYSIS_EMPTY_HTML = `
+  <div class="gestao-analysis-empty">
+    <p class="muted">Selecione um reporte na fila acima ou clique no status na tabela de registros para abrir a análise.</p>
+  </div>
+`;
+
 function esc(s) {
   if (s == null || s === '') return '—';
   return String(s)
@@ -33,18 +41,33 @@ function renderAudit(audit) {
   `).join('')}</ul>`;
 }
 
-export async function openAnalysis(reportId, catalog, { onDecided = null, panel = null } = {}) {
-  const session = requireAuth();
-  if (!session) return;
+export function renderAnalysisEmpty(el) {
+  if (!el) return;
+  loadedReportId = null;
+  el.innerHTML = ANALYSIS_EMPTY_HTML;
+}
+
+export function closeAnalysis(panel = null) {
   const el = panel || $('#gestao-analysis');
   if (!el) return;
-  el.hidden = false;
-  el.innerHTML = '<p class="muted">Carregando análise…</p>';
+  renderAnalysisEmpty(el);
+  document.dispatchEvent(new CustomEvent('gestao:analysis-closed'));
+}
+
+export async function openAnalysis(reportId, catalog, { onDecided = null, panel = null } = {}) {
+  const session = requireAuth();
+  if (!session || !reportId) return;
+  const el = panel || $('#gestao-analysis');
+  if (!el) return;
+  loadedReportId = reportId;
+  el.innerHTML = '<p class="muted gestao-analysis-loading">Carregando análise…</p>';
   try {
     const detail = await fetchModerationReportDetail(session.token, reportId);
+    if (loadedReportId !== reportId) return;
     renderAnalysisPanel(el, detail, catalog, onDecided);
     el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   } catch (err) {
+    if (loadedReportId !== reportId) return;
     if (handleAuthError(err)) return;
     el.innerHTML = `<p class="gestao-error">${esc(err.message)}</p>`;
   }
@@ -93,8 +116,7 @@ export function renderAnalysisPanel(el, detail, catalog, onDecided) {
   `;
 
   el.querySelector('.gestao-analysis-close')?.addEventListener('click', () => {
-    el.hidden = true;
-    document.dispatchEvent(new CustomEvent('gestao:analysis-closed'));
+    closeAnalysis(el);
   });
 
   el.querySelectorAll('button[data-decision]').forEach((btn) => {
@@ -106,6 +128,7 @@ export function renderAnalysisPanel(el, detail, catalog, onDecided) {
       try {
         await decideModeration(session.token, detail.id, dec, note);
         if (onDecided) await onDecided();
+        await openAnalysis(detail.id, catalog, { onDecided, panel: el });
       } catch (err) {
         alert('Não foi possível concluir: ' + err.message);
       }
@@ -118,6 +141,9 @@ export function bindAnalysisTabs() {
   const tabAnalise = $('#gestao-tab-analise');
   const panelLista = $('#gestao-panel-lista');
   const panelAnalise = $('#gestao-panel-analise');
+  const analysisEl = $('#gestao-analysis');
+
+  renderAnalysisEmpty(analysisEl);
 
   function showTab(name) {
     const isAnalise = name === 'analise';
@@ -125,19 +151,17 @@ export function bindAnalysisTabs() {
     tabAnalise?.classList.toggle('active', isAnalise);
     if (panelLista) panelLista.hidden = isAnalise;
     if (panelAnalise) panelAnalise.hidden = !isAnalise;
+    if (isAnalise && analysisEl && !loadedReportId && !analysisEl.querySelector('.gestao-analysis-header')) {
+      renderAnalysisEmpty(analysisEl);
+    }
   }
 
   tabLista?.addEventListener('click', () => showTab('lista'));
   tabAnalise?.addEventListener('click', () => showTab('analise'));
 
-  document.addEventListener('gestao:open-analysis', () => {
-    tabAnalise?.removeAttribute('disabled');
-    showTab('analise');
-  });
-
   document.addEventListener('gestao:analysis-closed', () => {
     showTab('lista');
   });
 
-  return { showTab, enableAnalysisTab: () => tabAnalise?.removeAttribute('disabled') };
+  return { showTab };
 }

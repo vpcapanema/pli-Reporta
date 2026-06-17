@@ -3577,6 +3577,14 @@ body.gestao-page code {
   cursor: not-allowed;
 }
 
+.gestao-panels {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 #gestao-panel-lista {
   flex: 1;
   min-height: 0;
@@ -3588,7 +3596,9 @@ body.gestao-page code {
 #gestao-panel-analise {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   padding: var(--space-md) var(--page-gutter) var(--space-xl);
 }
 
@@ -3615,10 +3625,33 @@ body.gestao-page code {
 }
 
 .gestao-analysis-panel {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: var(--space-lg) var(--page-gutter);
+}
+
+.gestao-analysis-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 12rem;
+  padding: var(--space-xl);
+  text-align: center;
+}
+
+.gestao-analysis-empty p {
+  margin: 0;
+  max-width: 28rem;
+  line-height: 1.5;
+}
+
+.gestao-analysis-loading {
+  margin: 0;
+  padding: var(--space-xl) 0;
 }
 
 .gestao-analysis-header {

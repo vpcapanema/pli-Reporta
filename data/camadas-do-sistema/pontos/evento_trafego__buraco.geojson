@@ -986,6 +986,55 @@
         "Sede da residência de conserva": null,
         "Distância snap utilizada": null
       }
+    },
+    {
+      "type": "Feature",
+      "id": "01KVBWVVADQ2EPABG3S3D3F8YC",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -46.63,
+          -23.55
+        ]
+      },
+      "properties": {
+        "ID": "01KVBWVVADQ2EPABG3S3D3F8YC",
+        "Tipo de interação": "Evento de tráfego",
+        "Categoria (código)": "buraco",
+        "Categoria": "Buraco",
+        "Sigla da categoria": "BU",
+        "Magnitude": "normal",
+        "Descrição": null,
+        "Status": "Precisa da sua análise",
+        "Visível no mapa público": false,
+        "Visível no mapa gestão": true,
+        "Exportação pública": false,
+        "Exportação gestão": true,
+        "Bloqueante": false,
+        "Cluster": "01KVBWVVAQJZDKY91251T70SPR",
+        "Veracidade (V)": 0.772,
+        "Relevância (R)": 0.145,
+        "Prioridade (P)": 0.112,
+        "Válido desde": "2026-06-17T22:57:37.628935+00:00",
+        "Válido até": "2026-09-15T22:57:37.627930+00:00",
+        "Capturado em": "2026-06-17T22:57:37.608339+00:00",
+        "Recebido em": "2026-06-17T22:57:37.628935+00:00",
+        "URL da foto": "http://localhost:8080/media/56/01KVBWVVADQ2EPABG3S3D3F8YC.jpg",
+        "Acurácia GPS (m)": 10.0,
+        "Nonce de captura válido": 1,
+        "Trechos afetados": [],
+        "Classificação viária": null,
+        "Rodovia": null,
+        "Tipo rodoviário": null,
+        "Município": null,
+        "Tipo de pista": null,
+        "Administrador da via": null,
+        "Coordenadoria Regional Geral DER": null,
+        "Sede da coordenadoria": null,
+        "Residência de conserva DER": null,
+        "Sede da residência de conserva": null,
+        "Distância snap utilizada": null
+      }
     }
   ]
 }
