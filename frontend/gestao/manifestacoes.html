@@ -43,11 +43,6 @@
       </div>
     </header>
 
-    <section class="gestao-list-queue">
-      <h2>Precisa da sua análise <span id="gestao-fila-count" class="gestao-badge">0</span></h2>
-      <div id="gestao-queue" class="gestao-queue gestao-queue-horizontal"></div>
-    </section>
-
     <nav class="gestao-view-tabs" aria-label="Visualização">
       <button type="button" id="gestao-tab-lista" class="active">Registros</button>
       <button type="button" id="gestao-tab-analise">Análise</button>
@@ -73,6 +68,10 @@
       </div>
 
       <section id="gestao-panel-analise" hidden>
+        <section class="gestao-list-queue">
+          <h2>Precisa da sua análise <span id="gestao-fila-count" class="gestao-badge">0</span></h2>
+          <div id="gestao-queue" class="gestao-queue gestao-queue-horizontal"></div>
+        </section>
         <div id="gestao-analysis" class="gestao-analysis-panel"></div>
       </section>
     </div>

@@ -14,7 +14,7 @@ let loadedReportId = null;
 
 const ANALYSIS_EMPTY_HTML = `
   <div class="gestao-analysis-empty">
-    <p class="muted">Selecione um reporte na fila acima ou clique no status na tabela de registros para abrir a análise.</p>
+    <p class="muted">Selecione um reporte na fila acima ou volte à aba Registros e clique no status do reporte.</p>
   </div>
 `;
 
@@ -195,6 +195,7 @@ export function bindAnalysisTabs() {
   const panelLista = $('#gestao-panel-lista');
   const panelAnalise = $('#gestao-panel-analise');
   const analysisEl = $('#gestao-analysis');
+  const filterWrap = $('#filter-status')?.closest('label');
 
   renderAnalysisEmpty(analysisEl);
 
@@ -202,8 +203,11 @@ export function bindAnalysisTabs() {
     const isAnalise = name === 'analise';
     tabLista?.classList.toggle('active', !isAnalise);
     tabAnalise?.classList.toggle('active', isAnalise);
+    tabLista?.setAttribute('aria-selected', String(!isAnalise));
+    tabAnalise?.setAttribute('aria-selected', String(isAnalise));
     if (panelLista) panelLista.hidden = isAnalise;
     if (panelAnalise) panelAnalise.hidden = !isAnalise;
+    if (filterWrap) filterWrap.hidden = isAnalise;
     if (isAnalise && analysisEl && !loadedReportId && !analysisEl.querySelector('.gestao-analysis-header')) {
       renderAnalysisEmpty(analysisEl);
     }
@@ -211,10 +215,6 @@ export function bindAnalysisTabs() {
 
   tabLista?.addEventListener('click', () => showTab('lista'));
   tabAnalise?.addEventListener('click', () => showTab('analise'));
-
-  document.addEventListener('gestao:analysis-closed', () => {
-    showTab('lista');
-  });
 
   return { showTab };
 }

@@ -3599,7 +3599,12 @@ body.gestao-page code {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding: var(--space-md) var(--page-gutter) var(--space-xl);
+}
+
+#gestao-panel-analise > .gestao-analysis-panel {
+  flex: 1;
+  min-height: 0;
+  margin: 0 var(--page-gutter) var(--space-xl);
 }
 
 .gestao-status-link {
