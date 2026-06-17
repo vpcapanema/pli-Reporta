@@ -204,14 +204,14 @@ export function bindAnalysisTabs() {
     tabAnalise?.classList.toggle('active', isAnalise);
     tabLista?.setAttribute('aria-selected', String(!isAnalise));
     tabAnalise?.setAttribute('aria-selected', String(isAnalise));
-    panelLista?.classList.toggle('is-active', !isAnalise);
-    panelAnalise?.classList.toggle('is-active', isAnalise);
     if (panelLista) panelLista.hidden = isAnalise;
     if (panelAnalise) panelAnalise.hidden = !isAnalise;
     if (isAnalise && analysisEl && !loadedReportId && !analysisEl.querySelector('.gestao-analysis-header')) {
       renderAnalysisEmpty(analysisEl);
     }
   }
+
+  showTab('lista');
 
   tabLista?.addEventListener('click', () => showTab('lista'));
   tabAnalise?.addEventListener('click', () => showTab('analise'));

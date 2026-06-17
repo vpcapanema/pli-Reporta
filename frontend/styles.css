@@ -3580,23 +3580,17 @@ body.gestao-page code {
 .gestao-panels {
   flex: 1;
   min-height: 0;
-  display: grid;
-  grid-template-columns: 1fr;
-  grid-template-rows: 1fr;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
 .gestao-tab-panel {
-  grid-area: 1 / 1;
-  display: none;
+  flex: 1;
   min-height: 0;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.gestao-tab-panel.is-active {
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .gestao-tab-panel[hidden] {

@@ -15,6 +15,7 @@ import {
 
 const PAGE = document.body.dataset.page || 'eventos';
 const INTERACTION = PAGE === 'manifestacoes' ? 'manifestacao' : 'evento_trafego';
+const ACTIVE_REPORT_KEY = `gestao-active-report:${PAGE}`;
 
 let catalog = null;
 let offset = 0;
@@ -46,10 +47,6 @@ function renderTable(data) {
         <td>${it.description ? it.description.slice(0, 80) : '—'}</td>
       </tr>
     `).join('');
-
-    tbody.querySelectorAll('.gestao-status-link').forEach((btn) => {
-      btn.addEventListener('click', () => selectReport(btn.dataset.id));
-    });
   }
   if (meta) {
     meta.textContent = `Mostrando ${data.items.length} de ${data.total} · offset ${data.offset}`;
@@ -60,6 +57,7 @@ function renderTable(data) {
 
 async function selectReport(id) {
   if (!id) return;
+  sessionStorage.setItem(ACTIVE_REPORT_KEY, id);
   tabsApi?.showTab('analise');
   await openAnalysis(id, catalog, {
     onDecided: refreshAll,
@@ -96,6 +94,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   bindLogout();
   tabsApi = bindAnalysisTabs();
 
+  $('#gestao-table-body')?.addEventListener('click', (ev) => {
+    const btn = ev.target.closest('.gestao-status-link');
+    if (btn?.dataset.id) selectReport(btn.dataset.id);
+  });
+
+  document.addEventListener('gestao:analysis-closed', () => {
+    sessionStorage.removeItem(ACTIVE_REPORT_KEY);
+  });
+
   try {
     catalog = await fetchModerationCatalog(session.token);
     const sel = $('#filter-status');
@@ -116,4 +123,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('#btn-next')?.addEventListener('click', () => { offset += LIMIT; loadList(); });
   $('#btn-reload')?.addEventListener('click', refreshAll);
   await refreshAll();
+
+  const savedId = sessionStorage.getItem(ACTIVE_REPORT_KEY);
+  if (savedId) await selectReport(savedId);
 });
