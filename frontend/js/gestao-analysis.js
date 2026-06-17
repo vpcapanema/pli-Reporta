@@ -3,6 +3,7 @@ import { decideModeration, fetchModerationReportDetail } from './api.js';
 import {
   $,
   categoryLabel,
+  escHtml,
   formatDate,
   handleAuthError,
   requireAuth,
@@ -39,6 +40,56 @@ function renderAudit(audit) {
   return `<ul class="gestao-audit-list">${audit.map((a) => `
     <li><strong>${esc(a.action)}</strong> · ${esc(a.actor)} · ${formatDate(a.ts)}</li>
   `).join('')}</ul>`;
+}
+
+function renderPhotoSlot(photoUrl) {
+  const safeUrl = photoUrl ? escHtml(photoUrl) : '';
+  const body = photoUrl
+    ? `<img src="${safeUrl}" alt="Foto enviada pelo cidadão" class="gestao-analysis-photo" loading="lazy" decoding="async"/>`
+    : `<p class="gestao-analysis-photo-empty muted">Nenhuma foto anexada a este reporte.</p>`;
+  const link = photoUrl
+    ? `<a class="gestao-analysis-photo-link" href="${safeUrl}" target="_blank" rel="noopener noreferrer">Abrir em tamanho original</a>`
+    : '';
+  return `
+    <aside class="gestao-analysis-photo-col">
+      <h3>Foto enviada</h3>
+      <div class="gestao-analysis-photo-frame${photoUrl ? ' is-loading' : ' is-empty'}" data-photo-frame>
+        <p class="gestao-analysis-photo-status muted" aria-live="polite">${photoUrl ? 'Carregando foto…' : ''}</p>
+        ${body}
+      </div>
+      ${link}
+    </aside>
+  `;
+}
+
+function bindPhotoSlot(root) {
+  const frame = root.querySelector('[data-photo-frame]');
+  const img = frame?.querySelector('.gestao-analysis-photo');
+  const status = frame?.querySelector('.gestao-analysis-photo-status');
+  if (!frame || !img || !status) return;
+
+  const markLoaded = () => {
+    frame.classList.remove('is-loading');
+    frame.classList.add('is-loaded');
+    status.textContent = '';
+    status.hidden = true;
+  };
+
+  const markError = () => {
+    frame.classList.remove('is-loading');
+    frame.classList.add('is-error');
+    status.hidden = false;
+    status.textContent = 'Não foi possível carregar a foto.';
+    img.remove();
+  };
+
+  if (img.complete && img.naturalWidth > 0) {
+    markLoaded();
+    return;
+  }
+
+  img.addEventListener('load', markLoaded, { once: true });
+  img.addEventListener('error', markError, { once: true });
 }
 
 export function renderAnalysisEmpty(el) {
@@ -85,8 +136,8 @@ export function renderAnalysisPanel(el, detail, catalog, onDecided) {
       <button type="button" class="secondary gestao-analysis-close" aria-label="Fechar">Fechar</button>
     </header>
     <div class="gestao-analysis-grid">
+      ${renderPhotoSlot(detail.photo_url)}
       <section class="gestao-analysis-main">
-        ${detail.photo_url ? `<img src="${detail.photo_url}" alt="" class="gestao-analysis-photo"/>` : ''}
         <dl class="gestao-analysis-dl">
           <dt>Status</dt><dd>${statusLabel(detail.status, catalog)}</dd>
           <dt>Recebido</dt><dd>${formatDate(detail.received_at)}</dd>
@@ -114,6 +165,8 @@ export function renderAnalysisPanel(el, detail, catalog, onDecided) {
       </div>
     ` : ''}
   `;
+
+  bindPhotoSlot(el);
 
   el.querySelector('.gestao-analysis-close')?.addEventListener('click', () => {
     closeAnalysis(el);

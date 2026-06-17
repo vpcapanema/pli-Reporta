@@ -3672,18 +3672,94 @@ body.gestao-page code {
 
 .gestao-analysis-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--space-xl);
+  align-items: start;
+}
+
+.gestao-analysis-photo-col {
+  position: sticky;
+  top: 0;
+}
+
+.gestao-analysis-photo-col h3 {
+  margin: 0 0 var(--space-sm);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--pli-primary);
+}
+
+.gestao-analysis-photo-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  max-height: min(52vh, 520px);
+  padding: var(--space-sm);
+  background: #f1f5f9;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.gestao-analysis-photo-frame.is-loaded {
+  border-style: solid;
+  background: #0f172a;
+}
+
+.gestao-analysis-photo-frame.is-empty {
+  border-style: dashed;
+  background: #f8fafc;
+}
+
+.gestao-analysis-photo-frame.is-error {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.gestao-analysis-photo-frame.is-loading .gestao-analysis-photo {
+  opacity: 0;
+}
+
+.gestao-analysis-photo-status {
+  margin: 0;
+  font-size: 13px;
+  text-align: center;
+}
+
+.gestao-analysis-photo-frame.is-loaded .gestao-analysis-photo-status,
+.gestao-analysis-photo-frame.is-empty .gestao-analysis-photo-status {
+  display: none;
+}
+
+.gestao-analysis-photo-empty {
+  margin: 0;
+  padding: var(--space-lg);
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .gestao-analysis-photo {
+  display: block;
   width: 100%;
-  max-width: 420px;
-  max-height: 280px;
-  object-fit: cover;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  margin-bottom: var(--space-md);
+  max-height: min(50vh, 500px);
+  object-fit: contain;
+  border-radius: calc(var(--radius) - 2px);
+}
+
+.gestao-analysis-photo-link {
+  display: inline-block;
+  margin-top: var(--space-sm);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pli-accent);
+  text-decoration: none;
+}
+
+.gestao-analysis-photo-link:hover {
+  text-decoration: underline;
 }
 
 .gestao-analysis-dl {
@@ -4783,6 +4859,15 @@ details[open] .sc-toggle::before {
 
   .gestao-analysis-grid {
     grid-template-columns: 1fr;
+  }
+
+  .gestao-analysis-photo-col {
+    position: static;
+  }
+
+  .gestao-analysis-photo-frame {
+    min-height: 220px;
+    max-height: 360px;
   }
 
   .gestao-layers {
