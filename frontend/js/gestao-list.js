@@ -41,7 +41,7 @@ function renderTable(data) {
       <tr data-id="${it.id}">
         <td><code>${it.id.slice(0, 8)}…</code></td>
         <td>${categoryLabel(it.category, catalog)}</td>
-        <td>${statusCell(it)}</td>
+        <td class="gestao-table-status">${statusCell(it)}</td>
         <td>${formatDate(it.received_at)}</td>
         <td>${it.lat.toFixed(4)}, ${it.lon.toFixed(4)}</td>
         <td>${it.description ? it.description.slice(0, 80) : '—'}</td>

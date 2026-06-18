@@ -4,6 +4,7 @@ export const PLI_MARK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 
 
 function brandInnerHtml(sub) {
   return [
+    '<a href="/" class="sidebar-brand-link" aria-label="PLI Reporta — página inicial">',
     '<div class="sidebar-brand-head">',
     `<span class="sidebar-brand-mark" aria-hidden="true">${PLI_MARK_SVG}</span>`,
     '<div class="sidebar-brand-titles">',
@@ -11,8 +12,20 @@ function brandInnerHtml(sub) {
     '<span class="sidebar-brand-reporta">Reporta</span>',
     '</div>',
     '</div>',
+    '</a>',
     sub ? `<span class="sidebar-brand-sub muted">${sub}</span>` : '',
   ].join('');
+}
+
+function wrapBrandHeadLink(el) {
+  const head = el.querySelector('.sidebar-brand-head');
+  if (!head || head.closest('.sidebar-brand-link')) return;
+  const link = document.createElement('a');
+  link.href = '/';
+  link.className = 'sidebar-brand-link';
+  link.setAttribute('aria-label', 'PLI Reporta — página inicial');
+  head.parentNode.insertBefore(link, head);
+  link.appendChild(head);
 }
 
 function readBrandSubtitle(el) {
@@ -29,7 +42,10 @@ export function mountSidebarBrands(root = document) {
     el.dataset.brandMounted = '1';
     el.classList.add('sidebar-brand');
 
-    if (el.querySelector('.sidebar-brand-head')) return;
+    if (el.querySelector('.sidebar-brand-head')) {
+      wrapBrandHeadLink(el);
+      return;
+    }
 
     const sub = readBrandSubtitle(el);
     el.innerHTML = brandInnerHtml(sub);
