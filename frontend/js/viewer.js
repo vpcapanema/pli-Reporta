@@ -112,11 +112,14 @@ function renderLayerControls(eventCounts, manifCounts) {
 
   const catLabel = (c, counts) => {
     const n = counts[c.id] || 0;
-    return `${c.label} <span class="muted">(${n})</span>`;
+    return `
+      <span class="public-layer-cat-name">${c.label}</span>
+      <span class="public-layer-cat-count muted">${n}</span>`;
   };
 
   const groupLayers = (typeId, categories, counts, title) => {
     const total = totalCount(counts);
+    const childrenId = `public-layer-children-${typeId}`;
     const cats = categories
       .map((c) => {
         const key = layerKey(typeId, c.id);
@@ -124,18 +127,26 @@ function renderLayerControls(eventCounts, manifCounts) {
         return `
         <label class="public-layer-cat">
           <input type="checkbox" data-layer="${key}" ${checked}/>
-          <span>${catLabel(c, counts)}</span>
+          ${catLabel(c, counts)}
         </label>`;
       })
       .join("");
     const groupChecked = layerVisibility[typeId] !== false ? "checked" : "";
     return `
-      <div class="public-layer-group">
-        <label>
-          <input type="checkbox" data-layer="${typeId}" ${groupChecked}/>
-          <span>${title} <span class="muted">(${total})</span></span>
-        </label>
-        <div class="public-layer-children">${cats}</div>
+      <div class="public-layer-group" data-group="${typeId}">
+        <div class="public-layer-group-head">
+          <label class="public-layer-group-check" title="${title}">
+            <input type="checkbox" data-layer="${typeId}" ${groupChecked}/>
+          </label>
+          <button type="button" class="public-layer-group-toggle" aria-expanded="true" aria-controls="${childrenId}" aria-label="Recolher ${title}">
+            <span class="public-layer-group-chevron" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </span>
+          </button>
+          <span class="public-layer-group-title">${title}</span>
+          <span class="public-layer-group-count muted">${total}</span>
+        </div>
+        <div class="public-layer-children" id="${childrenId}">${cats}</div>
       </div>`;
   };
 
@@ -157,6 +168,20 @@ function renderLayerControls(eventCounts, manifCounts) {
 
   if (!layerControlsBound) {
     layerControlsBound = true;
+    layersEl.addEventListener("click", (ev) => {
+      const btn = ev.target.closest(".public-layer-group-toggle");
+      if (!btn) return;
+      const group = btn.closest(".public-layer-group");
+      const body = group?.querySelector(".public-layer-children");
+      if (!body) return;
+      const collapsed = group.classList.toggle("collapsed");
+      body.hidden = collapsed;
+      btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+      btn.setAttribute(
+        "aria-label",
+        collapsed ? `Expandir ${group.querySelector(".public-layer-group-title")?.textContent || "grupo"}` : `Recolher ${group.querySelector(".public-layer-group-title")?.textContent || "grupo"}`,
+      );
+    });
     layersEl.addEventListener("change", (ev) => {
       const input = ev.target;
       if (!(input instanceof HTMLInputElement) || !input.dataset.layer) return;

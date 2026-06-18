@@ -1734,25 +1734,87 @@ body.viewer-page.viewer-sidebar-collapsed {
 }
 
 .public-layer-group {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
-.public-layer-group > label {
+.public-layer-group-head {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #fff;
-  margin-bottom: 6px;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.public-layer-group-check {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  margin: 0;
+}
+
+.public-layer-group-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.42);
   cursor: pointer;
 }
 
+.public-layer-group-toggle:hover {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.public-layer-group-chevron {
+  display: inline-flex;
+  width: 12px;
+  height: 12px;
+  transition: transform 0.15s ease;
+}
+
+.public-layer-group-chevron svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.public-layer-group.collapsed .public-layer-group-chevron {
+  transform: rotate(-90deg);
+}
+
+.public-layer-group-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.3;
+}
+
+.public-layer-group-count {
+  flex-shrink: 0;
+  min-width: 1.5em;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: right;
+  color: #94a3b8;
+}
+
 .public-layer-children {
-  padding-left: 4px;
+  padding-left: 22px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+}
+
+.public-layer-children[hidden] {
+  display: none !important;
 }
 
 .public-layer-cat {
@@ -1764,11 +1826,27 @@ body.viewer-page.viewer-sidebar-collapsed {
   cursor: pointer;
 }
 
+.public-layer-cat-name {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.public-layer-cat-count {
+  flex-shrink: 0;
+  min-width: 1.5em;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: right;
+  color: #94a3b8;
+}
+
 .public-layer-cat input,
-.public-layer-group > label input {
+.public-layer-group-check input {
   accent-color: var(--pli-verde);
   width: 14px;
   height: 14px;
+  margin: 0;
 }
 
 .public-export-group h4 {
