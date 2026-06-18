@@ -406,6 +406,26 @@ function showDeviceCapabilitiesNotice() {
   banner.textContent = msg;
 }
 
+function setGpsLine(text, kind = "value") {
+  const el = $("#gps-line");
+  if (!el) return;
+  el.textContent = text;
+  el.classList.remove("coord-value", "sidebar-hint", "muted");
+  if (kind === "value") el.classList.add("coord-value");
+  else if (kind === "hint") el.classList.add("sidebar-hint");
+  else el.classList.add("muted");
+}
+
+function setPickedLine(text, kind = "value") {
+  const el = $("#picked-line");
+  if (!el) return;
+  el.textContent = text;
+  el.classList.remove("coord-value", "sidebar-hint", "muted");
+  if (kind === "value") el.classList.add("coord-value");
+  else if (kind === "hint") el.classList.add("sidebar-hint");
+  else el.classList.add("muted");
+}
+
 async function openCameraStep() {
   hideAllSteps();
   show('#step-2');
@@ -426,14 +446,18 @@ async function openCameraStep() {
   if (pos) {
     state.position = { lat: pos.lat, lon: pos.lon };
     state.accuracy = pos.accuracy;
-    $('#gps-line').textContent =
-      `GPS: ${pos.lat.toFixed(5)}, ${pos.lon.toFixed(5)} (±${Math.round(pos.accuracy)} m)`;
+    setGpsLine(
+      `GPS: ${pos.lat.toFixed(5)}, ${pos.lon.toFixed(5)} (±${Math.round(pos.accuracy)} m)`,
+      "value",
+    );
   } else if (!isSecureReportContext()) {
-    $('#gps-line').textContent =
-      'GPS bloqueado — site sem HTTPS. Ajuste o ponto no mapa na etapa seguinte.';
+    setGpsLine(
+      "GPS bloqueado — site sem HTTPS. Ajuste o ponto no mapa na etapa seguinte.",
+      "hint",
+    );
     state.position = { lat: -23.55, lon: -46.63 };
   } else {
-    $('#gps-line').textContent = 'GPS indisponível — ajuste no mapa depois da foto.';
+    setGpsLine("GPS indisponível — ajuste no mapa depois da foto.", "hint");
     state.position = { lat: -23.55, lon: -46.63 };
   }
 
@@ -486,8 +510,10 @@ function initPickMapLazy() {
   if (state.mapInitialized) return;
   state.pickMap = createPickMap('pickmap', state.position, (pt) => {
     state.position = pt;
-    $('#picked-line').textContent =
-      `Local ajustado: ${pt.lat.toFixed(5)}, ${pt.lon.toFixed(5)}`;
+    setPickedLine(
+      `Local ajustado: ${pt.lat.toFixed(5)}, ${pt.lon.toFixed(5)}`,
+      "value",
+    );
   });
   state.mapInitialized = true;
 }
