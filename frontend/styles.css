@@ -3674,46 +3674,59 @@ body.gestao-page code {
   gap: var(--space-sm);
 }
 
-.gestao-table td.gestao-table-status {
-  line-height: 1.25rem;
-  vertical-align: middle;
+.gestao-table tbody td {
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.gestao-table td.gestao-table-desc {
   white-space: nowrap;
 }
 
-.gestao-status-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.gestao-table td.gestao-table-status {
+  white-space: nowrap;
+}
+
+.gestao-table td code {
+  font-size: 12px;
+  line-height: 1.25rem;
+}
+
+.gestao-table .gestao-status-text,
+.gestao-table .gestao-status-link {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25rem;
+  vertical-align: baseline;
+}
+
+.gestao-table button.gestao-status-link {
   box-sizing: border-box;
+  display: inline;
+  width: auto;
+  min-height: 0;
+  height: auto;
+  max-height: none;
+  margin: 0;
+  padding: 0 8px;
   border: none;
+  border-radius: 999px;
   background: #fef3c7;
   color: #92400e;
   font: inherit;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  line-height: 1;
-  min-height: 0;
-  height: 1.25rem;
-  max-height: 1.25rem;
-  padding: 0 10px;
-  margin: 0;
-  border-radius: 999px;
+  line-height: inherit;
+  letter-spacing: normal;
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 2px;
   white-space: nowrap;
-  vertical-align: middle;
+  vertical-align: baseline;
 }
 
-.gestao-status-link:hover {
+.gestao-table button.gestao-status-link:hover {
   background: #fde68a;
-}
-
-.gestao-status-text {
-  display: inline-block;
-  font-size: 12px;
-  line-height: 1.25rem;
-  vertical-align: middle;
 }
 
 .gestao-analysis-panel {
@@ -3952,7 +3965,8 @@ body.gestao-page code {
   padding: var(--space-md) var(--space-lg);
   text-align: left;
   border-bottom: 1px solid var(--border);
-  vertical-align: top;
+  vertical-align: middle;
+  line-height: 1.25rem;
 }
 
 .gestao-table tbody tr:hover td {

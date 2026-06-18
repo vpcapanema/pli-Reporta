@@ -44,7 +44,7 @@ function renderTable(data) {
         <td class="gestao-table-status">${statusCell(it)}</td>
         <td>${formatDate(it.received_at)}</td>
         <td>${it.lat.toFixed(4)}, ${it.lon.toFixed(4)}</td>
-        <td>${it.description ? it.description.slice(0, 80) : '—'}</td>
+        <td class="gestao-table-desc">${it.description ? it.description.slice(0, 80) : '—'}</td>
       </tr>
     `).join('');
   }
