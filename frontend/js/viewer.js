@@ -139,9 +139,7 @@ function renderLayerControls(eventCounts, manifCounts) {
             <input type="checkbox" data-layer="${typeId}" ${groupChecked}/>
           </label>
           <button type="button" class="public-layer-group-toggle" aria-expanded="true" aria-controls="${childrenId}" aria-label="Recolher ${title}">
-            <span class="public-layer-group-chevron" aria-hidden="true">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-            </span>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
           <span class="public-layer-group-title">${title}</span>
           <span class="public-layer-group-count muted">${total}</span>
