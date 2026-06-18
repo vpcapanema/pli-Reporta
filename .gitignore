@@ -33,7 +33,7 @@ data/ibge_tmp/
 .sigma-tunnel-keeper.status
 
 # IDE
-.vscode/
+.vscode/*
 !.vscode/tasks.json
 !.vscode/start-app.ps1
 .idea/
