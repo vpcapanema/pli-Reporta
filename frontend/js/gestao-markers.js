@@ -41,9 +41,10 @@ export const STATUS_COLORS = {
 };
 
 export function categoryIconUrl(id) {
-  if (!id) return '/static/img/icons/outro.svg';
+  const base = (typeof window !== 'undefined' && window.__BASE_PATH__) || '';
+  if (!id) return `${base}/static/img/icons/outro.svg`;
   const ext = PNG_ICON_IDS.has(id) ? 'png' : 'svg';
-  return `/static/img/icons/${id}.${ext}`;
+  return `${base}/static/img/icons/${id}.${ext}`;
 }
 
 export function categoryLabel(category, catalog) {

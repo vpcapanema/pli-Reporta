@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import json
+import re
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -10,6 +12,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.datastructures import MutableHeaders
+from starlette.responses import Response
 
 from .config import settings
 from .database import init_db
@@ -89,6 +93,93 @@ async def no_cache_static(request, call_next):
     elif path.startswith("/gestao"):
         response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     return response
+
+
+# ---------------------------------------------------------------------------
+# Suporte a sub-rota (subpath) atras do Nginx do SIGMA:
+#   http://<IP>/pli-reporta/...  -> Nginx faz strip do prefixo e envia
+#   X-Forwarded-Prefix: /pli-reporta. Este middleware reescreve as URLs
+#   absolutas ("/static", "/api", "/media", ...) no HTML e no JSON e injeta
+#   um shim que prefixa fetch()/serviceWorker.register no cliente.
+#
+#   GATED: so age quando X-Forwarded-Prefix esta presente. Sem o header, o
+#   comportamento na raiz (dominio HTTPS oficial) fica inalterado.
+# ---------------------------------------------------------------------------
+_ABS_ATTR_RE = re.compile(r'((?:src|href|action)=")/(?!/)')
+
+
+def _subpath_client_shim(prefix: str) -> str:
+    p = json.dumps(prefix)
+    return (
+        "<script>(function(){var P=" + p + ";if(!P)return;"
+        "window.__BASE_PATH__=P;"
+        "function n(x){return x.charAt(0)===\"/\"&&x.indexOf(P+\"/\")!==0&&"
+        "(x.indexOf(\"/api\")===0||x.indexOf(\"/media/\")===0||x.indexOf(\"/static/\")===0);}"
+        "function r(u){try{if(typeof u===\"string\"){return n(u)?P+u:u;}"
+        "if(u instanceof URL){return (u.origin===location.origin&&n(u.pathname))?"
+        "new URL(P+u.pathname+u.search+u.hash,location.origin):u;}"
+        "if(typeof Request!==\"undefined\"&&u instanceof Request){var q=new URL(u.url);"
+        "return (q.origin===location.origin&&n(q.pathname))?"
+        "new Request(P+q.pathname+q.search+q.hash,u):u;}}catch(e){}return u;}"
+        "var f=window.fetch;window.fetch=function(i,o){return f.call(this,r(i),o);};"
+        "if(navigator.serviceWorker&&navigator.serviceWorker.register){"
+        "var g=navigator.serviceWorker.register.bind(navigator.serviceWorker);"
+        "navigator.serviceWorker.register=function(u,o){o=o||{};"
+        "if(o.scope==null)o.scope=P+\"/\";return g(r(u),o);};}"
+        "})();</script>"
+    )
+
+
+@app.middleware("http")
+async def subpath_rewrite(request, call_next):
+    prefix = (request.headers.get("x-forwarded-prefix") or "").rstrip("/")
+    response = await call_next(request)
+    if not prefix:
+        return response
+    ctype = response.headers.get("content-type", "")
+    is_html = ctype.startswith("text/html")
+    is_jsonish = ctype.startswith("application/json") or ctype.startswith("application/manifest")
+    if not (is_html or is_jsonish):
+        return response
+
+    body = b""
+    async for chunk in response.body_iterator:
+        body += chunk if isinstance(chunk, bytes) else chunk.encode("utf-8")
+    text = body.decode("utf-8", "replace")
+
+    if is_html:
+        text = _ABS_ATTR_RE.sub(lambda m: m.group(1) + prefix + "/", text)
+        shim = _subpath_client_shim(prefix)
+        lower = text.lower()
+        idx = lower.find("<head")
+        if idx != -1:
+            gt = text.find(">", idx)
+            if gt != -1:
+                text = text[: gt + 1] + shim + text[gt + 1:]
+            else:
+                text = shim + text
+        else:
+            text = shim + text
+    else:
+        for needle in ('"/static/', '"/media/', '"/api/'):
+            text = text.replace(needle, '"' + prefix + needle[1:])
+        for key in ("start_url", "scope"):
+            text = text.replace(
+                '"' + key + '": "/"', '"' + key + '": "' + prefix + '/"'
+            ).replace(
+                '"' + key + '":"/"', '"' + key + '":"' + prefix + '/"'
+            )
+
+    new_body = text.encode("utf-8")
+    headers = MutableHeaders(raw=list(response.raw_headers))
+    headers["content-length"] = str(len(new_body))
+    return Response(
+        content=new_body,
+        status_code=response.status_code,
+        headers=dict(headers),
+        media_type=ctype.split(";")[0] or None,
+    )
+
 
 # API (mapa público: catalog + export)
 app.include_router(reports_router, prefix="/api", tags=["reports"])
