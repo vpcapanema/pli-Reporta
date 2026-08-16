@@ -44,6 +44,12 @@ services:
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://pli-reporta.56-125-163-194.sslip.io}
       DATABASE_URL: postgresql+psycopg://pli_user:${PLI_DB_PASSWORD}@sigma_pli_db:5432/pli_reporta
       SIGMA_API_BASE_URL: ${SIGMA_API_BASE_URL:-http://host.docker.internal}
+      SIGMA_POSTGRES_HOST: ${SIGMA_POSTGRES_HOST:-sigma_pli_db}
+      SIGMA_POSTGRES_PORT: ${SIGMA_POSTGRES_PORT:-5432}
+      SIGMA_POSTGRES_DATABASE: ${SIGMA_POSTGRES_DATABASE:-sigma_pli_qr53}
+      SIGMA_POSTGRES_USER: ${SIGMA_POSTGRES_USER:-sigma_user}
+      SIGMA_POSTGRES_PASSWORD: ${SIGMA_POSTGRES_PASSWORD:-}
+      SIGMA_POSTGRES_SSLMODE: ${SIGMA_POSTGRES_SSLMODE:-disable}
       SECRET_KEY: ${SECRET_KEY:-}
       ALLOWED_ORIGINS: "*"
 

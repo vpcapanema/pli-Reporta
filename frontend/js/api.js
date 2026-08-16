@@ -40,6 +40,8 @@ export async function loginModerator(username, password) {
   localStorage.setItem(SESSION_STORAGE, JSON.stringify({
     token: data.token,
     username: data.username,
+    fullName: data.full_name || data.username,
+    tipoUsuario: data.tipo_usuario || 'GESTOR',
     expiresAt: Date.now() + data.expires_in * 1000,
   }));
   return data;

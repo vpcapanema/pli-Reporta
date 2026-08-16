@@ -850,6 +850,10 @@ body.access-page .access-main {
   padding: var(--space-xl) 0 var(--space-2xl);
 }
 
+.access-mod-user {
+  margin-right: 14px;
+}
+
 .access-login-wrapper {
   display: flex;
   flex-direction: column;
@@ -955,7 +959,7 @@ body.access-page .access-main {
   position: absolute;
   right: 8px;
   width: auto;
-  min-height: auto;
+  min-height: 0;
   padding: 4px;
   background: none;
   border: none;
@@ -1222,7 +1226,7 @@ body.public-shell-page .public-sidebar-block-body[hidden] {
 body.public-shell-page .pli-sidebar-toggle,
 body.public-shell-page .public-nav-item-toggle {
   width: auto;
-  min-height: auto;
+  min-height: 0;
   box-shadow: none;
   filter: none;
 }
@@ -1612,7 +1616,7 @@ button.public-nav-item-toggle.active {
   cursor: pointer;
   padding: 0.2rem 0.45rem;
   border-radius: 4px;
-  min-height: auto;
+  min-height: 0;
   width: auto;
 }
 
@@ -1697,8 +1701,13 @@ body.viewer-page .gestao-map-panel .viewer-legend {
   overflow-y: auto;
   overflow-x: hidden;
   padding: 0 var(--space-md) var(--space-md);
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+}
+
+@supports (scrollbar-width: thin) {
+  .public-sidebar-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+  }
 }
 
 .public-sidebar-scroll::-webkit-scrollbar {
@@ -2614,6 +2623,82 @@ body.gestao-page main.gestao-main {
   width: 100%;
 }
 
+/* Barra de status/sessão (nome, @username, tipo, sair) */
+.adm-session-bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.18rem var(--page-gutter);
+  background: #f1f5f9;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.7rem;
+  min-height: 22px;
+}
+.adm-session-user {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.adm-session-user strong {
+  color: var(--pli-azul);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.72rem;
+}
+.adm-session-status {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pli-verde);
+  box-shadow: 0 0 0 2px rgba(62, 194, 110, 0.18);
+  flex: 0 0 auto;
+}
+.adm-session-username {
+  color: var(--pli-verde-dark);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.adm-session-role {
+  padding: 0.04rem 0.35rem;
+  border: 1px solid rgba(62, 194, 110, 0.45);
+  border-radius: 999px;
+  color: var(--pli-verde-dark);
+  background: var(--pli-verde-soft);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  flex: 0 0 auto;
+}
+body.gestao-page .adm-session-bar .adm-session-logout {
+  display: inline;
+  width: auto;
+  color: var(--pli-azul);
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+  flex: 0 0 auto;
+  font-weight: 600;
+  font-size: 0.62rem;
+  line-height: 1.1;
+  min-height: 0;
+  cursor: pointer;
+  text-decoration: underline;
+}
+body.gestao-page .adm-session-bar .adm-session-logout:hover {
+  color: var(--pli-verde-dark);
+  background: none;
+  border: none;
+}
+
 body.gestao-page button {
   width: auto;
   min-height: 36px;
@@ -3363,6 +3448,7 @@ body.gestao-page code {
 
 .gestao-layers.is-dragging {
   box-shadow: 0 8px 24px rgba(0, 59, 90, 0.22);
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -3476,6 +3562,7 @@ body.gestao-page code {
   max-height: min(340px, calc(100% - 120px));
   overflow-y: auto;
   box-shadow: 0 4px 16px rgba(0, 59, 90, 0.14);
+  -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
 }
 
@@ -4304,6 +4391,7 @@ body.gestao-page code {
   font-weight: 600;
   color: var(--pli-accent);
   letter-spacing: 0.01em;
+  -webkit-user-select: none;
   user-select: none;
   list-style: none;
 }

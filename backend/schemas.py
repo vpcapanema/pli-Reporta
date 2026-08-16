@@ -86,6 +86,8 @@ class LoginResponse(BaseModel):
     token: str
     expires_in: int
     username: str
+    full_name: str
+    tipo_usuario: str
 
 
 class AuthFieldHint(BaseModel):
@@ -119,8 +121,8 @@ class ModerationPolicyUpdate(BaseModel):
     )  # event_publish_min, event_discard_below, etc.
     sinais_veracidade: list[dict] | None = None
     fatores_via: list[dict] | None = None
-    categorias_evento: list[dict] | None = None  # overrides por categoria de evento
-    categorias_manif: list[dict] | None = None   # overrides por tipo de manifestação
+    categorias_evento: list[dict] | None = None  # overrides por categoria
+    categorias_manif: list[dict] | None = None   # overrides por manifestação
 
     # Legado — aceito para compatibilidade mas mapeado internamente
     preset: str | None = None

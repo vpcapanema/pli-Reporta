@@ -1,4 +1,5 @@
 """Login de acesso restrito (moderadores)."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
@@ -44,6 +45,8 @@ def _sigma_auth_links() -> SigmaAuthLinks | None:
 
 @router.get("/auth/context", response_model=AuthContextResponse)
 def auth_context() -> AuthContextResponse:
+    """Retorna metadados para montar o formulario de login restrito."""
+
     return AuthContextResponse(
         sigma_configured=auth_svc.auth_configured(),
         profile="GESTOR",
@@ -55,17 +58,25 @@ def auth_context() -> AuthContextResponse:
 
 @router.post("/auth/login", response_model=LoginResponse)
 def login(body: LoginRequest) -> LoginResponse:
+    """Autentica gestor e emite token de sessao restrita."""
+
     if not auth_svc.auth_configured():
         raise HTTPException(
             503,
-            detail="Acesso restrito não configurado (SIGMA ou credenciais locais ausentes).",
+            detail=(
+                "Acesso restrito não configurado "
+                "(SIGMA ou credenciais locais ausentes)."
+            ),
         )
     try:
         session = auth_svc.authenticate(body.username.strip(), body.password)
     except SigmaConnectionError as exc:
         raise HTTPException(
             503,
-            detail="SIGMA indisponível. Verifique SIGMA_API_BASE_URL ou conectividade com a VM.",
+            detail=(
+                "SIGMA indisponível. Verifique SIGMA_API_BASE_URL "
+                "ou conectividade com a VM."
+            ),
         ) from exc
     if not session:
         raise HTTPException(401, detail="Usuário ou senha inválidos.")
@@ -74,4 +85,6 @@ def login(body: LoginRequest) -> LoginResponse:
         token=token,
         expires_in=settings.moderator_session_ttl_seconds,
         username=session.username,
+        full_name=getattr(session, "full_name", None) or session.username,
+        tipo_usuario=session.tipo_usuario or "GESTOR",
     )

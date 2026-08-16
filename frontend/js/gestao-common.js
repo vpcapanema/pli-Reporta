@@ -77,7 +77,47 @@ export function renderSidebar(activeId) {
   `).join('');
   const session = getSession();
   const userEl = $('#gestao-user');
-  if (userEl && session) userEl.textContent = session.username;
+  if (userEl && session) userEl.textContent = session.fullName || session.username;
+  renderSessionBar(session);
+}
+
+/** Monta a barra de status/sessão no topo do conteúdo (nome, @username, tipo, sair). */
+export function renderSessionBar(session) {
+  const sess = session || getSession();
+  const main = document.querySelector('.gestao-main');
+  if (!main || !sess) return;
+  let bar = $('#gestao-session-bar');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'gestao-session-bar';
+    bar.className = 'adm-session-bar';
+    bar.setAttribute('aria-label', 'Sessão ativa');
+    const stats = main.querySelector('.gestao-stats');
+    if (stats) {
+      stats.insertAdjacentElement('afterend', bar);
+    } else {
+      main.insertBefore(bar, main.firstChild);
+    }
+  }
+  const name = sess.fullName || sess.username || '';
+  const username = sess.username || '';
+  const tipo = sess.tipoUsuario || 'GESTOR';
+  bar.innerHTML = `
+    <div class="adm-session-user">
+      <span class="adm-session-status" aria-hidden="true"></span>
+      <strong>${escHtml(name)}</strong>
+      <span class="adm-session-username">@${escHtml(username)}</span>
+      <span class="adm-session-role">${escHtml(tipo)}</span>
+    </div>
+    <button type="button" class="adm-session-logout" id="adm-session-logout">Sair</button>
+  `;
+  const logoutBtn = bar.querySelector('#adm-session-logout');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+      clearSession();
+      location.href = appPath('/acesso');
+    });
+  }
 }
 
 export function statusLabel(status, catalog) {

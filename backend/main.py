@@ -1,9 +1,10 @@
 """Aplicação FastAPI raiz: serve API, mídia e a PWA estática."""
+
 from __future__ import annotations
 
 import asyncio
-import logging
 import json
+import logging
 import re
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -84,9 +85,7 @@ app.add_middleware(
 async def no_cache_static(request, call_next):
     response = await call_next(request)
     path = request.url.path
-    if path.startswith("/static/") and (
-        path.endswith(".js") or path.endswith(".css")
-    ):
+    if path.startswith("/static/") and (path.endswith(".js") or path.endswith(".css")):
         response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
@@ -113,19 +112,19 @@ def _subpath_client_shim(prefix: str) -> str:
     return (
         "<script>(function(){var P=" + p + ";if(!P)return;"
         "window.__BASE_PATH__=P;"
-        "function n(x){return x.charAt(0)===\"/\"&&x.indexOf(P+\"/\")!==0&&"
-        "(x.indexOf(\"/api\")===0||x.indexOf(\"/media/\")===0||x.indexOf(\"/static/\")===0);}"
-        "function r(u){try{if(typeof u===\"string\"){return n(u)?P+u:u;}"
+        'function n(x){return x.charAt(0)==="/"&&x.indexOf(P+"/")!==0&&'
+        '(x.indexOf("/api")===0||x.indexOf("/media/")===0||x.indexOf("/static/")===0);}'
+        'function r(u){try{if(typeof u==="string"){return n(u)?P+u:u;}'
         "if(u instanceof URL){return (u.origin===location.origin&&n(u.pathname))?"
         "new URL(P+u.pathname+u.search+u.hash,location.origin):u;}"
-        "if(typeof Request!==\"undefined\"&&u instanceof Request){var q=new URL(u.url);"
+        'if(typeof Request!=="undefined"&&u instanceof Request){var q=new URL(u.url);'
         "return (q.origin===location.origin&&n(q.pathname))?"
         "new Request(P+q.pathname+q.search+q.hash,u):u;}}catch(e){}return u;}"
         "var f=window.fetch;window.fetch=function(i,o){return f.call(this,r(i),o);};"
         "if(navigator.serviceWorker&&navigator.serviceWorker.register){"
         "var g=navigator.serviceWorker.register.bind(navigator.serviceWorker);"
         "navigator.serviceWorker.register=function(u,o){o=o||{};"
-        "if(o.scope==null)o.scope=P+\"/\";return g(r(u),o);};}"
+        'if(o.scope==null)o.scope=P+"/";return g(r(u),o);};}'
         "})();</script>"
     )
 
@@ -145,7 +144,9 @@ async def subpath_rewrite(request, call_next):
         return response
     ctype = response.headers.get("content-type", "")
     is_html = ctype.startswith("text/html")
-    is_jsonish = ctype.startswith("application/json") or ctype.startswith("application/manifest")
+    is_jsonish = ctype.startswith("application/json") or ctype.startswith(
+        "application/manifest"
+    )
     if not (is_html or is_jsonish):
         return response
 
@@ -162,7 +163,7 @@ async def subpath_rewrite(request, call_next):
         if idx != -1:
             gt = text.find(">", idx)
             if gt != -1:
-                text = text[: gt + 1] + shim + text[gt + 1:]
+                text = text[: gt + 1] + shim + text[gt + 1 :]
             else:
                 text = shim + text
         else:
@@ -173,9 +174,7 @@ async def subpath_rewrite(request, call_next):
         for key in ("start_url", "scope"):
             text = text.replace(
                 '"' + key + '": "/"', '"' + key + '": "' + prefix + '/"'
-            ).replace(
-                '"' + key + '":"/"', '"' + key + '":"' + prefix + '/"'
-            )
+            ).replace('"' + key + '":"/"', '"' + key + '":"' + prefix + '/"')
 
     new_body = text.encode("utf-8")
     headers = MutableHeaders(raw=list(response.raw_headers))
@@ -201,7 +200,9 @@ app.mount("/media", StaticFiles(directory=str(settings.photo_dir)), name="media"
 
 # Frontend estático (PWA)
 if FRONTEND_DIR.exists():
-    app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="frontend-static")
+    app.mount(
+        "/static", StaticFiles(directory=str(FRONTEND_DIR)), name="frontend-static"
+    )
 
 
 @app.get("/", include_in_schema=False)
@@ -256,7 +257,9 @@ def moderar_redirect():
 
 @app.get("/manifest.webmanifest", include_in_schema=False)
 def manifest():
-    return FileResponse(FRONTEND_DIR / "manifest.webmanifest", media_type="application/manifest+json")
+    return FileResponse(
+        FRONTEND_DIR / "manifest.webmanifest", media_type="application/manifest+json"
+    )
 
 
 @app.get("/sw.js", include_in_schema=False)
