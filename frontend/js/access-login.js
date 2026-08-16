@@ -1,7 +1,11 @@
-/** Login em /acesso — redireciona para /gestao após autenticação. */
+/** Login do PLI Reporta — redireciona para /pli-reporta/gestao. */
 import { fetchAuthContext, getSession, loginModerator } from './api.js';
 
 function $(s) { return document.querySelector(s); }
+
+function appPath(path) {
+  return `${window.__BASE_PATH__ || '/pli-reporta'}${path}`;
+}
 
 function applyAuthContext(ctx) {
   if (!ctx) return;
@@ -49,7 +53,7 @@ async function onLogin(ev) {
   try {
     await loginModerator(username, password);
     $('#login-pass').value = '';
-    location.href = '/gestao';
+    location.href = appPath('/gestao');
   } catch (err) {
     $('#login-error').hidden = false;
     if (err.status === 503) {
@@ -63,7 +67,7 @@ async function onLogin(ev) {
 document.addEventListener('DOMContentLoaded', () => {
   const session = getSession();
   if (session?.token && session.expiresAt > Date.now()) {
-    location.href = '/gestao';
+    location.href = appPath('/gestao');
     return;
   }
   bindPasswordToggle();

@@ -102,8 +102,8 @@ async def no_cache_static(request, call_next):
 #   absolutas ("/static", "/api", "/media", ...) no HTML e no JSON e injeta
 #   um shim que prefixa fetch()/serviceWorker.register no cliente.
 #
-#   GATED: so age quando X-Forwarded-Prefix esta presente. Sem o header, o
-#   comportamento na raiz (dominio HTTPS oficial) fica inalterado.
+#   Tambem reconhece /pli-reporta diretamente para manter a mesma URL
+#   quando a aplicacao roda localmente sem Nginx.
 # ---------------------------------------------------------------------------
 _ABS_ATTR_RE = re.compile(r'((?:src|href|action)=")/(?!/)')
 
@@ -133,6 +133,13 @@ def _subpath_client_shim(prefix: str) -> str:
 @app.middleware("http")
 async def subpath_rewrite(request, call_next):
     prefix = (request.headers.get("x-forwarded-prefix") or "").rstrip("/")
+    direct_prefix = "/pli-reporta"
+    path = request.scope.get("path", "")
+    if not prefix and (path == direct_prefix or path.startswith(direct_prefix + "/")):
+        prefix = direct_prefix
+        stripped_path = path[len(direct_prefix) :] or "/"
+        request.scope["path"] = stripped_path
+        request.scope["raw_path"] = stripped_path.encode("utf-8")
     response = await call_next(request)
     if not prefix:
         return response
