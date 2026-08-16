@@ -29,10 +29,30 @@ export function requireAuth() {
   const session = getSession();
   if (!session?.token || session.expiresAt < Date.now()) {
     clearSession();
-    location.href = '/acesso';
+    location.href = appPath('/acesso');
     return null;
   }
   return session;
+}
+
+function appPath(path) {
+  const prefix = window.__BASE_PATH__ || '/pli-reporta';
+  if (!prefix || path.startsWith(`${prefix}/`) || path === prefix) return path;
+  return path === '/' ? `${prefix}/` : `${prefix}${path}`;
+}
+
+function renderSidebarFooter() {
+  const foot = $('.gestao-sidebar-foot');
+  if (!foot) return;
+  foot.innerHTML = `
+    <a href="${appPath('/')}" class="gestao-link-back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+      Voltar ao mapa
+    </a>
+    <button type="button" class="gestao-link-logout" id="btn-gestao-logout">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sair
+    </button>`;
 }
 
 export function bindLogout() {
@@ -40,12 +60,13 @@ export function bindLogout() {
   if (!btn) return;
   btn.addEventListener('click', () => {
     clearSession();
-    location.href = '/acesso';
+    location.href = appPath('/acesso');
   });
 }
 
 export function renderSidebar(activeId) {
   mountSidebarBrands();
+  renderSidebarFooter();
   const nav = $('#gestao-nav');
   if (!nav) return;
   nav.innerHTML = NAV.map((item) => `
@@ -105,7 +126,7 @@ export function escHtml(s) {
 export function handleAuthError(err) {
   if (err?.status === 401 || String(err?.message).includes('401')) {
     clearSession();
-    location.href = '/acesso';
+    location.href = appPath('/acesso');
     return true;
   }
   return false;
