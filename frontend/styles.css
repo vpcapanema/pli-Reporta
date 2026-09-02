@@ -1372,7 +1372,9 @@ body.viewer-page main.viewer-main {
   --sidebar-fg: #ffffff;
   --sidebar-fg-secondary: #94a3b8;
   --sidebar-fg-placeholder: #cbd5e1;
-  --sidebar-green: #4ade80;
+  /* Verde institucional do PLI, o mesmo do Hub e das demais telas.
+     Antes era #4ade80, que destoava da marca. */
+  --sidebar-green: var(--pli-verde);
   background: linear-gradient(180deg, var(--pli-primary) 0%, #002a42 100%);
   color: var(--sidebar-fg-secondary);
   display: flex;
@@ -2837,7 +2839,9 @@ body.gestao-page code {
   --sidebar-fg: #ffffff;
   --sidebar-fg-secondary: #94a3b8;
   --sidebar-fg-placeholder: #cbd5e1;
-  --sidebar-green: #4ade80;
+  /* Verde institucional do PLI, o mesmo do Hub e das demais telas.
+     Antes era #4ade80, que destoava da marca. */
+  --sidebar-green: var(--pli-verde);
   background: linear-gradient(180deg, var(--pli-primary) 0%, #002a42 100%);
   color: var(--sidebar-fg-secondary);
   display: flex;
