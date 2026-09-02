@@ -84,6 +84,17 @@ header.topbar h1 {
   letter-spacing: 0.02em;
   text-transform: uppercase;
   color: #fff;
+  /* Mesma marca do PLI Hub: icone em verde institucional, nome em branco. */
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+header.topbar h1 .topbar-icon {
+  flex-shrink: 0;
+  width: 1.25em;
+  height: 1.25em;
+  color: var(--pli-verde);
 }
 header.topbar nav a {
   color: #fff;
