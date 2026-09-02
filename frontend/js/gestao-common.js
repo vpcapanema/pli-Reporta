@@ -69,8 +69,10 @@ export function renderSidebar(activeId) {
   renderSidebarFooter();
   const nav = $('#gestao-nav');
   if (!nav) return;
+  // Os href do NAV sao relativos a raiz da app; sem appPath eles apontariam
+  // para a raiz do dominio, fora do prefixo em que a app e servida.
   nav.innerHTML = NAV.map((item) => `
-    <a href="${item.href}" class="gestao-nav-item${item.id === activeId ? ' active' : ''}">
+    <a href="${appPath(item.href)}" class="gestao-nav-item${item.id === activeId ? ' active' : ''}">
       <span class="gestao-nav-icon" aria-hidden="true">${item.icon}</span>
       <span>${item.label}</span>
     </a>
