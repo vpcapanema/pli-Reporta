@@ -1,4 +1,4 @@
-/** Marca PLI Reporta nas sidebars — megafone + título em duas linhas.
+/** Marca PLI Reporta nas sidebars — icone verde + nome branco, slogan abaixo.
  *  Mesma marca do cabeçalho da página inicial, para não haver duas identidades. */
 
 export const PLI_MARK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><path d="M3 11v2a1 1 0 0 0 1 1h2.5L14 19V5L6.5 10H4a1 1 0 0 0-1 1Z"/><path d="M6.5 14v4.5a1.5 1.5 0 0 0 3 0V16"/><path d="M18 9.5a3.5 3.5 0 0 1 0 5"/><path d="M20.5 7a7 7 0 0 1 0 10"/></svg>';
@@ -18,13 +18,10 @@ function brandInnerHtml(sub) {
     `<a href="${homeHref()}" class="sidebar-brand-link" aria-label="PLI Reporta — página inicial">`,
     '<div class="sidebar-brand-head">',
     `<span class="sidebar-brand-mark" aria-hidden="true">${PLI_MARK_SVG}</span>`,
-    '<div class="sidebar-brand-titles">',
-    '<span class="sidebar-brand-pli">PLI</span>',
-    '<span class="sidebar-brand-reporta">Reporta</span>',
-    '</div>',
+    '<span class="sidebar-brand-name">PLI – REPORTA</span>',
     '</div>',
     '</a>',
-    sub ? `<span class="sidebar-brand-sub muted">${sub}</span>` : '',
+    `<p class="sidebar-brand-sub">${sub || 'Reporte cidadão de tráfego · PLI-SP'}</p>`,
   ].join('');
 }
 
