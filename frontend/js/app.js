@@ -293,14 +293,49 @@ function showConfirmStep(mode) {
   initPickMapLazy();
 }
 
-function startBranch(type) {
-  state.interactionType = type;
+const RAMOS = {
+  evento_trafego: { painel: '#step-1-evento', botao: '#branch-evento' },
+  manifestacao: { painel: '#step-1-manifestacao', botao: '#branch-manifestacao' },
+};
+
+/** Reflete nos botoes se o painel correspondente esta aberto (a11y). */
+function sincronizarRamos() {
+  Object.values(RAMOS).forEach(({ painel, botao }) => {
+    $(botao).setAttribute('aria-expanded', String(!$(painel).hidden));
+  });
+}
+
+function fecharRamos() {
+  Object.values(RAMOS).forEach(({ painel }) => hide(painel));
+  sincronizarRamos();
+}
+
+/**
+ * Abre um ramo como acordeao: a etapa 0 continua visivel e o painel do ramo
+ * escolhido expande logo abaixo do proprio botao, recolhendo o outro. Antes
+ * cada ramo substituia a tela inteira, o que parecia troca de pagina.
+ */
+function abrirRamo(type) {
+  const ramo = RAMOS[type];
+  if (!ramo) return;
   hideAllSteps();
-  if (type === 'evento_trafego') {
-    show('#step-1-evento');
-  } else {
-    show('#step-1-manifestacao');
+  show('#step-0');
+  fecharRamos();
+  show(ramo.painel);
+  sincronizarRamos();
+}
+
+function startBranch(type) {
+  const ramo = RAMOS[type];
+  if (!ramo) return;
+  // Clicar no ramo ja aberto recolhe, como todo menu suspenso.
+  if (!$(ramo.painel).hidden) {
+    state.interactionType = null;
+    fecharRamos();
+    return;
   }
+  state.interactionType = type;
+  abrirRamo(type);
 }
 
 /** Gera imagem 1×1 cinza como placeholder quando não há foto. */
@@ -631,6 +666,7 @@ function resetForNext() {
   document.querySelectorAll('.cat-grid button').forEach((b) => b.classList.remove('selected'));
   hideAllSteps();
   show('#step-0');
+  fecharRamos();
 }
 
 async function registerBackgroundSync() {
@@ -713,12 +749,7 @@ function bindUI() {
   $('#btn-back').addEventListener('click', () => {
     stopCamera(state.stream);
     state.stream = null;
-    hideAllSteps();
-    if (state.interactionType === 'evento_trafego') {
-      show('#step-1-evento');
-    } else {
-      show('#step-1-manifestacao');
-    }
+    abrirRamo(state.interactionType);
   });
 
   window.addEventListener('online', flushQueue);

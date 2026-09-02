@@ -116,6 +116,27 @@ body.report-page main {
   margin-right: auto;
 }
 
+/*
+ * Rodape ancorado na base da janela: a pagina vira uma coluna flex e o <main>
+ * absorve a sobra vertical. Sem isso o rodape subia para o meio da tela nas
+ * etapas curtas. Escopo no report-page classico para nao afetar o layout em
+ * grade do public-shell nem as telas de gestao.
+ */
+body.report-page:not(.public-shell-page) {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+body.report-page:not(.public-shell-page) main {
+  flex: 1 0 auto;
+}
+
+body.report-page:not(.public-shell-page) footer.footer {
+  flex-shrink: 0;
+  margin-top: auto;
+}
+
 footer.footer {
   border-top: 1px solid var(--border);
   padding: var(--space-lg) var(--page-gutter);
@@ -561,6 +582,42 @@ code {
   flex-direction: column;
   gap: var(--space-md);
   margin-top: var(--space-md);
+}
+
+/*
+ * Cada ramo e um acordeao: o botao e o cabecalho e o painel abre logo abaixo,
+ * dentro do mesmo bloco. Antes o clique trocava a tela inteira.
+ */
+.branch-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.branch-item .branch-btn[aria-expanded="true"] {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.branch-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+  padding: var(--space-lg);
+}
+
+.branch-btn-arrow {
+  transition: transform 0.18s ease;
+}
+
+.branch-btn[aria-expanded="true"] .branch-btn-arrow {
+  transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .branch-btn-arrow {
+    transition: none;
+  }
 }
 
 .branch-btn {

@@ -29,61 +29,65 @@
     <section id="step-0" class="card">
       <span class="label">O que você quer reportar?</span>
       <div class="branch-grid">
-        <button type="button" id="branch-evento" class="branch-btn">
-          <span class="branch-btn-icon" data-report-icon="evento"></span>
-          <span class="branch-btn-body">
-            <span class="branch-title">Evento de Tráfego</span>
-            <span class="branch-desc">Buraco, alagamento, acidente, bloqueio…</span>
-          </span>
-          <span class="branch-btn-arrow" data-report-icon="chevron"></span>
-        </button>
-        <button type="button" id="branch-manifestacao" class="branch-btn">
-          <span class="branch-btn-icon" data-report-icon="manifestacao"></span>
-          <span class="branch-btn-body">
-            <span class="branch-title">Manifestação Cidadã</span>
-            <span class="branch-desc">Elogio, sugestão ou reclamação</span>
-          </span>
-          <span class="branch-btn-arrow" data-report-icon="chevron"></span>
-        </button>
-      </div>
-    </section>
+        <div class="branch-item">
+          <button type="button" id="branch-evento" class="branch-btn"
+            aria-expanded="false" aria-controls="step-1-evento">
+            <span class="branch-btn-icon" data-report-icon="evento"></span>
+            <span class="branch-btn-body">
+              <span class="branch-title">Evento de Tráfego</span>
+              <span class="branch-desc">Buraco, alagamento, acidente, bloqueio…</span>
+            </span>
+            <span class="branch-btn-arrow" data-report-icon="chevron"></span>
+          </button>
+        <!-- Etapa 1a: categoria de evento -->
+        <section id="step-1-evento" class="branch-panel" hidden>
+          <span class="label">Qual o evento?</span>
+          <p class="help">Toque na categoria que mais se aproxima.</p>
+          <div id="cat-grid" class="cat-grid"></div>
+          <div class="row" style="margin-top:14px">
+            <button class="secondary" id="btn-back-0">Voltar</button>
+            <button id="btn-step1-evento" disabled>Continuar</button>
+          </div>
+        </section>
+        </div>
+        <div class="branch-item">
+          <button type="button" id="branch-manifestacao" class="branch-btn"
+            aria-expanded="false" aria-controls="step-1-manifestacao">
+            <span class="branch-btn-icon" data-report-icon="manifestacao"></span>
+            <span class="branch-btn-body">
+              <span class="branch-title">Manifestação Cidadã</span>
+              <span class="branch-desc">Elogio, sugestão ou reclamação</span>
+            </span>
+            <span class="branch-btn-arrow" data-report-icon="chevron"></span>
+          </button>
+        <!-- Etapa 1b: manifestação -->
+        <section id="step-1-manifestacao" class="branch-panel" hidden>
+          <span class="label">Qual o tipo?</span>
+          <div id="manif-grid" class="cat-grid manif-grid"></div>
+          <label class="label" for="txt-manif" style="margin-top:12px">Descreva (obrigatório)</label>
+          <div class="field-counter-wrap">
+            <textarea id="txt-manif" class="field field-counted" maxlength="500" minlength="15"
+              placeholder="Conte o que você elogiou, sugere ou reclama"></textarea>
+            <span class="field-char-count" id="txt-manif-count" aria-live="polite">0 / 500</span>
+          </div>
 
-    <!-- Etapa 1a: categoria de evento -->
-    <section id="step-1-evento" class="card" hidden>
-      <span class="label">Qual o evento?</span>
-      <p class="help">Toque na categoria que mais se aproxima.</p>
-      <div id="cat-grid" class="cat-grid"></div>
-      <div class="row" style="margin-top:14px">
-        <button class="secondary" id="btn-back-0">Voltar</button>
-        <button id="btn-step1-evento" disabled>Continuar</button>
-      </div>
-    </section>
+          <div class="photo-toggle-wrap">
+            <button type="button" id="btn-toggle-photo" class="photo-toggle-btn active" aria-pressed="true">
+              <span class="photo-toggle-icon" id="photo-toggle-icon" data-report-icon="check"></span>
+              <span class="photo-toggle-body">
+                <span class="photo-toggle-title">Enviar registro fotográfico</span>
+                <span class="photo-toggle-desc" id="photo-toggle-desc">Câmera será aberta ao continuar</span>
+              </span>
+              <span class="photo-toggle-pill" id="photo-toggle-pill">Sim</span>
+            </button>
+          </div>
 
-    <!-- Etapa 1b: manifestação -->
-    <section id="step-1-manifestacao" class="card" hidden>
-      <span class="label">Qual o tipo?</span>
-      <div id="manif-grid" class="cat-grid manif-grid"></div>
-      <label class="label" for="txt-manif" style="margin-top:12px">Descreva (obrigatório)</label>
-      <div class="field-counter-wrap">
-        <textarea id="txt-manif" class="field field-counted" maxlength="500" minlength="15"
-          placeholder="Conte o que você elogiou, sugere ou reclama"></textarea>
-        <span class="field-char-count" id="txt-manif-count" aria-live="polite">0 / 500</span>
-      </div>
-
-      <div class="photo-toggle-wrap">
-        <button type="button" id="btn-toggle-photo" class="photo-toggle-btn active" aria-pressed="true">
-          <span class="photo-toggle-icon" id="photo-toggle-icon" data-report-icon="check"></span>
-          <span class="photo-toggle-body">
-            <span class="photo-toggle-title">Enviar registro fotográfico</span>
-            <span class="photo-toggle-desc" id="photo-toggle-desc">Câmera será aberta ao continuar</span>
-          </span>
-          <span class="photo-toggle-pill" id="photo-toggle-pill">Sim</span>
-        </button>
-      </div>
-
-      <div class="row" style="margin-top:14px">
-        <button class="secondary" id="btn-back-0b">Voltar</button>
-        <button id="btn-step1-manifestacao" disabled>Continuar</button>
+          <div class="row" style="margin-top:14px">
+            <button class="secondary" id="btn-back-0b">Voltar</button>
+            <button id="btn-step1-manifestacao" disabled>Continuar</button>
+          </div>
+        </section>
+        </div>
       </div>
     </section>
 
