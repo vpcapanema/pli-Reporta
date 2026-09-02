@@ -79,6 +79,16 @@ header.topbar {
   z-index: 10;
   border-bottom: 4px solid var(--pli-verde);
 }
+/* Titulo simples da topbar (paginas sem a marca, como /acesso). */
+header.topbar h1 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
 /* Marca na topbar: mesma estrutura da sidebar (icone verde + nome branco;
    slogan · PLI-SP abaixo), em escala menor para caber na barra. */
 header.topbar h1.topbar-brand {
@@ -5483,3 +5493,36 @@ body.gestao-page .gestao-link-logout { color: rgba(255, 100, 100, 0.75); }
 body.gestao-page .gestao-link-logout:hover { color: #ff8080; background: rgba(255, 100, 100, 0.08); }
 .gestao-link-back svg,
 .gestao-link-logout svg { width: 14px; height: 14px; flex: 0 0 auto; }
+
+/* Pagina de acesso: mesma estrutura das demais apps do ecossistema —
+   "Voltar ao mapa" no fim do card e rodape fixo na base. */
+.access-back {
+  text-align: center;
+  margin-top: var(--space-lg);
+  font-size: 0.8125rem;
+}
+
+.access-back a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.access-back a:hover {
+  color: var(--pli-accent);
+  text-decoration: underline;
+}
+
+body.access-page {
+  display: flex;
+  flex-direction: column;
+}
+
+body.access-page .access-main {
+  width: 100%;
+  flex: 1 0 auto;
+}
+
+body.access-page footer.footer {
+  flex-shrink: 0;
+  margin-top: auto;
+}
