@@ -1,10 +1,21 @@
-/** Marca PLI Reporta nas sidebars — pin interno + título em duas linhas. */
+/** Marca PLI Reporta nas sidebars — megafone + título em duas linhas.
+ *  Mesma marca do cabeçalho da página inicial, para não haver duas identidades. */
 
-export const PLI_MARK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 32" focusable="false" aria-hidden="true"><path fill="currentColor" d="M12 0C6.48 0 2 4.48 2 10c0 7 10 18 10 18s10-11 10-18C22 4.48 17.52 0 12 0zm0 14a4 4 0 1 1 0-8 4 4 0 0 1 0 8z"/></svg>';
+export const PLI_MARK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><path d="M3 11v2a1 1 0 0 0 1 1h2.5L14 19V5L6.5 10H4a1 1 0 0 0-1 1Z"/><path d="M6.5 14v4.5a1.5 1.5 0 0 0 3 0V16"/><path d="M18 9.5a3.5 3.5 0 0 1 0 5"/><path d="M20.5 7a7 7 0 0 1 0 10"/></svg>';
+
+/**
+ * A marca e montada em runtime, depois da entrega da pagina, entao escapa da
+ * reescrita de links que o backend faz no HTML servido. Sem o prefixo, o link
+ * iria para a raiz do dominio em vez da raiz da app.
+ */
+function homeHref() {
+  const prefixo = window.__BASE_PATH__ || '/pli-reporta';
+  return prefixo ? `${prefixo}/` : '/';
+}
 
 function brandInnerHtml(sub) {
   return [
-    '<a href="/" class="sidebar-brand-link" aria-label="PLI Reporta — página inicial">',
+    `<a href="${homeHref()}" class="sidebar-brand-link" aria-label="PLI Reporta — página inicial">`,
     '<div class="sidebar-brand-head">',
     `<span class="sidebar-brand-mark" aria-hidden="true">${PLI_MARK_SVG}</span>`,
     '<div class="sidebar-brand-titles">',
@@ -21,7 +32,7 @@ function wrapBrandHeadLink(el) {
   const head = el.querySelector('.sidebar-brand-head');
   if (!head || head.closest('.sidebar-brand-link')) return;
   const link = document.createElement('a');
-  link.href = '/';
+  link.href = homeHref();
   link.className = 'sidebar-brand-link';
   link.setAttribute('aria-label', 'PLI Reporta — página inicial');
   head.parentNode.insertBefore(link, head);
