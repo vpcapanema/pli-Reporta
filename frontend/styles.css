@@ -78,6 +78,10 @@ header.topbar {
   top: 0;
   z-index: 10;
   border-bottom: 4px solid var(--pli-verde);
+  /* Altura padrao do ecossistema (cabecalho do Smart Router). */
+  box-sizing: border-box;
+  height: 70px;
+  min-height: 70px;
 }
 /* Titulo simples da topbar (paginas sem a marca, como /acesso). */
 header.topbar h1 {
@@ -1453,8 +1457,13 @@ body.viewer-page main.viewer-main {
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  justify-content: center;
   gap: 0;
-  padding: var(--space-xl) var(--space-xl) var(--space-lg);
+  /* Altura padrao do ecossistema (cabecalho da sidebar do Smart Router). */
+  box-sizing: border-box;
+  height: 70px;
+  min-height: 70px;
+  padding: 0.4rem var(--space-xl);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   flex-shrink: 0;
 }
@@ -1482,7 +1491,7 @@ body.viewer-page main.viewer-main {
   text-decoration: none;
   border-radius: 8px;
   margin: 0 calc(-1 * var(--space-sm));
-  padding: var(--space-sm);
+  padding: 0.15rem var(--space-sm);
   transition: background 0.15s ease;
 }
 
@@ -1512,7 +1521,7 @@ body.viewer-page main.viewer-main {
 .sidebar-brand {
   /* Escala da marca: nome = 1em, slogan = 0.49em (proporcao da referencia).
      Acompanha a largura da sidebar para o slogan nunca cortar. */
-  font-size: clamp(1.15rem, 8cqw, 1.65rem);
+  font-size: clamp(1.15rem, 8cqw, 1.5rem);
 }
 
 .sidebar-brand-head {
@@ -1736,7 +1745,11 @@ button.public-nav-item-toggle.active {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  padding: 0.6rem 1.25rem;
+  /* Altura padrao do ecossistema (cabecalho do Smart Router). */
+  box-sizing: border-box;
+  height: 70px;
+  min-height: 70px;
+  padding: 0.5rem 1.25rem;
   background: #155d31;
   border-bottom: 1px solid rgba(0, 0, 0, 0.25);
   box-shadow: 0 1px 3px rgba(0, 59, 90, 0.12);
@@ -3151,7 +3164,11 @@ body.gestao-page code {
   justify-content: space-between;
   align-items: center;
   gap: var(--space-xl);
-  padding: var(--space-lg) var(--page-gutter);
+  /* Altura padrao do ecossistema (cabecalho do Smart Router). */
+  box-sizing: border-box;
+  height: 70px;
+  min-height: 70px;
+  padding: 0.5rem var(--page-gutter);
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   box-shadow: var(--shadow);
