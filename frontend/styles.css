@@ -5647,3 +5647,12 @@ body.access-page footer.footer { padding: 16px 24px; font-size: 12px; line-heigh
   font-weight: 600;
   box-shadow: inset 3px 0 0 var(--pli-verde);
 }
+
+/* A marca da gestao segue a identidade fixa: icone e nome na MESMA linha.
+   Uma regra antiga (.gestao-sidebar .sidebar-brand-head) empilhava em coluna. */
+.gestao-sidebar .sidebar-brand-head {
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: 0.45rem;
+}
