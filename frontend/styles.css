@@ -5593,3 +5593,9 @@ body.access-page footer.footer { padding: 16px 24px; font-size: 12px; line-heigh
   padding: 0.4rem 24px;
   justify-content: center;
 }
+
+/* Gestao: a marca da sidebar e a mesma das demais telas — icone e slogan
+   visiveis. Uma regra antiga (.gestao-sidebar .sidebar-brand-mark/-sub) os
+   escondia quando a marca era "PLI" sobre "Reporta". */
+.gestao-sidebar .sidebar-brand-mark { display: inline-flex; }
+.gestao-sidebar .sidebar-brand-sub { display: block; }

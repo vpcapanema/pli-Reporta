@@ -87,14 +87,15 @@ export function renderSessionBar(session) {
     bar.id = 'gestao-session-bar';
     bar.className = 'adm-session-bar';
     bar.setAttribute('aria-label', 'Sessão ativa');
-    // Estrutura fixa das paginas restritas: a barra de sessao vem imediatamente
-    // apos o cabecalho da pagina.
-    const header = main.querySelector('.gestao-header');
-    if (header) {
-      header.insertAdjacentElement('afterend', bar);
-    } else {
-      main.insertBefore(bar, main.firstChild);
-    }
+  }
+  // Estrutura fixa das paginas restritas: a barra de sessao vem imediatamente
+  // apos o cabecalho da pagina. Reposiciona sempre, porque paginas como a de
+  // eventos inserem elementos (abas) logo apos o cabecalho depois desta chamada.
+  const header = main.querySelector('.gestao-header');
+  if (header) {
+    if (header.nextElementSibling !== bar) header.insertAdjacentElement('afterend', bar);
+  } else if (!bar.parentElement) {
+    main.insertBefore(bar, main.firstChild);
   }
   const name = sess.fullName || sess.username || '';
   const username = sess.username || '';
