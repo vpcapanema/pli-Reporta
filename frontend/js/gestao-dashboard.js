@@ -514,6 +514,9 @@ async function loadMap() {
 }
 
 async function loadStats() {
+  // Os cards de estatistica sairam do painel; sem eles nao ha o que atualizar
+  // (e um TypeError aqui seria tratado como erro de autenticacao).
+  if (!$('#stat-fila')) return;
   const session = requireAuth();
   if (!session) return;
   try {

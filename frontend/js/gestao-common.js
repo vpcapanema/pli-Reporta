@@ -13,11 +13,22 @@ const SVG = {
   funcionalidades: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`,
 };
 
+// As abas que cada pagina tinha no conteudo viram sub-itens do menu lateral:
+// "tab" e o id do botao de aba (mantido no HTML, oculto) que o sub-item aciona.
+const ABAS_REGISTROS_ANALISE = [
+  { id: 'lista',   label: 'Registros', tab: 'gestao-tab-lista' },
+  { id: 'analise', label: 'Análise',   tab: 'gestao-tab-analise' },
+];
+
 export const NAV = [
   { id: 'dashboard',       href: '/gestao',                  label: 'Painel',                    icon: SVG.dashboard },
-  { id: 'eventos',         href: '/gestao/eventos',          label: 'Eventos de Tráfego',        icon: SVG.eventos },
-  { id: 'manifestacoes',   href: '/gestao/manifestacoes',    label: 'Manifestação Cidadã',       icon: SVG.manifestacoes },
-  { id: 'aprovador',       href: '/gestao/aprovador',        label: 'Aprovador automático',      icon: SVG.aprovador },
+  { id: 'eventos',         href: '/gestao/eventos',          label: 'Eventos de Tráfego',        icon: SVG.eventos,        children: ABAS_REGISTROS_ANALISE },
+  { id: 'manifestacoes',   href: '/gestao/manifestacoes',    label: 'Manifestação Cidadã',       icon: SVG.manifestacoes,  children: ABAS_REGISTROS_ANALISE },
+  { id: 'aprovador',       href: '/gestao/aprovador',        label: 'Aprovador automático',      icon: SVG.aprovador,
+    children: [
+      { id: 'eventos',       label: 'Eventos de tráfego',     tab: 'tab-eventos' },
+      { id: 'manifestacoes', label: 'Manifestações cidadãs',  tab: 'tab-manifestacoes' },
+    ] },
   { id: 'funcionalidades', href: '/gestao/funcionalidades',  label: 'Funcionalidades do sistema', icon: SVG.funcionalidades },
 ];
 
@@ -64,16 +75,58 @@ export function renderSidebar(activeId) {
   if (!nav) return;
   // Os href do NAV sao relativos a raiz da app; sem appPath eles apontariam
   // para a raiz do dominio, fora do prefixo em que a app e servida.
-  nav.innerHTML = NAV.map((item) => `
-    <a href="${appPath(item.href)}" class="gestao-nav-item${item.id === activeId ? ' active' : ''}">
+  nav.innerHTML = NAV.map((item) => {
+    const active = item.id === activeId;
+    const expandido = active && Array.isArray(item.children);
+    const filhos = expandido ? `
+      <div class="gestao-nav-sub" role="group" aria-label="${item.label}">
+        ${item.children.map((c) => `
+          <a href="${appPath(item.href)}?aba=${c.id}" class="gestao-nav-subitem"
+             data-aba="${c.id}" data-tab="${c.tab}">${c.label}</a>`).join('')}
+      </div>` : '';
+    return `
+    <a href="${appPath(item.href)}" class="gestao-nav-item${active ? ' active' : ''}${item.children ? ' has-children' : ''}"
+       aria-expanded="${expandido ? 'true' : 'false'}">
       <span class="gestao-nav-icon" aria-hidden="true">${item.icon}</span>
       <span>${item.label}</span>
-    </a>
-  `).join('');
+    </a>${filhos}`;
+  }).join('');
+  bindSubnav(nav);
   const session = getSession();
   const userEl = $('#gestao-user');
   if (userEl && session) userEl.textContent = session.fullName || session.username;
   renderSessionBar(session);
+}
+
+/**
+ * Sub-itens do menu: cada um aciona o botao de aba correspondente, que segue no
+ * HTML (oculto por CSS) com seus handlers. A aba escolhida vai para ?aba= na
+ * URL, entao o link de outra pagina ja abre no sub-item certo.
+ */
+function bindSubnav(nav) {
+  const subitens = [...nav.querySelectorAll('.gestao-nav-subitem')];
+  if (!subitens.length) return;
+
+  const ativar = (el, { atualizarUrl = true } = {}) => {
+    subitens.forEach((s) => s.classList.toggle('active', s === el));
+    document.getElementById(el.dataset.tab)?.click();
+    if (atualizarUrl) {
+      const url = new URL(location.href);
+      url.searchParams.set('aba', el.dataset.aba);
+      history.replaceState(null, '', url);
+    }
+  };
+
+  subitens.forEach((el) => el.addEventListener('click', (ev) => {
+    ev.preventDefault();
+    ativar(el);
+  }));
+
+  // Estado inicial: ?aba= da URL ou o primeiro sub-item. Adiado para depois da
+  // inicializacao da pagina, que e quem liga os handlers dos botoes de aba.
+  const pedida = new URLSearchParams(location.search).get('aba');
+  const inicial = subitens.find((s) => s.dataset.aba === pedida) || subitens[0];
+  setTimeout(() => ativar(inicial, { atualizarUrl: Boolean(pedida) }), 0);
 }
 
 /** Monta a barra de status/sessão no topo do conteúdo (nome, @username, tipo, sair). */
