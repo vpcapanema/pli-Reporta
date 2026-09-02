@@ -41,19 +41,12 @@ function appPath(path) {
   return path === '/' ? `${prefix}/` : `${prefix}${path}`;
 }
 
-function renderSidebarFooter() {
-  const foot = $('.gestao-sidebar-foot');
-  if (!foot) return;
-  foot.innerHTML = `
-    <a href="${appPath('/')}" class="gestao-link-back">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
-      Voltar ao mapa
-    </a>
-    <button type="button" class="gestao-link-logout" id="btn-gestao-logout">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-      Sair
-    </button>`;
-}
+/**
+ * O rodape da sidebar e fixo: so o credito padrao do ecossistema, que ja vem
+ * no HTML. "Voltar ao mapa" e "Sair" ficam na barra de sessao, logo abaixo do
+ * cabecalho da pagina — nao se injeta mais nada aqui.
+ */
+function renderSidebarFooter() {}
 
 export function bindLogout() {
   const btn = $('#btn-gestao-logout');
@@ -94,9 +87,11 @@ export function renderSessionBar(session) {
     bar.id = 'gestao-session-bar';
     bar.className = 'adm-session-bar';
     bar.setAttribute('aria-label', 'Sessão ativa');
-    const stats = main.querySelector('.gestao-stats');
-    if (stats) {
-      stats.insertAdjacentElement('afterend', bar);
+    // Estrutura fixa das paginas restritas: a barra de sessao vem imediatamente
+    // apos o cabecalho da pagina.
+    const header = main.querySelector('.gestao-header');
+    if (header) {
+      header.insertAdjacentElement('afterend', bar);
     } else {
       main.insertBefore(bar, main.firstChild);
     }

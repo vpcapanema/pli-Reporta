@@ -5543,3 +5543,53 @@ body.access-page footer.footer {
   flex-shrink: 0;
   margin-top: auto;
 }
+
+/* ============================================================================
+   PAGINA DE ACESSO — skin padrao do ecossistema PLI (identico nas 3 apps).
+   Medidas em px para nao depender do font-size raiz de cada app; Montserrat na
+   pagina inteira. Fica no fim do arquivo para prevalecer sobre as regras locais.
+   ============================================================================ */
+body.access-page,
+body.access-page input,
+body.access-page button,
+body.access-page a { font-family: "Montserrat", system-ui, -apple-system, "Segoe UI", sans-serif; }
+body.access-page header.topbar { box-sizing: border-box; height: 70px; min-height: 70px; padding: 8px 24px; gap: 16px; }
+body.access-page header.topbar h1 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; color: #fff; }
+body.access-page header.topbar nav { gap: 16px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; }
+body.access-page header.topbar nav a { color: rgba(255, 255, 255, 0.88); }
+body.access-page header.topbar nav a:hover,
+body.access-page header.topbar nav a[aria-current="page"] { color: #fff; text-decoration: underline; text-underline-offset: 4px; }
+body.access-page .access-main { width: 100%; max-width: 440px; margin: 0 auto; padding: 24px 16px 32px; }
+body.access-page .access-login-card { padding: 24px 24px 16px; border-radius: 10px; border-top: 4px solid #116593; }
+body.access-page .access-branding { margin: -24px -24px 24px; padding: 20px 16px; border-radius: 6px 6px 0 0; font-size: 24px; }
+body.access-page .access-brand-head { gap: 8px; font-size: 24px; }
+body.access-page .access-app-icon { width: 26px; height: 26px; }
+body.access-page .access-app-name { font-family: "Montserrat", system-ui, sans-serif; font-size: 24px; font-weight: 700; letter-spacing: -0.3px; }
+body.access-page .access-app-subtitle { margin-top: 4px; font-size: 12px; font-weight: 500; color: rgba(255, 255, 255, 0.72); }
+body.access-page .access-context { margin: 0 0 16px; font-size: 15px; color: #64748b; }
+body.access-page .access-field { margin-bottom: 16px; gap: 4px; }
+body.access-page .access-field-label { font-size: 14px; font-weight: 600; color: #1c3d59; }
+body.access-page .access-input-wrap input { min-height: 44px; padding: 8px 36px; font-size: 16px; border: 1px solid #d7dee6; border-radius: 6px; color: #0f172a; }
+body.access-page .access-input-wrap input::placeholder { font-size: 14px; color: #94a3b8; }
+body.access-page .access-feedback { font-size: 13px; }
+body.access-page .access-btn-submit { min-height: 46px; padding: 12px; font-size: 15px; font-weight: 700; border: none; border-radius: 6px; color: #fff; background: linear-gradient(135deg, #1c3d59, #116593); }
+body.access-page .access-forgot { margin-top: 16px; }
+body.access-page .access-forgot a { font-size: 13px; color: #116593; }
+body.access-page .access-divider { margin: 20px 0; }
+body.access-page .access-divider-text { font-size: 13px; }
+body.access-page .access-btn-register { min-height: 44px; padding: 10px; font-size: 14px; font-weight: 700; border: 2px solid #3ec26e; border-radius: 6px; color: #2fa854; background: transparent; }
+body.access-page .access-btn-register:hover { background: #3ec26e; color: #fff; }
+body.access-page .access-back { margin-top: 16px; font-size: 13px; }
+body.access-page .access-back a { color: #64748b; }
+body.access-page footer.footer { padding: 16px 24px; font-size: 12px; line-height: 1.5; color: #64748b; background: #fff; border-top: 1px solid #d7dee6; }
+
+/* Gestao: a marca da sidebar tambem fica na altura padrao (70px); uma regra
+   antiga de .gestao-brand mais abaixo no arquivo sobrepunha padding/altura. */
+.gestao-sidebar .gestao-brand,
+.gestao-sidebar .sidebar-brand {
+  box-sizing: border-box;
+  height: 70px;
+  min-height: 70px;
+  padding: 0.4rem 24px;
+  justify-content: center;
+}
