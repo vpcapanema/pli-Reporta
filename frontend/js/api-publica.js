@@ -128,7 +128,11 @@ const STATUS_LEGEND_FALLBACK = [
 
 async function loadManifest() {
   const origin = location.origin;
-  const base = `${origin}/api/public`;
+  // URL absoluta: nao passa pela reescrita de base path do backend, entao o
+  // prefixo da app (ex.: /pli-reporta) precisa entrar aqui — sem ele o
+  // manifesto era buscado na raiz do dominio (404) e a documentacao mostrava
+  // um endereco que nao existe.
+  const base = `${origin}${window.__BASE_PATH__ || ''}/api/public`;
   const baseEl = $('#api-base-url');
   if (baseEl) baseEl.textContent = base;
 

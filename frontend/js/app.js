@@ -760,7 +760,10 @@ function bindUI() {
 
 function registerSW() {
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+    // A app e servida sob um prefixo (ex.: /pli-reporta); sem ele o registro
+    // ia para a raiz do dominio e respondia 404.
+    const base = window.__BASE_PATH__ || '';
+    navigator.serviceWorker.register(`${base}/sw.js`, { scope: `${base}/` }).catch(() => {});
   }
 }
 
