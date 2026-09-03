@@ -10,6 +10,7 @@ import { getOrCreateClientId, enqueue, listQueue, dequeue, newLocalId, queueSize
 import { getCaptureNonce, postReport } from './api.js';
 import { startCamera, stopCamera, captureFrame, getPositionOnce } from './camera.js';
 import { deviceCapabilitiesMessage, isSecureReportContext } from './device-capabilities.js';
+import { mountSidebarBrands } from './sidebar-brand.js';
 import { createPickMap } from './map-pick.js';
 import { categoryIconUrl } from './gestao-markers.js';
 import { setReportIcon, mountReportPageIcons } from './report-icons.js';
@@ -768,6 +769,7 @@ function registerSW() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  mountSidebarBrands();
   bindUI();
   applyPhotoToggleUI();
   showDeviceCapabilitiesNotice();

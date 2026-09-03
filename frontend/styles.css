@@ -5872,3 +5872,37 @@ body .adm-session-bar .adm-session-role { font-size: 10px; }
 /* Topbar do login: mesma fonte dos menus do cabecalho da home do PLI Reporta
    (fonte do sistema, 13px, 600, maiusculas, espacamento 0.04em). */
 body.access-page header.topbar nav a { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* ============================================================================
+   HOME (Reportar) DENTRO DO SHELL PUBLICO — mesma sidebar do mapa e da API.
+   Coluna da direita: cabecalho do app + conteudo rolavel + rodape.
+   ============================================================================ */
+body.public-shell-page.report-page .report-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  min-width: 0;
+}
+body.public-shell-page.report-page .public-shell-main {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+body.public-shell-page.report-page footer.footer {
+  flex-shrink: 0;
+  margin-top: 0;
+}
+body.public-shell-page.report-page .pli-app-header-left { min-width: 2rem; }
+body.public-shell-page.report-page .pli-app-header .queue-badge { position: static; display: inline-block; }
+
+/* Celular: sidebar vira uma faixa no topo com o menu em linha; o conteudo
+   rola na pagina. */
+@media (max-width: 768px) {
+  body.public-shell-page.report-page { grid-template-columns: 1fr; }
+  body.public-shell-page.report-page .public-sidebar { height: auto; position: static; overflow: visible; }
+  body.public-shell-page.report-page .public-sidebar .public-sidebar-scroll { display: flex; overflow: visible; }
+  body.public-shell-page.report-page .public-sidebar .public-sidebar-block { flex: 1 1 0; border-bottom: none; padding: 6px; }
+  body.public-shell-page.report-page .public-sidebar .public-nav-item { justify-content: center; padding: 8px 4px; font-size: 12px; }
+  body.public-shell-page.report-page .public-sidebar-foot { display: none; }
+  body.public-shell-page.report-page .report-shell { height: auto; min-height: calc(100vh - 118px); }
+  body.public-shell-page.report-page .public-shell-main { overflow: visible; }
+}

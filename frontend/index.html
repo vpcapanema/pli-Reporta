@@ -11,31 +11,47 @@
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.5.0/dist/maplibre-gl.css"/>
   <link rel="stylesheet" href="/static/styles.css"/>
 </head>
-<body class="public-page report-page">
-  <header class="topbar">
-    <h1 class="topbar-brand">
-      <span class="topbar-brand-head">
-        <svg class="topbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M3 11v2a1 1 0 0 0 1 1h2.5L14 19V5L6.5 10H4a1 1 0 0 0-1 1Z"/>
-          <path d="M6.5 14v4.5a1.5 1.5 0 0 0 3 0V16"/>
-          <path d="M18 9.5a3.5 3.5 0 0 1 0 5"/>
-          <path d="M20.5 7a7 7 0 0 1 0 10"/>
-        </svg>
-        <span class="topbar-brand-name">PLI – REPORTA</span>
-      </span>
-      <span class="topbar-brand-sub">Reporte cidadão de tráfego · PLI-SP</span>
-    </h1>
-    <nav>
-      <span id="queue-badge" class="queue-badge" hidden></span>
-      <a href="/">Reportar</a>
-      <a href="/mapa">Mapa público</a>
-      <a href="/api-publica">API pública</a>
-      <a href="/acesso">Acesso Restrito</a>
-    </nav>
-  </header>
+<body class="public-page report-page public-shell-page">
+  <!-- Sidebar publica unica (mesma do mapa e da API): Mapa -> API -> Reportar. -->
+  <aside class="public-sidebar" id="public-sidebar" aria-label="Navegação">
+    <div class="sidebar-brand public-brand">
+      <div class="sidebar-brand-head">
+        <span class="sidebar-brand-mark" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true"><path d="M3 11v2a1 1 0 0 0 1 1h2.5L14 19V5L6.5 10H4a1 1 0 0 0-1 1Z"/><path d="M6.5 14v4.5a1.5 1.5 0 0 0 3 0V16"/><path d="M18 9.5a3.5 3.5 0 0 1 0 5"/><path d="M20.5 7a7 7 0 0 1 0 10"/></svg></span>
+        <span class="sidebar-brand-name">PLI – REPORTA</span>
+      </div>
+      <p class="sidebar-brand-sub">Reporte cidadão de tráfego · PLI-SP</p>
+    </div>
+    <div class="public-sidebar-scroll">
+      <section class="public-sidebar-block" aria-label="Mapa público">
+        <a class="public-nav-item" href="/mapa"><span class="public-nav-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg></span><span>Mapa público</span></a>
+      </section>
+      <section class="public-sidebar-block" aria-label="API pública">
+        <a class="public-nav-item" href="/api-publica"><span class="public-nav-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span><span>API pública</span></a>
+      </section>
+      <section class="public-sidebar-block" aria-label="Reportar">
+        <span class="public-nav-item active" aria-current="page"><span class="public-nav-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span><span>Reportar</span></span>
+      </section>
+    </div>
+    <footer class="public-sidebar-foot">
+      <p class="sidebar-credit">Desenvolvido por VPC-WebSistemas e Geoinformação<br>Geoprocessamento Inteligente</p>
+    </footer>
+  </aside>
 
-  <main>
+  <div class="report-shell">
+    <header class="pli-app-header">
+      <div class="pli-app-header-left">
+        <span id="queue-badge" class="queue-badge" hidden></span>
+      </div>
+      <h2 class="pli-app-header-title">PLI — REPORTA</h2>
+      <div class="pli-app-header-right">
+        <a href="/acesso" class="pli-app-header-access" title="Área restrita para gestores">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Acesso Restrito
+        </a>
+      </div>
+    </header>
+
+  <main class="public-shell-main">
     <p id="device-cap-banner" class="device-cap-banner" hidden role="status"></p>
     <!-- Etapa 0: tipo de interação -->
     <section id="step-0" class="card">
@@ -193,6 +209,7 @@
       <a href="/acesso">Acesso Restrito</a>
     </div>
   </footer>
+  </div><!-- /report-shell -->
 
   <div id="toast" class="toast"></div>
 
