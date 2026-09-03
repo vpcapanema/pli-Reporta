@@ -207,7 +207,7 @@ async function loadManifest() {
 document.addEventListener('DOMContentLoaded', () => {
   mountSidebarBrands();
   bindSidebarCollapse('panel-api-publica', { defaultExpanded: true });
-  mountPublicNavSecondary('#public-sidebar-nav', 'api');
+  mountPublicNavSecondary('#public-sidebar-nav', 'api', '#public-sidebar-nav-before');
   renderPopupSpec();
   loadManifest();
 });

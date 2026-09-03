@@ -7,11 +7,23 @@ export const PUBLIC_NAV_ICONS = {
   relatorios: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
 };
 
+/**
+ * Menu publico unico: mesma ordem em todas as paginas publicas. O item da
+ * pagina atual fica no lugar dele (com o conteudo proprio da pagina); os demais
+ * sao links. Os href sao relativos a raiz da app e montados em runtime, entao
+ * precisam do base path — o backend so reescreve links ja presentes no HTML.
+ */
 const NAV_ITEMS = [
   { id: 'mapa', href: '/mapa', label: 'Mapa público', icon: 'mapa' },
   { id: 'api', href: '/api-publica', label: 'API pública', icon: 'api' },
   { id: 'reportar', href: '/', label: 'Reportar', icon: 'reportar' },
 ];
+
+function appPath(path) {
+  const prefix = window.__BASE_PATH__ || '/pli-reporta';
+  if (!prefix || path.startsWith(`${prefix}/`) || path === prefix) return path;
+  return path === '/' ? `${prefix}/` : `${prefix}${path}`;
+}
 
 function navBlock(item, active) {
   const icon = PUBLIC_NAV_ICONS[item.icon];
@@ -26,7 +38,7 @@ function navBlock(item, active) {
   }
   return `
     <section class="public-sidebar-block" aria-label="${item.label}">
-      <a class="public-nav-item" href="${item.href}">
+      <a class="public-nav-item" href="${appPath(item.href)}">
         <span class="public-nav-icon" aria-hidden="true">${icon}</span>
         <span>${item.label}</span>
       </a>
@@ -40,13 +52,19 @@ export function mountPublicNav(container, active) {
   el.innerHTML = NAV_ITEMS.map((item) => navBlock(item, active)).join('');
 }
 
-/** Itens de navegação exceto o da página atual (menu primário fica no HTML). */
-export function mountPublicNavSecondary(container, activeId) {
-  const el = typeof container === 'string' ? document.querySelector(container) : container;
-  if (!el) return;
-  el.innerHTML = NAV_ITEMS.filter((item) => item.id !== activeId)
-    .map((item) => navBlock(item, null))
-    .join('');
+/**
+ * Itens de navegação exceto o da página atual, que fica no HTML com o proprio
+ * conteudo. Para a ordem do menu ser a mesma em toda pagina publica, os itens
+ * anteriores ao ativo vao para `before` e os posteriores para `after`.
+ */
+export function mountPublicNavSecondary(after, activeId, before = null) {
+  const elAfter = typeof after === 'string' ? document.querySelector(after) : after;
+  const elBefore = typeof before === 'string' ? document.querySelector(before) : before;
+  const idx = NAV_ITEMS.findIndex((item) => item.id === activeId);
+  const antes = idx >= 0 ? NAV_ITEMS.slice(0, idx) : [];
+  const depois = idx >= 0 ? NAV_ITEMS.slice(idx + 1) : NAV_ITEMS;
+  if (elBefore) elBefore.innerHTML = antes.map((item) => navBlock(item, null)).join('');
+  if (elAfter) elAfter.innerHTML = (elBefore ? depois : [...antes, ...depois]).map((item) => navBlock(item, null)).join('');
 }
 
 /**
