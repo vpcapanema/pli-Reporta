@@ -137,7 +137,12 @@ function selectEventCategory(id) {
   document.querySelectorAll('#cat-grid button').forEach((b) => {
     b.classList.toggle('selected', b.dataset.id === id);
   });
-  $('#btn-step1-evento').disabled = false;
+  const continueButton = $('#btn-step1-evento');
+  const requiresConfirmation = id === 'outro';
+  continueButton.hidden = !requiresConfirmation;
+  continueButton.disabled = !requiresConfirmation;
+
+  if (!requiresConfirmation) openCameraStep();
 }
 
 function selectManifType(id) {
@@ -656,6 +661,7 @@ function resetForNext() {
   refreshManifCharCount();
   refreshDescCharCount();
   $('#btn-step1-evento').disabled = true;
+  $('#btn-step1-evento').hidden = true;
   $('#btn-step1-manifestacao').disabled = true;
   applyPhotoToggleUI();
   $('#preview-img').hidden = true;

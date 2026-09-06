@@ -323,6 +323,23 @@ button[disabled] {
   flex: 1;
 }
 
+#step-1-evento .row {
+  align-items: center;
+  justify-content: space-between;
+}
+
+#step-1-evento #btn-back-0 {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 40px;
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+#step-1-evento #btn-step1-evento {
+  flex: 1;
+}
+
 /* Grade de categorias — sem emojis, marcador tipográfico discreto */
 .cat-grid {
   display: grid;
@@ -1822,6 +1839,10 @@ button.public-nav-item-toggle.active {
   color: #fff;
 }
 
+.access-label-short {
+  display: none;
+}
+
 body.viewer-page .gestao-map-panel .viewer-legend {
   z-index: 500;
 }
@@ -2726,6 +2747,10 @@ body.viewer-page .viewer-stats {
 
   .row {
     flex-direction: column;
+  }
+
+  #step-1-evento .row {
+    flex-direction: row;
   }
 
   #map,
@@ -5913,4 +5938,9 @@ body.public-shell-page.report-page .pli-app-header .queue-badge:not([hidden]) { 
   body.public-shell-page.report-page .pli-app-header { padding: 0.5rem 0.75rem; gap: 0.5rem; }
   body.public-shell-page.report-page .pli-app-header-title { font-size: 1rem; white-space: nowrap; }
   body.public-shell-page.report-page .pli-app-header-access { white-space: nowrap; font-size: 11px; padding: 6px 8px; }
+}
+
+@media (max-width: 339px) {
+  body.public-shell-page.report-page .access-label-full { display: none; }
+  body.public-shell-page.report-page .access-label-short { display: inline; }
 }
