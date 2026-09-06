@@ -43,16 +43,16 @@
         <span id="queue-badge" class="queue-badge" hidden></span>
       </div>
       <h2 class="pli-app-header-title">PLI — REPORTA</h2>
-      <div class="pli-app-header-right">
-        <a href="/acesso" class="pli-app-header-access" title="Área restrita para gestores">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          <span class="access-label-full">Acesso Restrito</span>
-          <span class="access-label-short">Acesso</span>
-        </a>
-      </div>
+      <div class="pli-app-header-right"></div>
     </header>
 
   <main class="public-shell-main">
+    <div class="public-page-toolbar">
+      <a href="/acesso" class="public-access-link" title="Área restrita para gestores">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <span>Acesso Restrito</span>
+      </a>
+    </div>
     <p id="device-cap-banner" class="device-cap-banner" hidden role="status"></p>
     <!-- Etapa 0: tipo de interação -->
     <section id="step-0" class="card">
@@ -73,7 +73,15 @@
           <span class="label">Qual o evento?</span>
           <p class="help">Toque na categoria que mais se aproxima.</p>
           <div id="cat-grid" class="cat-grid"></div>
-          <div class="row" style="margin-top:14px">
+          <div id="outro-description-wrap" class="event-description-wrap" hidden>
+            <label class="label" for="txt-evento-outro">Descreva o evento (obrigatório)</label>
+            <div class="field-counter-wrap">
+              <textarea id="txt-evento-outro" class="field field-counted" maxlength="500" minlength="15"
+                placeholder="Descreva o evento"></textarea>
+              <span class="field-char-count" id="txt-evento-outro-count" aria-live="polite">0 / 500</span>
+            </div>
+          </div>
+          <div class="row event-actions">
             <button class="secondary" id="btn-back-0">Voltar</button>
             <button id="btn-step1-evento" disabled hidden>Continuar</button>
           </div>
@@ -93,11 +101,13 @@
         <section id="step-1-manifestacao" class="branch-panel" hidden>
           <span class="label">Qual o tipo?</span>
           <div id="manif-grid" class="cat-grid manif-grid"></div>
-          <label class="label" for="txt-manif" style="margin-top:12px">Descreva (obrigatório)</label>
-          <div class="field-counter-wrap">
-            <textarea id="txt-manif" class="field field-counted" maxlength="500" minlength="15"
-              placeholder="Conte o que você elogiou, sugere ou reclama"></textarea>
-            <span class="field-char-count" id="txt-manif-count" aria-live="polite">0 / 500</span>
+          <div id="manifestacao-description-wrap" hidden>
+            <label class="label manifestation-description-label" for="txt-manif">Descreva (obrigatório)</label>
+            <div class="field-counter-wrap">
+              <textarea id="txt-manif" class="field field-counted" maxlength="500" minlength="15"
+                placeholder="Conte o que você elogiou, sugere ou reclama"></textarea>
+              <span class="field-char-count" id="txt-manif-count" aria-live="polite">0 / 500</span>
+            </div>
           </div>
 
           <div class="photo-toggle-wrap">
@@ -111,7 +121,7 @@
             </button>
           </div>
 
-          <div class="row" style="margin-top:14px">
+          <div class="row manifestation-actions">
             <button class="secondary" id="btn-back-0b">Voltar</button>
             <button id="btn-step1-manifestacao" disabled>Continuar</button>
           </div>
@@ -128,10 +138,10 @@
       <video id="cam-video" class="preview" autoplay playsinline muted></video>
       <p id="cam-status" class="muted"></p>
       <input id="fallback-input" type="file" accept="image/*" capture="environment" hidden/>
-      <button type="button" id="btn-fallback-camera" class="secondary" hidden style="margin-top:8px;width:100%">
+      <button type="button" id="btn-fallback-camera" class="secondary fallback-camera-button" hidden>
         Abrir câmera do aparelho
       </button>
-      <div class="row" style="margin-top:10px">
+      <div class="row camera-actions">
         <button class="secondary" id="btn-back">Voltar</button>
         <button id="btn-shoot" disabled>Capturar</button>
       </div>
@@ -161,13 +171,13 @@
           <span data-report-icon="document"></span>
           <span>Sem registro fotográfico — apenas texto e coordenada GPS.</span>
         </div>
-        <img id="preview-img" class="preview" alt="prévia" style="margin-bottom:10px" hidden/>
+        <img id="preview-img" class="preview preview-image" alt="prévia" hidden/>
       </div>
 
       <details id="extras-details" class="extras">
         <summary>Ajustar local ou detalhes</summary>
         <div id="pickmap"></div>
-        <p id="picked-line" class="sidebar-hint" style="margin-top:6px"></p>
+        <p id="picked-line" class="sidebar-hint picked-line"></p>
         <div id="magnitude-wrap" hidden>
           <label class="label" for="sel-magnitude">Gravidade</label>
           <select id="sel-magnitude" class="field">
@@ -185,7 +195,7 @@
         </div>
       </details>
 
-      <button id="btn-submit" style="margin-top:14px">Enviar</button>
+      <button id="btn-submit" class="submit-button">Enviar</button>
       <p class="help" id="offline-help">Sem conexão, o envio é salvo neste aparelho e transmitido automaticamente em segundo plano quando a internet voltar.</p>
     </section>
 
@@ -197,17 +207,16 @@
       </div>
       <p id="result-message" class="help"></p>
       <p class="muted">Referência: <code id="result-id"></code></p>
-      <button id="btn-new" style="margin-top:14px">Fazer outro reporte</button>
+      <button id="btn-new" class="new-report-button">Fazer outro reporte</button>
     </section>
   </main>
 
   <footer class="footer">
     <div>Plano de Logística e Investimentos do Estado de São Paulo</div>
     <div class="footer-credit">Desenvolvido por VPC-WebSistemas e Geoinformação<br>Geoprocessamento Inteligente</div>
-    <div style="margin-top:4px">
+    <div class="footer-links">
       <a href="/api-publica">API pública</a>
       <a href="/mapa">Mapa público</a>
-      <a href="/acesso">Acesso Restrito</a>
     </div>
   </footer>
   </div><!-- /report-shell -->

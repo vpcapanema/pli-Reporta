@@ -530,10 +530,26 @@ function renderPublicLegend() {
   }).join("");
 
   el.innerHTML = `
-    <h3>Legenda</h3>
-    ${buildLegendSymbolsBlock()}
-    <div class="gestao-legend-list">${statuses}</div>
+    <div class="legend-header">
+      <h3>Legenda</h3>
+      <button type="button" class="legend-toggle" aria-expanded="true" aria-controls="viewer-legend-content" aria-label="Recolher legenda" title="Recolher legenda">
+        <span class="legend-toggle-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+      </button>
+    </div>
+    <div id="viewer-legend-content" class="legend-content">
+      ${buildLegendSymbolsBlock()}
+      <div class="gestao-legend-list">${statuses}</div>
+    </div>
   `;
+  const toggle = el.querySelector(".legend-toggle");
+  const content = el.querySelector("#viewer-legend-content");
+  toggle?.addEventListener("click", () => {
+    const expanded = toggle.getAttribute("aria-expanded") === "true";
+    toggle.setAttribute("aria-expanded", String(!expanded));
+    toggle.setAttribute("aria-label", expanded ? "Expandir legenda" : "Recolher legenda");
+    toggle.setAttribute("title", expanded ? "Expandir legenda" : "Recolher legenda");
+    if (content) content.hidden = expanded;
+  });
 }
 
 function bindSidebarToggle() {
@@ -562,6 +578,7 @@ map.on("load", async () => {
     catalog = await fetchCatalog();
     await preloadEventIcons(catalog);
     bindSidebarCollapse("panel-mapa", { defaultExpanded: true });
+    bindSidebarCollapse("panel-legenda", { defaultExpanded: false });
     bindRelatoriosCollapse();
     bindSidebarToggle();
     renderLayerControls({ loading: true, forceRebuild: true });

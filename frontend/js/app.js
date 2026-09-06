@@ -139,14 +139,35 @@ function selectEventCategory(id) {
   });
   const continueButton = $('#btn-step1-evento');
   const requiresConfirmation = id === 'outro';
+  const descriptionWrap = $('#outro-description-wrap');
   continueButton.hidden = !requiresConfirmation;
-  continueButton.disabled = !requiresConfirmation;
+  descriptionWrap.hidden = !requiresConfirmation;
+  continueButton.disabled = requiresConfirmation && !isOutroDescriptionValid();
 
   if (!requiresConfirmation) openCameraStep();
 }
 
+function isOutroDescriptionValid() {
+  return $('#txt-evento-outro').value.trim().length >= 15;
+}
+
+async function continueOutroEventStep() {
+  const button = $('#btn-step1-evento');
+  if (!isOutroDescriptionValid()) return;
+  button.disabled = true;
+  button.textContent = 'Formatando texto…';
+  try {
+    await applyFormattedText($('#txt-evento-outro').value.trim(), $('#txt-evento-outro'));
+    await openCameraStep();
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Continuar';
+  }
+}
+
 function selectManifType(id) {
   state.category = id;
+  $('#manifestacao-description-wrap').hidden = false;
   document.querySelectorAll('#manif-grid button').forEach((b) => {
     b.classList.toggle('selected', b.dataset.id === id);
   });
@@ -197,6 +218,9 @@ async function prepareDescriptionsForSubmit() {
   if (state.interactionType === 'manifestacao') {
     await prepareManifestacaoDescription();
   }
+  if (state.interactionType === 'evento_trafego' && state.category === 'outro') {
+    await applyFormattedText($('#txt-evento-outro').value.trim(), $('#txt-evento-outro'));
+  }
   await prepareExtraDescription();
 }
 
@@ -208,7 +232,10 @@ function buildReportDescription() {
     if (main && extra) return `${main}\n${extra}`;
     return main || extra;
   }
-  return $('#txt-desc').value.trim();
+  const outro = state.category === 'outro' ? $('#txt-evento-outro').value.trim() : '';
+  const extra = $('#txt-desc').value.trim();
+  if (outro && extra) return `${outro}\n${extra}`;
+  return outro || extra;
 }
 
 function buildPayload() {
@@ -658,8 +685,12 @@ function resetForNext() {
   state.pickMap = null;
   $('#txt-desc').value = '';
   $('#txt-manif').value = '';
+  $('#manifestacao-description-wrap').hidden = true;
+  $('#txt-evento-outro').value = '';
+  $('#outro-description-wrap').hidden = true;
   refreshManifCharCount();
   refreshDescCharCount();
+  refreshOutroCharCount();
   $('#btn-step1-evento').disabled = true;
   $('#btn-step1-evento').hidden = true;
   $('#btn-step1-manifestacao').disabled = true;
@@ -725,6 +756,7 @@ async function onFallbackFile(ev) {
 
 let refreshManifCharCount = () => {};
 let refreshDescCharCount = () => {};
+let refreshOutroCharCount = () => {};
 
 function bindUI() {
   mountReportPageIcons();
@@ -732,6 +764,7 @@ function bindUI() {
   renderManifTypes();
   refreshManifCharCount = bindCharCounter('#txt-manif', '#txt-manif-count');
   refreshDescCharCount = bindCharCounter('#txt-desc', '#txt-desc-count');
+  refreshOutroCharCount = bindCharCounter('#txt-evento-outro', '#txt-evento-outro-count');
 
   $('#branch-evento').addEventListener('click', () => startBranch('evento_trafego'));
   $('#branch-manifestacao').addEventListener('click', () => startBranch('manifestacao'));
@@ -739,7 +772,10 @@ function bindUI() {
   $('#btn-back-0').addEventListener('click', resetForNext);
   $('#btn-back-0b').addEventListener('click', resetForNext);
 
-  $('#btn-step1-evento').addEventListener('click', openCameraStep);
+  $('#txt-evento-outro').addEventListener('input', () => {
+    $('#btn-step1-evento').disabled = !isOutroDescriptionValid();
+  });
+  $('#btn-step1-evento').addEventListener('click', continueOutroEventStep);
   $('#btn-step1-manifestacao').addEventListener('click', () => {
     continueManifestacaoStep1();
   });
